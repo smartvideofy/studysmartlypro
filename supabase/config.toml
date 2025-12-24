@@ -1,1 +1,4 @@
 project_id = "ngcmmvyebvekyutbixee"
+
+[functions.ai-notes]
+verify_jwt = false

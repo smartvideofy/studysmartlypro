@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft,
@@ -33,7 +33,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -45,6 +44,8 @@ import {
 } from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
+import { AISummaryModal } from "@/components/notes/AISummaryModal";
+import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
 import { 
   useNote, 
   useCreateNote, 
@@ -57,6 +58,7 @@ import {
   useRemoveTagFromNote,
   useCreateTag
 } from "@/hooks/useNotes";
+import { useAISummarize, useAIGenerateFlashcards } from "@/hooks/useAINotes";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 
@@ -83,11 +85,13 @@ export default function NoteEditor() {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [newTagInput, setNewTagInput] = useState("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [flashcardsOpen, setFlashcardsOpen] = useState(false);
 
   const { data: note, isLoading: noteLoading } = useNote(isNewNote ? "" : id!);
   const { data: folders } = useFolders();
   const { data: tags } = useTags();
-  const { data: noteTags, isLoading: noteTagsLoading } = useNoteTags(isNewNote ? "" : id!);
+  const { data: noteTags } = useNoteTags(isNewNote ? "" : id!);
   
   const createNote = useCreateNote();
   const updateNote = useUpdateNote();
@@ -95,6 +99,10 @@ export default function NoteEditor() {
   const createTag = useCreateTag();
   const addTagToNote = useAddTagToNote();
   const removeTagFromNote = useRemoveTagFromNote();
+
+  // AI hooks
+  const { summarize, isLoading: isSummarizing, summary, setSummary } = useAISummarize();
+  const { generateFlashcards, isLoading: isGenerating, flashcards, setFlashcards } = useAIGenerateFlashcards();
 
   // Load note data
   useEffect(() => {
@@ -188,6 +196,16 @@ export default function NoteEditor() {
     }
   };
 
+  const handleSummarize = async () => {
+    setSummaryOpen(true);
+    await summarize(title, content);
+  };
+
+  const handleGenerateFlashcards = async () => {
+    setFlashcardsOpen(true);
+    await generateFlashcards(title, content);
+  };
+
   const isSaving = createNote.isPending || updateNote.isPending;
   const isLoading = noteLoading && !isNewNote;
 
@@ -238,12 +256,30 @@ export default function NoteEditor() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" disabled={isNewNote}>
-              <Sparkles className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={isNewNote || !content.trim() || isSummarizing}
+              onClick={handleSummarize}
+            >
+              {isSummarizing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Sparkles className="w-4 h-4" />
+              )}
               <span className="hidden sm:inline">AI Summarize</span>
             </Button>
-            <Button variant="outline" size="sm" disabled={isNewNote}>
-              <Layers className="w-4 h-4" />
+            <Button 
+              variant="outline" 
+              size="sm" 
+              disabled={isNewNote || !content.trim() || isGenerating}
+              onClick={handleGenerateFlashcards}
+            >
+              {isGenerating ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Layers className="w-4 h-4" />
+              )}
               <span className="hidden sm:inline">Generate Flashcards</span>
             </Button>
             <Button 
@@ -450,12 +486,32 @@ export default function NoteEditor() {
                 <span className="text-sm font-medium">AI Actions</span>
               </div>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start" disabled={isNewNote}>
-                  <Sparkles className="w-4 h-4 text-accent" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start" 
+                  disabled={isNewNote || !content.trim() || isSummarizing}
+                  onClick={handleSummarize}
+                >
+                  {isSummarizing ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-accent" />
+                  ) : (
+                    <Sparkles className="w-4 h-4 text-accent" />
+                  )}
                   Summarize Note
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start" disabled={isNewNote}>
-                  <Layers className="w-4 h-4 text-primary" />
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="w-full justify-start" 
+                  disabled={isNewNote || !content.trim() || isGenerating}
+                  onClick={handleGenerateFlashcards}
+                >
+                  {isGenerating ? (
+                    <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                  ) : (
+                    <Layers className="w-4 h-4 text-primary" />
+                  )}
                   Generate Flashcards
                 </Button>
               </div>
@@ -472,6 +528,31 @@ export default function NoteEditor() {
         description="Are you sure you want to delete this note? This action cannot be undone."
         onConfirm={handleDelete}
         isLoading={deleteNote.isPending}
+      />
+
+      {/* AI Summary Modal */}
+      <AISummaryModal
+        open={summaryOpen}
+        onOpenChange={(open) => {
+          setSummaryOpen(open);
+          if (!open) setSummary(null);
+        }}
+        summary={summary}
+        isLoading={isSummarizing}
+        noteTitle={title}
+      />
+
+      {/* AI Flashcards Modal */}
+      <AIFlashcardsModal
+        open={flashcardsOpen}
+        onOpenChange={(open) => {
+          setFlashcardsOpen(open);
+          if (!open) setFlashcards(null);
+        }}
+        flashcards={flashcards}
+        isLoading={isGenerating}
+        noteTitle={title}
+        noteId={id || ""}
       />
     </DashboardLayout>
   );
