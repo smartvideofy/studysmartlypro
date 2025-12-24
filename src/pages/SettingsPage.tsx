@@ -1,18 +1,16 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { 
   User,
-  Mail,
   Bell,
   Moon,
   Sun,
-  Globe,
   Shield,
-  CreditCard,
   Crown,
   Check,
-  ChevronRight,
-  LogOut
+  LogOut,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
+import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -41,14 +43,14 @@ const plans = [
     price: "$0",
     period: "/month",
     features: ["5 notes", "50 flashcards", "Basic AI features"],
-    current: false,
+    current: true,
   },
   {
     name: "Pro",
     price: "$9.99",
     period: "/month",
     features: ["Unlimited notes", "Unlimited flashcards", "Advanced AI", "Priority support"],
-    current: true,
+    current: false,
     popular: true,
   },
   {
@@ -61,10 +63,62 @@ const plans = [
 ];
 
 export default function SettingsPage() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [emailNotifications, setEmailNotifications] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [studyReminders, setStudyReminders] = useState(true);
+  const navigate = useNavigate();
+  const { user, signOut } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const updateProfile = useUpdateProfile();
+  const { theme, setTheme } = useTheme();
+
+  const [fullName, setFullName] = useState("");
+  const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Sync state with profile data
+  useEffect(() => {
+    if (profile) {
+      setFullName(profile.full_name || "");
+      setNotificationEnabled(profile.notification_enabled ?? true);
+    }
+  }, [profile]);
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      await updateProfile.mutateAsync({
+        full_name: fullName,
+        notification_enabled: notificationEnabled,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/auth");
+  };
+
+  const isDarkMode = theme === "dark";
+
+  const getInitials = () => {
+    if (fullName) {
+      return fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    }
+    if (user?.email) {
+      return user.email[0].toUpperCase();
+    }
+    return "U";
+  };
+
+  if (profileLoading) {
+    return (
+      <DashboardLayout title="Settings">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Settings">
@@ -87,25 +141,50 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
                 <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
-                  JS
+                  {getInitials()}
                 </div>
                 <div>
-                  <Button variant="outline" size="sm">Change Photo</Button>
+                  <p className="text-sm text-muted-foreground mb-1">
+                    {user?.email}
+                  </p>
+                  <Button variant="outline" size="sm" disabled>
+                    Change Photo
+                  </Button>
                 </div>
               </div>
               
               <div className="grid sm:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" defaultValue="John Student" className="mt-1.5" />
+                  <Input 
+                    id="name" 
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your name"
+                    className="mt-1.5" 
+                  />
                 </div>
                 <div>
                   <Label htmlFor="email">Email</Label>
-                  <Input id="email" type="email" defaultValue="john@example.com" className="mt-1.5" />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={user?.email || ""} 
+                    disabled
+                    className="mt-1.5" 
+                  />
                 </div>
               </div>
               
-              <Button variant="hero" size="sm">Save Changes</Button>
+              <Button 
+                variant="hero" 
+                size="sm"
+                onClick={handleSaveProfile}
+                disabled={isSaving}
+              >
+                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                Save Changes
+              </Button>
             </CardContent>
           </Card>
         </motion.div>
@@ -123,26 +202,16 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">Receive updates via email</p>
-                </div>
-                <Switch checked={emailNotifications} onCheckedChange={setEmailNotifications} />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Push Notifications</p>
-                  <p className="text-sm text-muted-foreground">Receive push notifications in browser</p>
-                </div>
-                <Switch checked={pushNotifications} onCheckedChange={setPushNotifications} />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
                   <p className="font-medium">Study Reminders</p>
-                  <p className="text-sm text-muted-foreground">Daily reminders to review flashcards</p>
+                  <p className="text-sm text-muted-foreground">Receive reminders to study</p>
                 </div>
-                <Switch checked={studyReminders} onCheckedChange={setStudyReminders} />
+                <Switch 
+                  checked={notificationEnabled} 
+                  onCheckedChange={(checked) => {
+                    setNotificationEnabled(checked);
+                    updateProfile.mutate({ notification_enabled: checked });
+                  }} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -153,7 +222,7 @@ export default function SettingsPage() {
           <Card variant="elevated">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                {darkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                 Appearance
               </CardTitle>
               <CardDescription>Customize how the app looks</CardDescription>
@@ -164,7 +233,10 @@ export default function SettingsPage() {
                   <p className="font-medium">Dark Mode</p>
                   <p className="text-sm text-muted-foreground">Switch between light and dark theme</p>
                 </div>
-                <Switch checked={darkMode} onCheckedChange={setDarkMode} />
+                <Switch 
+                  checked={isDarkMode} 
+                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")} 
+                />
               </div>
             </CardContent>
           </Card>
@@ -239,8 +311,12 @@ export default function SettingsPage() {
                 <p className="font-medium">Sign Out</p>
                 <p className="text-sm text-muted-foreground">Log out of your account</p>
               </div>
-              <Button variant="outline" className="border-destructive/30 text-destructive hover:bg-destructive/10">
-                <LogOut className="w-4 h-4" />
+              <Button 
+                variant="outline" 
+                className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                onClick={handleSignOut}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
                 Sign Out
               </Button>
             </CardContent>

@@ -6,15 +6,16 @@ import {
   Flame,
   Brain,
   Trophy,
-  Calendar,
   BarChart3,
   CheckCircle2,
-  Layers
+  Layers,
+  Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useStudyStats } from "@/hooks/useStudySessions";
+import { useDecks } from "@/hooks/useFlashcards";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -29,32 +30,75 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const weeklyData = [
-  { day: "Mon", minutes: 45, cards: 32 },
-  { day: "Tue", minutes: 60, cards: 48 },
-  { day: "Wed", minutes: 30, cards: 22 },
-  { day: "Thu", minutes: 75, cards: 55 },
-  { day: "Fri", minutes: 50, cards: 38 },
-  { day: "Sat", minutes: 20, cards: 15 },
-  { day: "Sun", minutes: 65, cards: 42 },
-];
-
-const achievements = [
-  { icon: Flame, title: "7 Day Streak", description: "Study every day for a week", unlocked: true },
-  { icon: Brain, title: "Memory Master", description: "Master 100 flashcards", unlocked: true },
-  { icon: Trophy, title: "Perfect Score", description: "Get 100% on a quiz", unlocked: true },
-  { icon: Target, title: "Goal Crusher", description: "Complete daily goal 30 times", unlocked: false },
-];
-
-const subjectProgress = [
-  { name: "Chemistry", mastered: 87, total: 120, color: "bg-primary" },
-  { name: "Biology", mastered: 45, total: 85, color: "bg-success" },
-  { name: "Physics", mastered: 52, total: 64, color: "bg-accent" },
-  { name: "History", mastered: 98, total: 150, color: "bg-warning" },
+// Static achievements - these could be computed from stats in the future
+const getAchievements = (stats: any, deckCount: number) => [
+  { 
+    icon: Flame, 
+    title: "7 Day Streak", 
+    description: "Study every day for a week", 
+    unlocked: (stats?.streak || 0) >= 7 
+  },
+  { 
+    icon: Brain, 
+    title: "Memory Master", 
+    description: "Master 100 flashcards", 
+    unlocked: (stats?.totalCorrect || 0) >= 100 
+  },
+  { 
+    icon: Trophy, 
+    title: "First Session", 
+    description: "Complete your first study session", 
+    unlocked: (stats?.totalSessions || 0) >= 1 
+  },
+  { 
+    icon: Target, 
+    title: "Deck Builder", 
+    description: "Create 5 flashcard decks", 
+    unlocked: deckCount >= 5 
+  },
 ];
 
 export default function ProgressPage() {
-  const maxMinutes = Math.max(...weeklyData.map(d => d.minutes));
+  const { data: stats, isLoading: statsLoading } = useStudyStats();
+  const { data: decks, isLoading: decksLoading } = useDecks();
+
+  const isLoading = statsLoading || decksLoading;
+
+  // Calculate subject/deck progress
+  const deckProgress = decks?.map((deck, i) => {
+    const colors = ["bg-primary", "bg-success", "bg-accent", "bg-warning"];
+    return {
+      name: deck.name,
+      total: deck.card_count || 0,
+      mastered: Math.floor((deck.card_count || 0) * 0.7), // Placeholder - would need actual mastery data
+      color: colors[i % colors.length],
+    };
+  }) || [];
+
+  const weeklyData = stats?.weekData || [];
+  const maxMinutes = Math.max(...weeklyData.map(d => d.minutes), 1);
+  const totalWeekMinutes = weeklyData.reduce((sum, d) => sum + d.minutes, 0);
+  const totalWeekCards = weeklyData.reduce((sum, d) => sum + d.cards, 0);
+
+  const achievements = getAchievements(stats, decks?.length || 0);
+
+  // Format time display
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Progress">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Progress">
@@ -75,7 +119,9 @@ export default function ProgressPage() {
                 <Clock className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">12.5h</p>
+                <p className="text-2xl font-bold font-display">
+                  {formatTime(stats?.totalTimeMinutes || 0)}
+                </p>
                 <p className="text-xs text-muted-foreground">Total Study Time</p>
               </div>
             </div>
@@ -87,8 +133,10 @@ export default function ProgressPage() {
                 <CheckCircle2 className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">282</p>
-                <p className="text-xs text-muted-foreground">Cards Mastered</p>
+                <p className="text-2xl font-bold font-display">
+                  {stats?.totalCardsStudied || 0}
+                </p>
+                <p className="text-xs text-muted-foreground">Cards Studied</p>
               </div>
             </div>
           </Card>
@@ -99,7 +147,9 @@ export default function ProgressPage() {
                 <Flame className="w-5 h-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">7</p>
+                <p className="text-2xl font-bold font-display">
+                  {stats?.streak || 0}
+                </p>
                 <p className="text-xs text-muted-foreground">Day Streak</p>
               </div>
             </div>
@@ -111,8 +161,10 @@ export default function ProgressPage() {
                 <Target className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">85%</p>
-                <p className="text-xs text-muted-foreground">Retention Rate</p>
+                <p className="text-2xl font-bold font-display">
+                  {stats?.accuracy || 0}%
+                </p>
+                <p className="text-xs text-muted-foreground">Accuracy Rate</p>
               </div>
             </div>
           </Card>
@@ -130,34 +182,45 @@ export default function ProgressPage() {
                 <CardDescription>Your study time this week</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-end justify-between gap-2 h-48">
-                  {weeklyData.map((data, i) => {
-                    const height = (data.minutes / maxMinutes) * 100;
-                    const isToday = i === new Date().getDay() - 1;
-                    
-                    return (
-                      <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
-                        <div className="w-full h-40 bg-secondary rounded-lg relative overflow-hidden">
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: `${height}%` }}
-                            transition={{ delay: i * 0.05, duration: 0.5 }}
-                            className={`absolute bottom-0 left-0 right-0 rounded-lg ${
-                              isToday ? "bg-primary" : "bg-primary/50"
-                            }`}
-                          />
-                        </div>
-                        <span className={`text-xs ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                          {data.day}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
-                  <span>Total: 5h 45m</span>
-                  <span>252 cards reviewed</span>
-                </div>
+                {weeklyData.length > 0 ? (
+                  <>
+                    <div className="flex items-end justify-between gap-2 h-48">
+                      {weeklyData.map((data, i) => {
+                        const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
+                        const isToday = i === weeklyData.length - 1;
+                        
+                        return (
+                          <div key={data.day} className="flex-1 flex flex-col items-center gap-2">
+                            <div className="w-full h-40 bg-secondary rounded-lg relative overflow-hidden">
+                              <motion.div
+                                initial={{ height: 0 }}
+                                animate={{ height: `${height}%` }}
+                                transition={{ delay: i * 0.05, duration: 0.5 }}
+                                className={`absolute bottom-0 left-0 right-0 rounded-lg ${
+                                  isToday ? "bg-primary" : "bg-primary/50"
+                                }`}
+                              />
+                            </div>
+                            <span className={`text-xs ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                              {data.day}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex items-center justify-between mt-4 text-sm text-muted-foreground">
+                      <span>Total: {formatTime(totalWeekMinutes)}</span>
+                      <span>{totalWeekCards} cards reviewed</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground">
+                    <div className="text-center">
+                      <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                      <p>No study activity yet this week</p>
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -168,33 +231,40 @@ export default function ProgressPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Layers className="w-5 h-5 text-accent" />
-                  Subject Progress
+                  Deck Progress
                 </CardTitle>
-                <CardDescription>Mastery by subject</CardDescription>
+                <CardDescription>Cards per deck</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {subjectProgress.map((subject) => {
-                  const percentage = Math.round((subject.mastered / subject.total) * 100);
-                  
-                  return (
-                    <div key={subject.name}>
-                      <div className="flex items-center justify-between text-sm mb-2">
-                        <span className="font-medium">{subject.name}</span>
-                        <span className="text-muted-foreground">
-                          {subject.mastered} / {subject.total}
-                        </span>
+                {deckProgress.length > 0 ? (
+                  deckProgress.slice(0, 5).map((deck) => {
+                    const percentage = deck.total > 0 ? Math.round((deck.mastered / deck.total) * 100) : 0;
+                    
+                    return (
+                      <div key={deck.name}>
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="font-medium truncate max-w-[60%]">{deck.name}</span>
+                          <span className="text-muted-foreground">
+                            {deck.total} cards
+                          </span>
+                        </div>
+                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${percentage}%` }}
+                            transition={{ duration: 0.5 }}
+                            className={`h-full rounded-full ${deck.color}`}
+                          />
+                        </div>
                       </div>
-                      <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 0.5 }}
-                          className={`h-full rounded-full ${subject.color}`}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                ) : (
+                  <div className="py-8 text-center text-muted-foreground">
+                    <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                    <p>No decks created yet</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
