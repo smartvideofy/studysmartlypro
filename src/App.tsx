@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import NotesPage from "./pages/NotesPage";
 import NoteEditor from "./pages/NoteEditor";
 import FlashcardsPage from "./pages/FlashcardsPage";
+import DeckDetailPage from "./pages/DeckDetailPage";
 import StudySession from "./pages/StudySession";
 import GroupsPage from "./pages/GroupsPage";
 import ProgressPage from "./pages/ProgressPage";
@@ -64,6 +65,11 @@ const App = () => (
             <Route path="/flashcards/new" element={
               <ProtectedRoute>
                 <FlashcardsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/flashcards/:deckId" element={
+              <ProtectedRoute>
+                <DeckDetailPage />
               </ProtectedRoute>
             } />
             <Route path="/study" element={
