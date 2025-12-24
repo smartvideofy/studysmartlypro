@@ -209,6 +209,31 @@ export function useCreateFolder() {
   });
 }
 
+export function useUpdateFolder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Folder> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('folders')
+        .update(updates)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['folders'] });
+      toast.success('Folder updated successfully');
+    },
+    onError: (error) => {
+      toast.error('Failed to update folder: ' + error.message);
+    },
+  });
+}
+
 export function useDeleteFolder() {
   const queryClient = useQueryClient();
 

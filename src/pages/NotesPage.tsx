@@ -8,22 +8,31 @@ import {
   FileText, 
   MoreHorizontal,
   Clock,
-  Tag,
   Grid3X3,
   List,
   Filter,
   ChevronRight,
-  Sparkles,
-  Loader2
+  Loader2,
+  Edit,
+  Trash2,
+  FolderPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
+import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
 import { cn } from "@/lib/utils";
-import { useNotes } from "@/hooks/useNotes";
-import { useFolders } from "@/hooks/useNotes";
+import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType } from "@/hooks/useNotes";
 import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
@@ -39,19 +48,18 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const folderColors = [
-  "bg-primary/10 text-primary",
-  "bg-accent/10 text-accent",
-  "bg-success/10 text-success",
-  "bg-warning/10 text-warning",
-];
-
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
+  const [deletingFolder, setDeletingFolder] = useState<FolderType | null>(null);
+  const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   
   const { data: notes, isLoading: notesLoading } = useNotes();
   const { data: folders, isLoading: foldersLoading } = useFolders();
+  const deleteNote = useDeleteNote();
+  const deleteFolder = useDeleteFolder();
 
   const isLoading = notesLoading || foldersLoading;
 
@@ -64,6 +72,26 @@ export default function NotesPage() {
   // Get note count per folder
   const getFolderNoteCount = (folderId: string) => {
     return notes?.filter(note => note.folder_id === folderId).length || 0;
+  };
+
+  const handleDeleteFolder = async () => {
+    if (!deletingFolder) return;
+    try {
+      await deleteFolder.mutateAsync(deletingFolder.id);
+      setDeletingFolder(null);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDeleteNote = async () => {
+    if (!deletingNoteId) return;
+    try {
+      await deleteNote.mutateAsync(deletingNoteId);
+      setDeletingNoteId(null);
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
 
   if (isLoading) {
@@ -121,9 +149,9 @@ export default function NotesPage() {
               </button>
             </div>
             
-            <Button variant="outline" size="sm">
-              <Filter className="w-4 h-4" />
-              <span className="hidden sm:inline">Filter</span>
+            <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)}>
+              <FolderPlus className="w-4 h-4" />
+              <span className="hidden sm:inline">New Folder</span>
             </Button>
             
             <Button variant="hero" size="sm" asChild>
@@ -140,21 +168,47 @@ export default function NotesPage() {
           <motion.div variants={itemVariants}>
             <h3 className="font-display text-lg font-semibold mb-4">Folders</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {folders.map((folder, index) => (
-                <Link
+              {folders.map((folder) => (
+                <div
                   key={folder.id}
-                  to={`/notes?folder=${folder.id}`}
-                  className="glass-card-hover rounded-xl p-4 flex items-center gap-3 group"
+                  className="glass-card-hover rounded-xl p-4 flex items-center gap-3 group relative"
                 >
-                  <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", folderColors[index % folderColors.length])}>
-                    <Folder className="w-5 h-5" />
+                  <div 
+                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    style={{ backgroundColor: `${folder.color}20` }}
+                  >
+                    <Folder className="w-5 h-5" style={{ color: folder.color }} />
                   </div>
                   <div className="flex-1 min-w-0">
                     <h4 className="font-medium text-sm truncate">{folder.name}</h4>
                     <p className="text-xs text-muted-foreground">{getFolderNoteCount(folder.id)} notes</p>
                   </div>
-                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                </Link>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon-sm" 
+                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEditingFolder(folder)}>
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem 
+                        onClick={() => setDeletingFolder(folder)}
+                        className="text-destructive focus:text-destructive"
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
               ))}
             </div>
           </motion.div>
@@ -177,57 +231,82 @@ export default function NotesPage() {
                 ? "grid md:grid-cols-2 lg:grid-cols-3" 
                 : "flex flex-col"
             )}>
-              {filteredNotes.map((note) => (
-                <motion.div
-                  key={note.id}
-                  variants={itemVariants}
-                  layoutId={`note-${note.id}`}
-                >
-                  <Card variant="interactive" className="group">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          {note.folder_id && (
-                            <Badge variant="muted" className="text-xs">
-                              {folders?.find(f => f.id === note.folder_id)?.name || 'Folder'}
-                            </Badge>
-                          )}
+              {filteredNotes.map((note) => {
+                const folder = folders?.find(f => f.id === note.folder_id);
+                return (
+                  <motion.div
+                    key={note.id}
+                    variants={itemVariants}
+                    layoutId={`note-${note.id}`}
+                  >
+                    <Card variant="interactive" className="group">
+                      <CardContent className="p-5">
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex items-center gap-2">
+                            {folder && (
+                              <Badge 
+                                variant="muted" 
+                                className="text-xs"
+                                style={{ borderColor: folder.color }}
+                              >
+                                {folder.name}
+                              </Badge>
+                            )}
+                            {note.is_public && (
+                              <Badge variant="accent" className="text-xs">
+                                Public
+                              </Badge>
+                            )}
+                          </div>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem asChild>
+                                <Link to={`/notes/${note.id}`}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Edit
+                                </Link>
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                onClick={() => setDeletingNoteId(note.id)}
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
-                        <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
-                      </div>
-                      
-                      <Link to={`/notes/${note.id}`}>
-                        <h4 className="font-display font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
-                          {note.title}
-                        </h4>
-                      </Link>
-                      
-                      {note.content && (
-                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                          {note.content.substring(0, 150)}...
-                        </p>
-                      )}
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1 flex-wrap">
-                          {note.is_public && (
-                            <Badge variant="ghost" className="text-xs">
-                              Public
-                            </Badge>
-                          )}
+                        
+                        <Link to={`/notes/${note.id}`}>
+                          <h4 className="font-display font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
+                            {note.title}
+                          </h4>
+                        </Link>
+                        
+                        {note.content && (
+                          <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                            {note.content.substring(0, 150)}...
+                          </p>
+                        )}
+                        
+                        <div className="flex items-center justify-end">
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+                          </span>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
-                        </span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              ))}
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                );
+              })}
             </div>
-          ) : (
+          ) : notes && notes.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="font-display text-xl font-semibold mb-2">No notes yet</h3>
@@ -239,9 +318,45 @@ export default function NotesPage() {
                 </Link>
               </Button>
             </div>
+          ) : (
+            <div className="text-center py-12">
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="font-display text-xl font-semibold mb-2">No matching notes</h3>
+              <p className="text-muted-foreground">Try a different search term</p>
+            </div>
           )}
         </motion.div>
       </motion.div>
+
+      {/* Modals */}
+      <CreateFolderModal 
+        open={createFolderOpen} 
+        onOpenChange={setCreateFolderOpen}
+      />
+
+      <CreateFolderModal 
+        open={!!editingFolder} 
+        onOpenChange={(open) => !open && setEditingFolder(null)}
+        folder={editingFolder}
+      />
+
+      <DeleteConfirmModal
+        open={!!deletingFolder}
+        onOpenChange={(open) => !open && setDeletingFolder(null)}
+        title="Delete Folder"
+        description={`Are you sure you want to delete "${deletingFolder?.name}"? Notes in this folder will not be deleted but will be moved out of the folder.`}
+        onConfirm={handleDeleteFolder}
+        isLoading={deleteFolder.isPending}
+      />
+
+      <DeleteConfirmModal
+        open={!!deletingNoteId}
+        onOpenChange={(open) => !open && setDeletingNoteId(null)}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        onConfirm={handleDeleteNote}
+        isLoading={deleteNote.isPending}
+      />
     </DashboardLayout>
   );
 }
