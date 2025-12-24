@@ -5,19 +5,22 @@ import {
   Plus,
   Search,
   MessageSquare,
-  BookOpen,
-  Layers,
   Crown,
   MoreHorizontal,
   UserPlus,
   Globe,
-  Lock
+  Lock,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
+import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -32,68 +35,42 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const myGroups = [
-  { 
-    id: 1, 
-    name: "Organic Chemistry Study Group", 
-    members: 12, 
-    notes: 24, 
-    decks: 8, 
-    isOwner: true,
-    isPrivate: false,
-    lastActive: "2 hours ago"
-  },
-  { 
-    id: 2, 
-    name: "History 101 Finals Prep", 
-    members: 8, 
-    notes: 15, 
-    decks: 5, 
-    isOwner: false,
-    isPrivate: true,
-    lastActive: "Yesterday"
-  },
-  { 
-    id: 3, 
-    name: "AP Biology", 
-    members: 25, 
-    notes: 42, 
-    decks: 12, 
-    isOwner: false,
-    isPrivate: false,
-    lastActive: "3 days ago"
-  },
-];
-
-const publicGroups = [
-  { 
-    id: 4, 
-    name: "MCAT Prep Community", 
-    members: 1240, 
-    notes: 320, 
-    decks: 85, 
-    category: "Medical"
-  },
-  { 
-    id: 5, 
-    name: "SAT Math Masters", 
-    members: 890, 
-    notes: 156, 
-    decks: 45, 
-    category: "Test Prep"
-  },
-  { 
-    id: 6, 
-    name: "Spanish Language Learners", 
-    members: 2100, 
-    notes: 420, 
-    decks: 120, 
-    category: "Languages"
-  },
-];
-
 export default function GroupsPage() {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  
+  const { data: myGroups, isLoading: groupsLoading } = useGroups();
+  const { data: publicGroups, isLoading: publicLoading } = usePublicGroups();
+  const joinGroup = useJoinGroup();
+
+  const isLoading = groupsLoading || publicLoading;
+
+  // Filter groups based on search
+  const filteredMyGroups = myGroups?.filter(g => 
+    g.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  // Filter public groups to exclude ones user is already in
+  const myGroupIds = new Set(myGroups?.map(g => g.id) || []);
+  const availablePublicGroups = publicGroups?.filter(g => 
+    !myGroupIds.has(g.id) && 
+    g.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const handleJoinGroup = async (groupId: string) => {
+    await joinGroup.mutateAsync(groupId);
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Study Groups">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Study Groups">
@@ -118,7 +95,7 @@ export default function GroupsPage() {
             />
           </div>
           
-          <Button variant="hero" size="sm">
+          <Button variant="hero" size="sm" onClick={() => setShowCreateModal(true)}>
             <Plus className="w-4 h-4" />
             Create Group
           </Button>
@@ -127,67 +104,79 @@ export default function GroupsPage() {
         {/* My Groups */}
         <motion.div variants={itemVariants}>
           <h3 className="font-display text-lg font-semibold mb-4">My Groups</h3>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {myGroups.map((group) => (
-              <Card key={group.id} variant="interactive" className="group">
-                <CardContent className="p-5">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      {group.isOwner && (
-                        <Badge variant="accent" className="text-xs">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Owner
-                        </Badge>
-                      )}
-                      {group.isPrivate ? (
-                        <Badge variant="secondary" className="text-xs">
-                          <Lock className="w-3 h-3 mr-1" />
-                          Private
-                        </Badge>
-                      ) : (
-                        <Badge variant="muted" className="text-xs">
-                          <Globe className="w-3 h-3 mr-1" />
-                          Public
-                        </Badge>
-                      )}
+          {filteredMyGroups.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredMyGroups.map((group) => (
+                <Card key={group.id} variant="interactive" className="group">
+                  <CardContent className="p-5">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        {group.owner_id === user?.id && (
+                          <Badge variant="accent" className="text-xs">
+                            <Crown className="w-3 h-3 mr-1" />
+                            Owner
+                          </Badge>
+                        )}
+                        {group.is_private ? (
+                          <Badge variant="secondary" className="text-xs">
+                            <Lock className="w-3 h-3 mr-1" />
+                            Private
+                          </Badge>
+                        ) : (
+                          <Badge variant="muted" className="text-xs">
+                            <Globe className="w-3 h-3 mr-1" />
+                            Public
+                          </Badge>
+                        )}
+                      </div>
+                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                        <MoreHorizontal className="w-4 h-4" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </div>
-                  
-                  <h4 className="font-display font-semibold mb-2 line-clamp-1">
-                    {group.name}
-                  </h4>
-                  
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                    <span className="flex items-center gap-1">
-                      <Users className="w-4 h-4" />
-                      {group.members}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <BookOpen className="w-4 h-4" />
-                      {group.notes}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Layers className="w-4 h-4" />
-                      {group.decks}
-                    </span>
-                  </div>
-                  
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                      Active {group.lastActive}
-                    </span>
-                    <Button variant="outline" size="sm">
-                      <MessageSquare className="w-4 h-4" />
-                      Open
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    
+                    <h4 className="font-display font-semibold mb-2 line-clamp-1">
+                      {group.name}
+                    </h4>
+                    
+                    {group.description && (
+                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                        {group.description}
+                      </p>
+                    )}
+                    
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                      <span className="flex items-center gap-1">
+                        <Users className="w-4 h-4" />
+                        {group.member_count || 1}
+                      </span>
+                    </div>
+                    
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-muted-foreground">
+                        Updated {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
+                      </span>
+                      <Button variant="outline" size="sm">
+                        <MessageSquare className="w-4 h-4" />
+                        Open
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card variant="elevated" className="p-8 text-center">
+              <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h4 className="font-medium mb-2">No groups yet</h4>
+              <p className="text-sm text-muted-foreground mb-4">
+                Create a study group or join a public one to get started.
+              </p>
+              <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Group
+              </Button>
+            </Card>
+          )}
         </motion.div>
 
         {/* Discover Public Groups */}
@@ -201,39 +190,60 @@ export default function GroupsPage() {
               <CardDescription>Join public study communities</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {publicGroups.map((group) => (
-                  <div
-                    key={group.id}
-                    className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                        <Users className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h4 className="font-medium mb-1">{group.name}</h4>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <Badge variant="ghost" className="text-xs">
-                            {group.category}
-                          </Badge>
-                          <span>{group.members.toLocaleString()} members</span>
-                          <span>{group.notes} notes</span>
-                          <span>{group.decks} decks</span>
+              {availablePublicGroups.length > 0 ? (
+                <div className="space-y-4">
+                  {availablePublicGroups.map((group) => (
+                    <div
+                      key={group.id}
+                      className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                    >
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <Users className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium mb-1">{group.name}</h4>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                            <span>{group.member_count || 1} members</span>
+                            {group.description && (
+                              <span className="line-clamp-1 max-w-xs">{group.description}</span>
+                            )}
+                          </div>
                         </div>
                       </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleJoinGroup(group.id)}
+                        disabled={joinGroup.isPending}
+                      >
+                        {joinGroup.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <>
+                            <UserPlus className="w-4 h-4" />
+                            Join
+                          </>
+                        )}
+                      </Button>
                     </div>
-                    <Button variant="outline" size="sm">
-                      <UserPlus className="w-4 h-4" />
-                      Join
-                    </Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
+                  <p>No public groups available to join</p>
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>
       </motion.div>
+
+      <CreateGroupModal 
+        open={showCreateModal} 
+        onOpenChange={setShowCreateModal} 
+      />
     </DashboardLayout>
   );
 }

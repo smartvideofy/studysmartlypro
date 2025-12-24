@@ -67,7 +67,7 @@ export default function Dashboard() {
   })) || [];
 
   const userName = profile?.full_name?.split(' ')[0] || 'Student';
-  const streakDays = 7; // TODO: Calculate from study sessions
+  const streakDays = stats?.streak || 0;
 
   if (isLoading) {
     return (
@@ -295,17 +295,17 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-2">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => {
-                  const heights = [60, 80, 45, 90, 70, 30, 85];
-                  const today = new Date().getDay();
-                  const isToday = (i + 1) % 7 === today;
+            <div className="grid grid-cols-7 gap-2">
+                {(stats?.weekData || []).map((data, i) => {
+                  const maxMinutes = Math.max(...(stats?.weekData || []).map(d => d.minutes), 1);
+                  const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
+                  const isToday = i === (stats?.weekData?.length || 0) - 1;
                   return (
-                    <div key={day} className="flex flex-col items-center gap-2">
+                    <div key={data.day} className="flex flex-col items-center gap-2">
                       <div className="w-full h-24 bg-secondary rounded-lg relative overflow-hidden">
                         <motion.div
                           initial={{ height: 0 }}
-                          animate={{ height: `${heights[i]}%` }}
+                          animate={{ height: `${height}%` }}
                           transition={{ delay: i * 0.05, duration: 0.5 }}
                           className={`absolute bottom-0 left-0 right-0 rounded-lg ${
                             isToday ? "bg-primary" : "bg-primary/40"
@@ -313,7 +313,7 @@ export default function Dashboard() {
                         />
                       </div>
                       <span className={`text-xs ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
-                        {day}
+                        {data.day}
                       </span>
                     </div>
                   );
