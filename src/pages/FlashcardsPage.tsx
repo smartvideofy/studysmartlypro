@@ -12,7 +12,8 @@ import {
   Sparkles,
   Brain,
   Target,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,49 +21,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-
-const decks = [
-  { 
-    id: 1, 
-    name: "Spanish Vocabulary", 
-    subject: "Languages",
-    totalCards: 120,
-    mastered: 87,
-    dueToday: 24,
-    lastStudied: "2 hours ago",
-    color: "bg-primary/10 text-primary",
-  },
-  { 
-    id: 2, 
-    name: "Biology Terms", 
-    subject: "Science",
-    totalCards: 85,
-    mastered: 45,
-    dueToday: 18,
-    lastStudied: "5 hours ago",
-    color: "bg-success/10 text-success",
-  },
-  { 
-    id: 3, 
-    name: "Physics Formulas", 
-    subject: "Science",
-    totalCards: 64,
-    mastered: 52,
-    dueToday: 12,
-    lastStudied: "1 day ago",
-    color: "bg-accent/10 text-accent",
-  },
-  { 
-    id: 4, 
-    name: "World History Dates", 
-    subject: "History",
-    totalCards: 150,
-    mastered: 98,
-    dueToday: 8,
-    lastStudied: "3 days ago",
-    color: "bg-warning/10 text-warning",
-  },
-];
+import { useDecks, useDueCards } from "@/hooks/useFlashcards";
+import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -77,10 +37,40 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+const deckColors = [
+  "bg-primary/10 text-primary",
+  "bg-success/10 text-success",
+  "bg-accent/10 text-accent",
+  "bg-warning/10 text-warning",
+];
+
 export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   
-  const totalDue = decks.reduce((sum, deck) => sum + deck.dueToday, 0);
+  const { data: decks, isLoading: decksLoading } = useDecks();
+  const { data: dueCards } = useDueCards();
+
+  const isLoading = decksLoading;
+
+  // Filter decks based on search
+  const filteredDecks = decks?.filter(deck => 
+    deck.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    deck.subject?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
+  const totalDue = dueCards?.length || 0;
+  const totalMastered = 0; // TODO: Calculate from flashcard data
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Flashcards">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Flashcards">
@@ -101,9 +91,7 @@ export default function FlashcardsPage() {
                 <Layers className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">
-                  {decks.reduce((sum, d) => sum + d.totalCards, 0)}
-                </p>
+                <p className="text-2xl font-bold font-display">{totalCards}</p>
                 <p className="text-xs text-muted-foreground">Total Cards</p>
               </div>
             </div>
@@ -115,9 +103,7 @@ export default function FlashcardsPage() {
                 <CheckCircle2 className="w-5 h-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">
-                  {decks.reduce((sum, d) => sum + d.mastered, 0)}
-                </p>
+                <p className="text-2xl font-bold font-display">{totalMastered}</p>
                 <p className="text-xs text-muted-foreground">Mastered</p>
               </div>
             </div>
@@ -141,7 +127,7 @@ export default function FlashcardsPage() {
                 <Brain className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{decks.length}</p>
+                <p className="text-2xl font-bold font-display">{decks?.length || 0}</p>
                 <p className="text-xs text-muted-foreground">Decks</p>
               </div>
             </div>
@@ -149,31 +135,33 @@ export default function FlashcardsPage() {
         </motion.div>
 
         {/* Quick Study Banner */}
-        <motion.div variants={itemVariants}>
-          <Card variant="gradient" className="overflow-hidden">
-            <div className="relative p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div className="absolute top-0 right-0 w-48 h-48 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="relative">
-                <Badge variant="accent" className="mb-2">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {totalDue} cards due
-                </Badge>
-                <h3 className="font-display text-xl font-semibold mb-1">
-                  Ready to study?
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  Review your due cards to maintain your retention.
-                </p>
+        {totalDue > 0 && (
+          <motion.div variants={itemVariants}>
+            <Card variant="gradient" className="overflow-hidden">
+              <div className="relative p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="absolute top-0 right-0 w-48 h-48 bg-accent/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="relative">
+                  <Badge variant="accent" className="mb-2">
+                    <Clock className="w-3 h-3 mr-1" />
+                    {totalDue} cards due
+                  </Badge>
+                  <h3 className="font-display text-xl font-semibold mb-1">
+                    Ready to study?
+                  </h3>
+                  <p className="text-muted-foreground text-sm">
+                    Review your due cards to maintain your retention.
+                  </p>
+                </div>
+                <Button variant="hero" size="lg" asChild>
+                  <Link to="/study">
+                    <Play className="w-5 h-5" />
+                    Start Review
+                  </Link>
+                </Button>
               </div>
-              <Button variant="hero" size="lg" asChild>
-                <Link to="/study">
-                  <Play className="w-5 h-5" />
-                  Start Review
-                </Link>
-              </Button>
-            </div>
-          </Card>
-        </motion.div>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Header Actions */}
         <motion.div 
@@ -196,70 +184,86 @@ export default function FlashcardsPage() {
               <span className="hidden sm:inline">AI Generate</span>
             </Button>
             
-            <Button variant="hero" size="sm">
-              <Plus className="w-4 h-4" />
-              New Deck
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/flashcards/new">
+                <Plus className="w-4 h-4" />
+                New Deck
+              </Link>
             </Button>
           </div>
         </motion.div>
 
         {/* Decks Grid */}
         <motion.div variants={itemVariants}>
-          <div className="grid md:grid-cols-2 gap-4">
-            {decks.map((deck) => {
-              const progressPercent = Math.round((deck.mastered / deck.totalCards) * 100);
-              
-              return (
-                <Card key={deck.id} variant="interactive" className="group">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl ${deck.color} flex items-center justify-center`}>
-                          <Layers className="w-6 h-6" />
+          {filteredDecks.length > 0 ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {filteredDecks.map((deck, index) => {
+                const progressPercent = deck.card_count ? Math.round((0 / deck.card_count) * 100) : 0;
+                
+                return (
+                  <Card key={deck.id} variant="interactive" className="group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-12 h-12 rounded-xl ${deckColors[index % deckColors.length]} flex items-center justify-center`}>
+                            <Layers className="w-6 h-6" />
+                          </div>
+                          <div>
+                            <h4 className="font-display font-semibold">{deck.name}</h4>
+                            <p className="text-sm text-muted-foreground">{deck.subject || 'General'}</p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="font-display font-semibold">{deck.name}</h4>
-                          <p className="text-sm text-muted-foreground">{deck.subject}</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Progress</span>
-                        <span className="font-medium">{deck.mastered} / {deck.totalCards} mastered</span>
-                      </div>
-                      
-                      <Progress value={progressPercent} className="h-2" />
-                      
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="flex items-center gap-1 text-accent">
-                            <Target className="w-4 h-4" />
-                            {deck.dueToday} due
-                          </span>
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {deck.lastStudied}
-                          </span>
-                        </div>
-                        
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={`/study/${deck.id}`}>
-                            Study
-                            <ChevronRight className="w-4 h-4" />
-                          </Link>
+                        <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="w-4 h-4" />
                         </Button>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Progress</span>
+                          <span className="font-medium">0 / {deck.card_count || 0} mastered</span>
+                        </div>
+                        
+                        <Progress value={progressPercent} className="h-2" />
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4 text-sm">
+                            <span className="flex items-center gap-1 text-accent">
+                              <Target className="w-4 h-4" />
+                              {deck.card_count || 0} cards
+                            </span>
+                            <span className="text-muted-foreground flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {formatDistanceToNow(new Date(deck.updated_at), { addSuffix: true })}
+                            </span>
+                          </div>
+                          
+                          <Button variant="outline" size="sm" asChild>
+                            <Link to={`/study/${deck.id}`}>
+                              Study
+                              <ChevronRight className="w-4 h-4" />
+                            </Link>
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Layers className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="font-display text-xl font-semibold mb-2">No decks yet</h3>
+              <p className="text-muted-foreground mb-6">Create your first flashcard deck to start learning</p>
+              <Button variant="hero" asChild>
+                <Link to="/flashcards/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Deck
+                </Link>
+              </Button>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </DashboardLayout>

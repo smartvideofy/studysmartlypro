@@ -12,13 +12,18 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  CheckCircle2
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { useProfile } from "@/hooks/useProfile";
+import { useNotes } from "@/hooks/useNotes";
+import { useDecks, useDueCards } from "@/hooks/useFlashcards";
+import { useStudyStats } from "@/hooks/useStudySessions";
+import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -40,19 +45,40 @@ const quickActions = [
   { icon: Sparkles, label: "AI Summary", path: "/ai", color: "primary" },
 ];
 
-const recentNotes = [
-  { id: 1, title: "Organic Chemistry - Reactions", subject: "Chemistry", updated: "2h ago", progress: 75 },
-  { id: 2, title: "World War II Timeline", subject: "History", updated: "5h ago", progress: 90 },
-  { id: 3, title: "Calculus Integration", subject: "Mathematics", updated: "1d ago", progress: 45 },
-];
-
-const upcomingReviews = [
-  { deck: "Spanish Vocabulary", cards: 24, due: "Today" },
-  { deck: "Biology Terms", cards: 18, due: "Tomorrow" },
-  { deck: "Physics Formulas", cards: 12, due: "In 2 days" },
-];
-
 export default function Dashboard() {
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: notes, isLoading: notesLoading } = useNotes();
+  const { data: decks, isLoading: decksLoading } = useDecks();
+  const { data: dueCards } = useDueCards();
+  const { data: stats, isLoading: statsLoading } = useStudyStats();
+
+  const isLoading = profileLoading || notesLoading || decksLoading || statsLoading;
+
+  const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
+  const totalDue = dueCards?.length || 0;
+  const recentNotes = notes?.slice(0, 3) || [];
+  
+  // Calculate upcoming reviews from decks
+  const upcomingReviews = decks?.slice(0, 3).map(deck => ({
+    deck: deck.name,
+    cards: deck.card_count || 0,
+    due: "Today",
+    id: deck.id
+  })) || [];
+
+  const userName = profile?.full_name?.split(' ')[0] || 'Student';
+  const streakDays = 7; // TODO: Calculate from study sessions
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout title="Dashboard">
       <motion.div
@@ -69,14 +95,17 @@ export default function Dashboard() {
               <div className="relative">
                 <Badge variant="accent" className="mb-3">
                   <Flame className="w-3 h-3 mr-1" />
-                  7 Day Streak
+                  {streakDays} Day Streak
                 </Badge>
                 <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">
-                  Welcome back, Student! 👋
+                  Welcome back, {userName}! 👋
                 </h2>
                 <p className="text-muted-foreground mb-6 max-w-lg">
-                  You have <strong className="text-foreground">24 flashcards</strong> due for review today. 
-                  Keep up the great work!
+                  {totalDue > 0 ? (
+                    <>You have <strong className="text-foreground">{totalDue} flashcards</strong> due for review today. Keep up the great work!</>
+                  ) : (
+                    <>You're all caught up! Create new notes or flashcards to keep learning.</>
+                  )}
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Button variant="hero" asChild>
@@ -103,10 +132,10 @@ export default function Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { icon: FileText, label: "Total Notes", value: "48", color: "text-primary", bg: "bg-primary/10" },
-            { icon: Layers, label: "Flashcards", value: "324", color: "text-accent", bg: "bg-accent/10" },
-            { icon: Target, label: "Mastered", value: "187", color: "text-success", bg: "bg-success/10" },
-            { icon: Clock, label: "Study Time", value: "12.5h", color: "text-primary", bg: "bg-primary/10" },
+            { icon: FileText, label: "Total Notes", value: notes?.length || 0, color: "text-primary", bg: "bg-primary/10" },
+            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/10" },
+            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/10" },
+            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "bg-primary/10" },
           ].map((stat) => (
             <Card key={stat.label} variant="interactive">
               <CardContent className="p-4">
@@ -160,28 +189,43 @@ export default function Dashboard() {
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentNotes.map((note) => (
-                  <Link
-                    key={note.id}
-                    to={`/notes/${note.id}`}
-                    className="block p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h4 className="font-medium mb-1">{note.title}</h4>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="muted" className="text-xs">{note.subject}</Badge>
-                          <span className="text-xs text-muted-foreground">{note.updated}</span>
+                {recentNotes.length > 0 ? (
+                  recentNotes.map((note) => (
+                    <Link
+                      key={note.id}
+                      to={`/notes/${note.id}`}
+                      className="block p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div>
+                          <h4 className="font-medium mb-1">{note.title}</h4>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+                            </span>
+                          </div>
                         </div>
+                        <BookOpen className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    </div>
-                    <div className="flex items-center gap-3 mt-3">
-                      <Progress value={note.progress} className="flex-1 h-1.5" />
-                      <span className="text-xs text-muted-foreground">{note.progress}%</span>
-                    </div>
-                  </Link>
-                ))}
+                      {note.content && (
+                        <p className="text-sm text-muted-foreground line-clamp-2">
+                          {note.content.substring(0, 100)}...
+                        </p>
+                      )}
+                    </Link>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No notes yet. Create your first note!</p>
+                    <Button variant="outline" size="sm" className="mt-3" asChild>
+                      <Link to="/notes/new">
+                        <Plus className="w-4 h-4 mr-1" />
+                        New Note
+                      </Link>
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -194,25 +238,33 @@ export default function Dashboard() {
                 <CardDescription>Spaced repetition schedule</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {upcomingReviews.map((review) => (
-                  <div
-                    key={review.deck}
-                    className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
-                  >
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                      <Layers className="w-5 h-5 text-primary" />
+                {upcomingReviews.length > 0 ? (
+                  upcomingReviews.map((review) => (
+                    <div
+                      key={review.id}
+                      className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                        <Layers className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm truncate">{review.deck}</h4>
+                        <p className="text-xs text-muted-foreground">
+                          {review.cards} cards · {review.due}
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon-sm" asChild>
+                        <Link to={`/study/${review.id}`}>
+                          <ArrowRight className="w-4 h-4" />
+                        </Link>
+                      </Button>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{review.deck}</h4>
-                      <p className="text-xs text-muted-foreground">
-                        {review.cards} cards · {review.due}
-                      </p>
-                    </div>
-                    <Button variant="ghost" size="icon-sm">
-                      <ArrowRight className="w-4 h-4" />
-                    </Button>
+                  ))
+                ) : (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p className="text-sm">No decks yet</p>
                   </div>
-                ))}
+                )}
 
                 <Button variant="outline" className="w-full" asChild>
                   <Link to="/study">
@@ -246,7 +298,8 @@ export default function Dashboard() {
               <div className="grid grid-cols-7 gap-2">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day, i) => {
                   const heights = [60, 80, 45, 90, 70, 30, 85];
-                  const isToday = i === 4;
+                  const today = new Date().getDay();
+                  const isToday = (i + 1) % 7 === today;
                   return (
                     <div key={day} className="flex flex-col items-center gap-2">
                       <div className="w-full h-24 bg-secondary rounded-lg relative overflow-hidden">
