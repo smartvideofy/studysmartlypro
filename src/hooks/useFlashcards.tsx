@@ -119,7 +119,7 @@ export function useCreateDeck() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (deck: { name: string; description?: string; subject?: string }) => {
+    mutationFn: async (deck: { name: string; description?: string; subject?: string; note_id?: string }) => {
       if (!user?.id) throw new Error('Not authenticated');
 
       const { data, error } = await supabase
@@ -129,6 +129,7 @@ export function useCreateDeck() {
           name: deck.name,
           description: deck.description || null,
           subject: deck.subject || null,
+          note_id: deck.note_id || null,
         })
         .select()
         .single();
