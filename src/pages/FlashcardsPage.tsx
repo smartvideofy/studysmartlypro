@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Plus, 
   Search, 
@@ -13,15 +13,26 @@ import {
   Brain,
   Target,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useDecks, useDueCards } from "@/hooks/useFlashcards";
+import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
+import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
+import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
@@ -46,9 +57,14 @@ const deckColors = [
 
 export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [createDeckOpen, setCreateDeckOpen] = useState(false);
+  const [editingDeck, setEditingDeck] = useState<FlashcardDeck | null>(null);
+  const [deletingDeck, setDeletingDeck] = useState<FlashcardDeck | null>(null);
   
+  const navigate = useNavigate();
   const { data: decks, isLoading: decksLoading } = useDecks();
   const { data: dueCards } = useDueCards();
+  const deleteDeck = useDeleteDeck();
 
   const isLoading = decksLoading;
 
@@ -61,6 +77,20 @@ export default function FlashcardsPage() {
   const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
   const totalDue = dueCards?.length || 0;
   const totalMastered = 0; // TODO: Calculate from flashcard data
+
+  const handleDeleteDeck = async () => {
+    if (!deletingDeck) return;
+    try {
+      await deleteDeck.mutateAsync(deletingDeck.id);
+      setDeletingDeck(null);
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleDeckCreated = (deckId: string) => {
+    navigate(`/flashcards/${deckId}`);
+  };
 
   if (isLoading) {
     return (
@@ -184,11 +214,9 @@ export default function FlashcardsPage() {
               <span className="hidden sm:inline">AI Generate</span>
             </Button>
             
-            <Button variant="hero" size="sm" asChild>
-              <Link to="/flashcards/new">
-                <Plus className="w-4 h-4" />
-                New Deck
-              </Link>
+            <Button variant="hero" size="sm" onClick={() => setCreateDeckOpen(true)}>
+              <Plus className="w-4 h-4" />
+              New Deck
             </Button>
           </div>
         </motion.div>
@@ -204,18 +232,42 @@ export default function FlashcardsPage() {
                   <Card key={deck.id} variant="interactive" className="group">
                     <CardContent className="p-5">
                       <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-3">
+                        <Link to={`/flashcards/${deck.id}`} className="flex items-center gap-3 flex-1">
                           <div className={`w-12 h-12 rounded-xl ${deckColors[index % deckColors.length]} flex items-center justify-center`}>
                             <Layers className="w-6 h-6" />
                           </div>
                           <div>
-                            <h4 className="font-display font-semibold">{deck.name}</h4>
+                            <h4 className="font-display font-semibold hover:text-primary transition-colors">{deck.name}</h4>
                             <p className="text-sm text-muted-foreground">{deck.subject || 'General'}</p>
                           </div>
-                        </div>
-                        <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                          <MoreHorizontal className="w-4 h-4" />
-                        </Button>
+                        </Link>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <MoreHorizontal className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setEditingDeck(deck)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Edit Deck
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link to={`/flashcards/${deck.id}`}>
+                                <Layers className="w-4 h-4 mr-2" />
+                                Manage Cards
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem 
+                              onClick={() => setDeletingDeck(deck)}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                       
                       <div className="space-y-4">
@@ -251,21 +303,47 @@ export default function FlashcardsPage() {
                 );
               })}
             </div>
-          ) : (
+          ) : decks && decks.length === 0 ? (
             <div className="text-center py-12">
               <Layers className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="font-display text-xl font-semibold mb-2">No decks yet</h3>
               <p className="text-muted-foreground mb-6">Create your first flashcard deck to start learning</p>
-              <Button variant="hero" asChild>
-                <Link to="/flashcards/new">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Deck
-                </Link>
+              <Button variant="hero" onClick={() => setCreateDeckOpen(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Deck
               </Button>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="font-display text-xl font-semibold mb-2">No matching decks</h3>
+              <p className="text-muted-foreground">Try a different search term</p>
             </div>
           )}
         </motion.div>
       </motion.div>
+
+      {/* Modals */}
+      <CreateDeckModal 
+        open={createDeckOpen} 
+        onOpenChange={setCreateDeckOpen}
+        onSuccess={handleDeckCreated}
+      />
+
+      <CreateDeckModal 
+        open={!!editingDeck} 
+        onOpenChange={(open) => !open && setEditingDeck(null)}
+        deck={editingDeck}
+      />
+
+      <DeleteConfirmModal
+        open={!!deletingDeck}
+        onOpenChange={(open) => !open && setDeletingDeck(null)}
+        title="Delete Deck"
+        description={`Are you sure you want to delete "${deletingDeck?.name}"? All flashcards in this deck will be permanently deleted. This action cannot be undone.`}
+        onConfirm={handleDeleteDeck}
+        isLoading={deleteDeck.isPending}
+      />
     </DashboardLayout>
   );
 }
