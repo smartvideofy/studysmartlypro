@@ -308,6 +308,42 @@ export function useDeleteFlashcard() {
   });
 }
 
+// Get all due cards across all decks
+export function useDueCards() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['all-due-cards', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      const now = new Date().toISOString();
+      
+      // First get all user's decks
+      const { data: decks, error: decksError } = await supabase
+        .from('flashcard_decks')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (decksError) throw decksError;
+      if (!decks || decks.length === 0) return [];
+
+      const deckIds = decks.map(d => d.id);
+      
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('*')
+        .in('deck_id', deckIds)
+        .lte('next_review', now)
+        .order('next_review');
+
+      if (error) throw error;
+      return data as Flashcard[];
+    },
+    enabled: !!user?.id,
+  });
+}
+
 // Review flashcard (update spaced repetition)
 export function useReviewFlashcard() {
   const queryClient = useQueryClient();

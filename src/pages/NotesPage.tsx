@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { 
   Plus, 
@@ -13,7 +13,8 @@ import {
   List,
   Filter,
   ChevronRight,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,52 +22,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { cn } from "@/lib/utils";
-
-const folders = [
-  { id: 1, name: "Chemistry", count: 12, color: "bg-primary/10 text-primary" },
-  { id: 2, name: "History", count: 8, color: "bg-accent/10 text-accent" },
-  { id: 3, name: "Mathematics", count: 15, color: "bg-success/10 text-success" },
-  { id: 4, name: "Biology", count: 6, color: "bg-warning/10 text-warning" },
-];
-
-const notes = [
-  { 
-    id: 1, 
-    title: "Organic Chemistry - Reactions & Mechanisms", 
-    folder: "Chemistry",
-    excerpt: "Understanding the fundamental reaction types including substitution, elimination, and addition reactions...",
-    tags: ["organic", "reactions", "mechanisms"],
-    updated: "2 hours ago",
-    hasFlashcards: true,
-  },
-  { 
-    id: 2, 
-    title: "World War II - Major Events Timeline", 
-    folder: "History",
-    excerpt: "A comprehensive timeline of major events from 1939 to 1945, including key battles and political developments...",
-    tags: ["wwii", "timeline", "events"],
-    updated: "5 hours ago",
-    hasFlashcards: true,
-  },
-  { 
-    id: 3, 
-    title: "Calculus - Integration Techniques", 
-    folder: "Mathematics",
-    excerpt: "Advanced integration methods including integration by parts, partial fractions, and trigonometric substitution...",
-    tags: ["calculus", "integration"],
-    updated: "1 day ago",
-    hasFlashcards: false,
-  },
-  { 
-    id: 4, 
-    title: "Cell Biology - Mitosis & Meiosis", 
-    folder: "Biology",
-    excerpt: "Comparing the processes of mitosis and meiosis, their stages, and significance in reproduction...",
-    tags: ["cells", "division"],
-    updated: "2 days ago",
-    hasFlashcards: true,
-  },
-];
+import { useNotes } from "@/hooks/useNotes";
+import { useFolders } from "@/hooks/useNotes";
+import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -81,9 +39,42 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
+const folderColors = [
+  "bg-primary/10 text-primary",
+  "bg-accent/10 text-accent",
+  "bg-success/10 text-success",
+  "bg-warning/10 text-warning",
+];
+
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
+  
+  const { data: notes, isLoading: notesLoading } = useNotes();
+  const { data: folders, isLoading: foldersLoading } = useFolders();
+
+  const isLoading = notesLoading || foldersLoading;
+
+  // Filter notes based on search query
+  const filteredNotes = notes?.filter(note => 
+    note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    note.content?.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
+
+  // Get note count per folder
+  const getFolderNoteCount = (folderId: string) => {
+    return notes?.filter(note => note.folder_id === folderId).length || 0;
+  };
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Notes">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout title="Notes">
@@ -135,35 +126,39 @@ export default function NotesPage() {
               <span className="hidden sm:inline">Filter</span>
             </Button>
             
-            <Button variant="hero" size="sm">
-              <Plus className="w-4 h-4" />
-              New Note
+            <Button variant="hero" size="sm" asChild>
+              <Link to="/notes/new">
+                <Plus className="w-4 h-4" />
+                New Note
+              </Link>
             </Button>
           </div>
         </motion.div>
 
         {/* Folders */}
-        <motion.div variants={itemVariants}>
-          <h3 className="font-display text-lg font-semibold mb-4">Folders</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {folders.map((folder) => (
-              <Link
-                key={folder.id}
-                to={`/notes/folder/${folder.id}`}
-                className="glass-card-hover rounded-xl p-4 flex items-center gap-3 group"
-              >
-                <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", folder.color)}>
-                  <Folder className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm truncate">{folder.name}</h4>
-                  <p className="text-xs text-muted-foreground">{folder.count} notes</p>
-                </div>
-                <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-              </Link>
-            ))}
-          </div>
-        </motion.div>
+        {folders && folders.length > 0 && (
+          <motion.div variants={itemVariants}>
+            <h3 className="font-display text-lg font-semibold mb-4">Folders</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {folders.map((folder, index) => (
+                <Link
+                  key={folder.id}
+                  to={`/notes?folder=${folder.id}`}
+                  className="glass-card-hover rounded-xl p-4 flex items-center gap-3 group"
+                >
+                  <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center", folderColors[index % folderColors.length])}>
+                    <Folder className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm truncate">{folder.name}</h4>
+                    <p className="text-xs text-muted-foreground">{getFolderNoteCount(folder.id)} notes</p>
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </Link>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* All Notes */}
         <motion.div variants={itemVariants}>
@@ -175,65 +170,76 @@ export default function NotesPage() {
             </Button>
           </div>
           
-          <div className={cn(
-            "gap-4",
-            viewMode === "grid" 
-              ? "grid md:grid-cols-2 lg:grid-cols-3" 
-              : "flex flex-col"
-          )}>
-            {notes.map((note) => (
-              <motion.div
-                key={note.id}
-                variants={itemVariants}
-                layoutId={`note-${note.id}`}
-              >
-                <Card variant="interactive" className="group">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="muted" className="text-xs">
-                          {note.folder}
-                        </Badge>
-                        {note.hasFlashcards && (
-                          <Badge variant="accent" className="text-xs">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Flashcards
-                          </Badge>
-                        )}
+          {filteredNotes.length > 0 ? (
+            <div className={cn(
+              "gap-4",
+              viewMode === "grid" 
+                ? "grid md:grid-cols-2 lg:grid-cols-3" 
+                : "flex flex-col"
+            )}>
+              {filteredNotes.map((note) => (
+                <motion.div
+                  key={note.id}
+                  variants={itemVariants}
+                  layoutId={`note-${note.id}`}
+                >
+                  <Card variant="interactive" className="group">
+                    <CardContent className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          {note.folder_id && (
+                            <Badge variant="muted" className="text-xs">
+                              {folders?.find(f => f.id === note.folder_id)?.name || 'Folder'}
+                            </Badge>
+                          )}
+                        </div>
+                        <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <Link to={`/notes/${note.id}`}>
-                      <h4 className="font-display font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
-                        {note.title}
-                      </h4>
-                    </Link>
-                    
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
-                      {note.excerpt}
-                    </p>
-                    
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {note.tags.slice(0, 2).map((tag) => (
-                          <Badge key={tag} variant="ghost" className="text-xs">
-                            <Tag className="w-3 h-3 mr-1" />
-                            {tag}
-                          </Badge>
-                        ))}
+                      
+                      <Link to={`/notes/${note.id}`}>
+                        <h4 className="font-display font-semibold mb-2 hover:text-primary transition-colors line-clamp-2">
+                          {note.title}
+                        </h4>
+                      </Link>
+                      
+                      {note.content && (
+                        <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                          {note.content.substring(0, 150)}...
+                        </p>
+                      )}
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {note.is_public && (
+                            <Badge variant="ghost" className="text-xs">
+                              Public
+                            </Badge>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+                        </span>
                       </div>
-                      <span className="text-xs text-muted-foreground">
-                        {note.updated}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <FileText className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+              <h3 className="font-display text-xl font-semibold mb-2">No notes yet</h3>
+              <p className="text-muted-foreground mb-6">Create your first note to get started</p>
+              <Button variant="hero" asChild>
+                <Link to="/notes/new">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Note
+                </Link>
+              </Button>
+            </div>
+          )}
         </motion.div>
       </motion.div>
     </DashboardLayout>

@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import SplashScreen from "./pages/SplashScreen";
 import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
@@ -30,19 +31,71 @@ const App = () => (
           <Routes>
             <Route path="/" element={<SplashScreen />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/onboarding" element={<OnboardingPage />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/notes" element={<NotesPage />} />
-            <Route path="/notes/new" element={<NoteEditor />} />
-            <Route path="/notes/:id" element={<NoteEditor />} />
-            <Route path="/flashcards" element={<FlashcardsPage />} />
-            <Route path="/flashcards/new" element={<FlashcardsPage />} />
-            <Route path="/study" element={<StudySession />} />
-            <Route path="/study/:deckId" element={<StudySession />} />
-            <Route path="/groups" element={<GroupsPage />} />
-            <Route path="/progress" element={<ProgressPage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/help" element={<HelpPage />} />
+            <Route path="/onboarding" element={
+              <ProtectedRoute>
+                <OnboardingPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard" element={
+              <ProtectedRoute>
+                <Dashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/notes" element={
+              <ProtectedRoute>
+                <NotesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/notes/new" element={
+              <ProtectedRoute>
+                <NoteEditor />
+              </ProtectedRoute>
+            } />
+            <Route path="/notes/:id" element={
+              <ProtectedRoute>
+                <NoteEditor />
+              </ProtectedRoute>
+            } />
+            <Route path="/flashcards" element={
+              <ProtectedRoute>
+                <FlashcardsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/flashcards/new" element={
+              <ProtectedRoute>
+                <FlashcardsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/study" element={
+              <ProtectedRoute>
+                <StudySession />
+              </ProtectedRoute>
+            } />
+            <Route path="/study/:deckId" element={
+              <ProtectedRoute>
+                <StudySession />
+              </ProtectedRoute>
+            } />
+            <Route path="/groups" element={
+              <ProtectedRoute>
+                <GroupsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/progress" element={
+              <ProtectedRoute>
+                <ProgressPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/settings" element={
+              <ProtectedRoute>
+                <SettingsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/help" element={
+              <ProtectedRoute>
+                <HelpPage />
+              </ProtectedRoute>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
