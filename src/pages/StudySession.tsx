@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, 
@@ -11,7 +12,10 @@ import {
   Target,
   Flame,
   X,
-  Volume2
+  Volume2,
+  Loader2,
+  Layers,
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -19,32 +23,107 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { cn } from "@/lib/utils";
-
-const sampleCards = [
-  { id: 1, front: "What is photosynthesis?", back: "The process by which plants convert sunlight, water, and CO₂ into glucose and oxygen.", hint: "Think about what plants need to survive." },
-  { id: 2, front: "Define mitochondria", back: "The powerhouse of the cell - organelles that generate most of the cell's ATP through cellular respiration.", hint: "Energy production" },
-  { id: 3, front: "What is the Krebs cycle?", back: "A series of chemical reactions in aerobic respiration that releases stored energy through the oxidation of acetyl-CoA.", hint: "Also called citric acid cycle" },
-  { id: 4, front: "Explain osmosis", back: "The movement of water molecules from an area of lower solute concentration to higher solute concentration through a semi-permeable membrane.", hint: "Water movement" },
-];
+import { 
+  useDeck, 
+  useDueFlashcards, 
+  useFlashcards,
+  useReviewFlashcard,
+  Flashcard 
+} from "@/hooks/useFlashcards";
+import { 
+  useCreateStudySession, 
+  useUpdateStudySession 
+} from "@/hooks/useStudySessions";
 
 export default function StudySession() {
+  const { deckId } = useParams();
+  const navigate = useNavigate();
+  
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
-  const [results, setResults] = useState<{id: number, correct: boolean}[]>([]);
+  const [results, setResults] = useState<{id: string, correct: boolean}[]>([]);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [startTime] = useState(new Date());
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [isComplete, setIsComplete] = useState(false);
+
+  const { data: deck, isLoading: deckLoading } = useDeck(deckId || "");
+  const { data: dueCards, isLoading: dueCardsLoading } = useDueFlashcards(deckId || "");
+  const { data: allCards } = useFlashcards(deckId || "");
   
-  const currentCard = sampleCards[currentIndex];
-  const progress = ((currentIndex + 1) / sampleCards.length) * 100;
-  
-  const handleAnswer = (correct: boolean) => {
+  const reviewFlashcard = useReviewFlashcard();
+  const createSession = useCreateStudySession();
+  const updateSession = useUpdateStudySession();
+
+  // Use due cards if available, otherwise use all cards
+  const cards = (dueCards && dueCards.length > 0) ? dueCards : (allCards || []);
+  const currentCard = cards[currentIndex];
+
+  // Timer
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((new Date().getTime() - startTime.getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
+
+  // Create session on mount
+  useEffect(() => {
+    if (deckId && !sessionId) {
+      createSession.mutateAsync({ deck_id: deckId })
+        .then((session) => {
+          setSessionId(session.id);
+        })
+        .catch(() => {
+          // Continue without session tracking
+        });
+    }
+  }, [deckId]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleAnswer = async (correct: boolean) => {
+    if (!currentCard) return;
+
+    // Update spaced repetition
+    const quality = correct ? 4 : 1; // 4 = good, 1 = fail
+    await reviewFlashcard.mutateAsync({
+      id: currentCard.id,
+      deckId: deckId || "",
+      quality,
+      currentEaseFactor: currentCard.ease_factor,
+      currentInterval: currentCard.interval_days,
+      currentRepetitions: currentCard.repetitions,
+    });
+
     setResults([...results, { id: currentCard.id, correct }]);
     setIsFlipped(false);
     setShowHint(false);
     
-    if (currentIndex < sampleCards.length - 1) {
+    if (currentIndex < cards.length - 1) {
       setTimeout(() => {
         setCurrentIndex(currentIndex + 1);
       }, 200);
+    } else {
+      // Session complete
+      setIsComplete(true);
+      
+      // Update session with final stats
+      if (sessionId) {
+        const correctCount = [...results, { id: currentCard.id, correct }].filter(r => r.correct).length;
+        await updateSession.mutateAsync({
+          id: sessionId,
+          cards_studied: cards.length,
+          correct_count: correctCount,
+          total_time_seconds: elapsedSeconds,
+          ended_at: new Date().toISOString(),
+        });
+      }
     }
   };
 
@@ -53,10 +132,130 @@ export default function StudySession() {
     setShowHint(false);
   };
 
+  const handleEndSession = async () => {
+    if (sessionId && results.length > 0) {
+      const correctCount = results.filter(r => r.correct).length;
+      await updateSession.mutateAsync({
+        id: sessionId,
+        cards_studied: results.length,
+        correct_count: correctCount,
+        total_time_seconds: elapsedSeconds,
+        ended_at: new Date().toISOString(),
+      });
+    }
+    navigate("/flashcards");
+  };
+
   const correctCount = results.filter(r => r.correct).length;
+  const progress = cards.length > 0 ? ((currentIndex + (isComplete ? 1 : 0)) / cards.length) * 100 : 0;
+  const isLoading = deckLoading || dueCardsLoading;
+
+  if (isLoading) {
+    return (
+      <DashboardLayout title="Study Session">
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!deck) {
+    return (
+      <DashboardLayout title="Study Session">
+        <div className="text-center py-12">
+          <Layers className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
+          <h3 className="font-display text-xl font-semibold mb-2">Deck not found</h3>
+          <p className="text-muted-foreground mb-6">Select a deck to start studying</p>
+          <Button variant="outline" asChild>
+            <Link to="/flashcards">Browse Decks</Link>
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (cards.length === 0) {
+    return (
+      <DashboardLayout title="Study Session">
+        <div className="text-center py-12">
+          <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-success" />
+          <h3 className="font-display text-xl font-semibold mb-2">No cards to review</h3>
+          <p className="text-muted-foreground mb-6">
+            {allCards && allCards.length > 0 
+              ? "All cards are up to date. Come back later for more reviews!"
+              : "Add some flashcards to this deck to start studying"
+            }
+          </p>
+          <Button variant="outline" asChild>
+            <Link to={`/flashcards/${deckId}`}>
+              {allCards && allCards.length > 0 ? "View Deck" : "Add Cards"}
+            </Link>
+          </Button>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  // Session Complete Screen
+  if (isComplete) {
+    const accuracy = cards.length > 0 ? Math.round((correctCount / cards.length) * 100) : 0;
+    
+    return (
+      <DashboardLayout title="Session Complete">
+        <div className="max-w-lg mx-auto text-center py-12">
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="mb-8"
+          >
+            <div className="w-24 h-24 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-6">
+              <CheckCircle2 className="w-12 h-12 text-success" />
+            </div>
+            <h1 className="font-display text-3xl font-bold mb-2">Great job!</h1>
+            <p className="text-muted-foreground">
+              You completed your study session for {deck.name}
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <Card variant="elevated" className="p-4">
+              <div className="text-2xl font-bold text-primary">{cards.length}</div>
+              <div className="text-sm text-muted-foreground">Cards Studied</div>
+            </Card>
+            <Card variant="elevated" className="p-4">
+              <div className="text-2xl font-bold text-success">{accuracy}%</div>
+              <div className="text-sm text-muted-foreground">Accuracy</div>
+            </Card>
+            <Card variant="elevated" className="p-4">
+              <div className="text-2xl font-bold">{formatTime(elapsedSeconds)}</div>
+              <div className="text-sm text-muted-foreground">Time</div>
+            </Card>
+          </div>
+
+          <div className="flex justify-center gap-4">
+            <Button variant="outline" asChild>
+              <Link to="/flashcards">Back to Decks</Link>
+            </Button>
+            <Button 
+              variant="hero" 
+              onClick={() => {
+                setCurrentIndex(0);
+                setResults([]);
+                setIsComplete(false);
+                setIsFlipped(false);
+              }}
+            >
+              Study Again
+            </Button>
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
-    <DashboardLayout title="Study Session">
+    <DashboardLayout title={`Studying: ${deck.name}`}>
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0 }}
@@ -68,15 +267,15 @@ export default function StudySession() {
             <div className="flex items-center gap-4">
               <Badge variant="secondary">
                 <Clock className="w-3 h-3 mr-1" />
-                5:30
+                {formatTime(elapsedSeconds)}
               </Badge>
               <Badge variant="accent">
                 <Flame className="w-3 h-3 mr-1" />
-                7 streak
+                {correctCount} correct
               </Badge>
             </div>
             
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={handleEndSession}>
               <X className="w-4 h-4 mr-1" />
               End Session
             </Button>
@@ -85,7 +284,7 @@ export default function StudySession() {
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Card {currentIndex + 1} of {sampleCards.length}</span>
+              <span className="text-muted-foreground">Card {currentIndex + 1} of {cards.length}</span>
               <span className="flex items-center gap-2">
                 <span className="text-success">{correctCount} correct</span>
                 <span className="text-muted-foreground">·</span>
@@ -123,7 +322,7 @@ export default function StudySession() {
                     </Badge>
                     
                     <p className="font-display text-2xl font-semibold mb-6 max-w-lg">
-                      {isFlipped ? currentCard.back : currentCard.front}
+                      {isFlipped ? currentCard?.back : currentCard?.front}
                     </p>
                     
                     {!isFlipped && (
@@ -139,7 +338,7 @@ export default function StudySession() {
 
           {/* Hint Section */}
           <AnimatePresence>
-            {showHint && !isFlipped && (
+            {showHint && !isFlipped && currentCard?.hint && (
               <motion.div
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -164,7 +363,7 @@ export default function StudySession() {
                   variant="outline" 
                   size="lg"
                   onClick={() => setShowHint(true)}
-                  disabled={showHint}
+                  disabled={showHint || !currentCard?.hint}
                 >
                   <Lightbulb className="w-5 h-5" />
                   Hint
@@ -179,7 +378,7 @@ export default function StudySession() {
                   Flip Card
                 </Button>
                 
-                <Button variant="outline" size="lg">
+                <Button variant="outline" size="lg" disabled>
                   <Volume2 className="w-5 h-5" />
                   Listen
                 </Button>
@@ -191,18 +390,20 @@ export default function StudySession() {
                   size="lg"
                   className="border-destructive/30 text-destructive hover:bg-destructive/10"
                   onClick={() => handleAnswer(false)}
+                  disabled={reviewFlashcard.isPending}
                 >
                   <ThumbsDown className="w-5 h-5" />
-                  Didn't Know
+                  {reviewFlashcard.isPending ? "..." : "Didn't Know"}
                 </Button>
                 
                 <Button 
                   variant="success" 
                   size="lg"
                   onClick={() => handleAnswer(true)}
+                  disabled={reviewFlashcard.isPending}
                 >
                   <ThumbsUp className="w-5 h-5" />
-                  Got It!
+                  {reviewFlashcard.isPending ? "..." : "Got It!"}
                 </Button>
               </>
             )}
@@ -224,7 +425,7 @@ export default function StudySession() {
             </Button>
             
             <div className="flex gap-1">
-              {sampleCards.map((_, idx) => (
+              {cards.slice(0, 10).map((_, idx) => (
                 <div 
                   key={idx}
                   className={cn(
@@ -237,11 +438,14 @@ export default function StudySession() {
                   )}
                 />
               ))}
+              {cards.length > 10 && (
+                <span className="text-xs text-muted-foreground ml-1">+{cards.length - 10}</span>
+              )}
             </div>
             
             <Button 
               variant="ghost"
-              disabled={currentIndex === sampleCards.length - 1}
+              disabled={currentIndex === cards.length - 1}
               onClick={() => {
                 setCurrentIndex(currentIndex + 1);
                 setIsFlipped(false);

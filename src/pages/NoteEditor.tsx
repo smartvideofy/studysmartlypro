@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   ArrowLeft,
@@ -20,14 +20,45 @@ import {
   Heading1,
   Heading2,
   Quote,
-  Code
+  Code,
+  Loader2,
+  Trash2,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { cn } from "@/lib/utils";
+import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
+import { 
+  useNote, 
+  useCreateNote, 
+  useUpdateNote, 
+  useDeleteNote,
+  useFolders,
+  useTags,
+  useNoteTags,
+  useAddTagToNote,
+  useRemoveTagFromNote,
+  useCreateTag
+} from "@/hooks/useNotes";
+import { formatDistanceToNow } from "date-fns";
+import { toast } from "sonner";
 
 const toolbarButtons = [
   { icon: Bold, label: "Bold" },
@@ -40,54 +71,140 @@ const toolbarButtons = [
   { icon: Code, label: "Code" },
 ];
 
-const sampleContent = `
-# Organic Chemistry - Reactions & Mechanisms
-
-## Introduction
-Organic chemistry is the study of carbon-containing compounds. Understanding reaction mechanisms is crucial for predicting products and designing synthesis routes.
-
-## Types of Reactions
-
-### 1. Substitution Reactions
-In substitution reactions, an atom or group in a molecule is replaced by another atom or group.
-
-**SN1 Mechanism:**
-- Two-step process
-- Carbocation intermediate
-- Racemization occurs
-
-**SN2 Mechanism:**
-- One-step concerted process
-- Backside attack
-- Inversion of configuration
-
-### 2. Elimination Reactions
-Elimination reactions involve the removal of atoms or groups from a molecule to form a double bond.
-
-### 3. Addition Reactions
-Addition reactions add atoms or groups to a double or triple bond.
-
-## Key Concepts to Remember
-- Nucleophiles are electron-rich species that attack electrophiles
-- Leaving groups must be stable after they leave
-- Steric hindrance affects reaction rates
-`;
-
 export default function NoteEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [title, setTitle] = useState("Organic Chemistry - Reactions & Mechanisms");
-  const [content, setContent] = useState(sampleContent);
-  const [selectedFolder, setSelectedFolder] = useState("Chemistry");
-  const [tags, setTags] = useState(["organic", "reactions", "mechanisms"]);
-  const [isSaving, setIsSaving] = useState(false);
+  const isNewNote = !id || id === "new";
+  
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [folderId, setFolderId] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [newTagInput, setNewTagInput] = useState("");
 
-  const handleSave = () => {
-    setIsSaving(true);
-    setTimeout(() => {
-      setIsSaving(false);
-    }, 1000);
+  const { data: note, isLoading: noteLoading } = useNote(isNewNote ? "" : id!);
+  const { data: folders } = useFolders();
+  const { data: tags } = useTags();
+  const { data: noteTags, isLoading: noteTagsLoading } = useNoteTags(isNewNote ? "" : id!);
+  
+  const createNote = useCreateNote();
+  const updateNote = useUpdateNote();
+  const deleteNote = useDeleteNote();
+  const createTag = useCreateTag();
+  const addTagToNote = useAddTagToNote();
+  const removeTagFromNote = useRemoveTagFromNote();
+
+  // Load note data
+  useEffect(() => {
+    if (note) {
+      setTitle(note.title);
+      setContent(note.content || "");
+      setFolderId(note.folder_id);
+      setLastSaved(new Date(note.updated_at));
+      setHasChanges(false);
+    }
+  }, [note]);
+
+  // Track changes
+  useEffect(() => {
+    if (!isNewNote && note) {
+      const changed = 
+        title !== note.title || 
+        content !== (note.content || "") ||
+        folderId !== note.folder_id;
+      setHasChanges(changed);
+    } else if (isNewNote) {
+      setHasChanges(title.length > 0 || content.length > 0);
+    }
+  }, [title, content, folderId, note, isNewNote]);
+
+  const handleSave = useCallback(async () => {
+    if (!title.trim()) {
+      toast.error("Please enter a title");
+      return;
+    }
+
+    try {
+      if (isNewNote) {
+        const newNote = await createNote.mutateAsync({
+          title: title.trim(),
+          content,
+          folder_id: folderId || undefined,
+        });
+        navigate(`/notes/${newNote.id}`, { replace: true });
+      } else {
+        await updateNote.mutateAsync({
+          id: id!,
+          title: title.trim(),
+          content,
+          folder_id: folderId,
+        });
+        setLastSaved(new Date());
+        setHasChanges(false);
+      }
+    } catch (error) {
+      // Error handled by mutation
+    }
+  }, [title, content, folderId, isNewNote, id, createNote, updateNote, navigate]);
+
+  const handleDelete = async () => {
+    if (!id) return;
+    try {
+      await deleteNote.mutateAsync(id);
+      navigate("/notes");
+    } catch (error) {
+      // Error handled by mutation
+    }
   };
+
+  const handleAddTag = async (tagId: string) => {
+    if (!id || isNewNote) return;
+    try {
+      await addTagToNote.mutateAsync({ noteId: id, tagId });
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleRemoveTag = async (tagId: string) => {
+    if (!id || isNewNote) return;
+    try {
+      await removeTagFromNote.mutateAsync({ noteId: id, tagId });
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const handleCreateAndAddTag = async () => {
+    if (!newTagInput.trim() || !id || isNewNote) return;
+    try {
+      const newTag = await createTag.mutateAsync({ name: newTagInput.trim() });
+      await addTagToNote.mutateAsync({ noteId: id, tagId: newTag.id });
+      setNewTagInput("");
+    } catch (error) {
+      // Error handled by mutation
+    }
+  };
+
+  const isSaving = createNote.isPending || updateNote.isPending;
+  const isLoading = noteLoading && !isNewNote;
+
+  // Get current note tags
+  const currentTagIds = noteTags?.map(nt => nt.tag_id) || [];
+  const availableTags = tags?.filter(t => !currentTagIds.includes(t.id)) || [];
+  const currentTags = noteTags?.map(nt => nt.tags).filter(Boolean) || [];
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -108,35 +225,63 @@ export default function NoteEditor() {
             </Button>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="w-4 h-4" />
-              <span>Last saved 2 mins ago</span>
+              <span>
+                {lastSaved 
+                  ? `Last saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}`
+                  : isNewNote ? "New note" : "Not saved yet"
+                }
+              </span>
+              {hasChanges && (
+                <Badge variant="muted" className="text-xs">Unsaved changes</Badge>
+              )}
             </div>
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={isNewNote}>
               <Sparkles className="w-4 h-4" />
-              AI Summarize
+              <span className="hidden sm:inline">AI Summarize</span>
             </Button>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" disabled={isNewNote}>
               <Layers className="w-4 h-4" />
-              Generate Flashcards
+              <span className="hidden sm:inline">Generate Flashcards</span>
             </Button>
             <Button 
               variant="hero" 
               size="sm"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || (!hasChanges && !isNewNote)}
             >
               {isSaving ? (
-                <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Saving...
+                </>
               ) : (
-                <Save className="w-4 h-4" />
+                <>
+                  <Save className="w-4 h-4" />
+                  Save
+                </>
               )}
-              {isSaving ? "Saving..." : "Save"}
             </Button>
-            <Button variant="ghost" size="icon-sm">
-              <MoreHorizontal className="w-4 h-4" />
-            </Button>
+            {!isNewNote && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm">
+                    <MoreHorizontal className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem 
+                    onClick={() => setDeleteOpen(true)}
+                    className="text-destructive focus:text-destructive"
+                  >
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete Note
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
           </div>
         </div>
 
@@ -192,16 +337,28 @@ export default function NoteEditor() {
                 <Folder className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Folder</span>
               </div>
-              <select 
-                value={selectedFolder}
-                onChange={(e) => setSelectedFolder(e.target.value)}
-                className="w-full h-9 rounded-lg border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+              <Select 
+                value={folderId || "none"} 
+                onValueChange={(v) => setFolderId(v === "none" ? null : v)}
               >
-                <option value="Chemistry">Chemistry</option>
-                <option value="Biology">Biology</option>
-                <option value="Mathematics">Mathematics</option>
-                <option value="History">History</option>
-              </select>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select folder..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No folder</SelectItem>
+                  {folders?.map((folder) => (
+                    <SelectItem key={folder.id} value={folder.id}>
+                      <div className="flex items-center gap-2">
+                        <div 
+                          className="w-3 h-3 rounded-sm" 
+                          style={{ backgroundColor: folder.color }}
+                        />
+                        {folder.name}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </Card>
 
             {/* Tags */}
@@ -210,29 +367,80 @@ export default function NoteEditor() {
                 <Tag className="w-4 h-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Tags</span>
               </div>
+              
+              {/* Current Tags */}
               <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map((tag) => (
-                  <Badge key={tag} variant="secondary" className="text-xs">
-                    {tag}
+                {currentTags.map((tag: any) => (
+                  <Badge 
+                    key={tag.id} 
+                    variant="secondary" 
+                    className="text-xs"
+                    style={{ borderColor: tag.color }}
+                  >
+                    {tag.name}
                     <button 
                       className="ml-1 hover:text-destructive"
-                      onClick={() => setTags(tags.filter(t => t !== tag))}
+                      onClick={() => handleRemoveTag(tag.id)}
+                      disabled={isNewNote}
                     >
                       ×
                     </button>
                   </Badge>
                 ))}
+                {currentTags.length === 0 && !isNewNote && (
+                  <span className="text-xs text-muted-foreground">No tags</span>
+                )}
+                {isNewNote && (
+                  <span className="text-xs text-muted-foreground">Save note first to add tags</span>
+                )}
               </div>
-              <Input 
-                placeholder="Add tag..." 
-                className="h-8 text-sm"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && e.currentTarget.value) {
-                    setTags([...tags, e.currentTarget.value]);
-                    e.currentTarget.value = "";
-                  }
-                }}
-              />
+
+              {/* Add Existing Tag */}
+              {!isNewNote && availableTags.length > 0 && (
+                <Select onValueChange={handleAddTag}>
+                  <SelectTrigger className="h-8 text-sm mb-2">
+                    <SelectValue placeholder="Add existing tag..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableTags.map((tag) => (
+                      <SelectItem key={tag.id} value={tag.id}>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-3 h-3 rounded-sm" 
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
+              {/* Create New Tag */}
+              {!isNewNote && (
+                <div className="flex gap-2">
+                  <Input 
+                    placeholder="New tag name..." 
+                    className="h-8 text-sm flex-1"
+                    value={newTagInput}
+                    onChange={(e) => setNewTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleCreateAndAddTag();
+                      }
+                    }}
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="icon-sm" 
+                    onClick={handleCreateAndAddTag}
+                    disabled={!newTagInput.trim() || createTag.isPending}
+                  >
+                    <Plus className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </Card>
 
             {/* AI Actions */}
@@ -242,11 +450,11 @@ export default function NoteEditor() {
                 <span className="text-sm font-medium">AI Actions</span>
               </div>
               <div className="space-y-2">
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button variant="outline" size="sm" className="w-full justify-start" disabled={isNewNote}>
                   <Sparkles className="w-4 h-4 text-accent" />
                   Summarize Note
                 </Button>
-                <Button variant="outline" size="sm" className="w-full justify-start">
+                <Button variant="outline" size="sm" className="w-full justify-start" disabled={isNewNote}>
                   <Layers className="w-4 h-4 text-primary" />
                   Generate Flashcards
                 </Button>
@@ -255,6 +463,16 @@ export default function NoteEditor() {
           </div>
         </div>
       </motion.div>
+
+      {/* Delete Confirmation */}
+      <DeleteConfirmModal
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        onConfirm={handleDelete}
+        isLoading={deleteNote.isPending}
+      />
     </DashboardLayout>
   );
 }
