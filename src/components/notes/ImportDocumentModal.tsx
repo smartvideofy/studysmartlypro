@@ -1,9 +1,7 @@
 import { useState, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Upload, FileText, File, Loader2, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertCircle, File as FileIcon, FileText, Loader2, Upload } from "lucide-react";
 import { useCreateNote } from "@/hooks/useNotes";
 import { toast } from "sonner";
 
@@ -55,9 +53,9 @@ export function ImportDocumentModal({ open, onOpenChange, folderId }: ImportDocu
   };
 
   const isValidFile = (file: File) => {
-    return acceptedMimeTypes.includes(file.type) || 
-           file.name.endsWith('.txt') || 
-           file.name.endsWith('.md');
+    const ext = file.name.toLowerCase().split('.').pop();
+    const hasAllowedExt = ext ? ['txt', 'md', 'pdf', 'doc', 'docx'].includes(ext) : false;
+    return hasAllowedExt || acceptedMimeTypes.includes(file.type);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -103,7 +101,7 @@ export function ImportDocumentModal({ open, onOpenChange, folderId }: ImportDocu
       await createNote.mutateAsync({
         title,
         content,
-        folder_id: folderId || null
+        folder_id: folderId,
       });
 
       toast.success("Document imported successfully!");
@@ -119,9 +117,9 @@ export function ImportDocumentModal({ open, onOpenChange, folderId }: ImportDocu
 
   const getFileIcon = () => {
     if (!file) return <Upload className="w-12 h-12 text-muted-foreground" />;
-    if (file.name.endsWith('.pdf')) return <FileText className="w-12 h-12 text-red-500" />;
-    if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) return <FileText className="w-12 h-12 text-blue-500" />;
-    return <File className="w-12 h-12 text-primary" />;
+    if (file.name.endsWith('.pdf')) return <FileText className="w-12 h-12 text-destructive" />;
+    if (file.name.endsWith('.doc') || file.name.endsWith('.docx')) return <FileText className="w-12 h-12 text-primary" />;
+    return <FileIcon className="w-12 h-12 text-primary" />;
   };
 
   return (
