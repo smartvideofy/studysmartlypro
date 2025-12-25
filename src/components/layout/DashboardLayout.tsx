@@ -14,11 +14,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Bell,
   Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -182,10 +182,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             </Button>
 
             {/* Notifications */}
-            <Button variant="ghost" size="icon-sm" className="relative">
-              <Bell className="w-4 h-4" />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-accent rounded-full" />
-            </Button>
+            <NotificationBell />
 
             {/* Avatar */}
             <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
