@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
-  User,
   Bell,
   Moon,
   Sun,
   LogOut,
   Loader2,
-  ChevronRight,
   Clock,
   Target
 } from "lucide-react";
@@ -27,6 +25,7 @@ import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
+import { AvatarUpload } from "@/components/settings/AvatarUpload";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -71,11 +70,6 @@ export default function SettingsPage() {
 
   const isDark = theme === "dark";
 
-  const getInitials = () => {
-    if (fullName) return fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
-    return user?.email?.[0].toUpperCase() || "U";
-  };
-
   if (isLoading) {
     return (
       <DashboardLayout title="Settings">
@@ -91,9 +85,11 @@ export default function SettingsPage() {
       <div className="max-w-2xl space-y-8">
         {/* Profile Header */}
         <div className="flex items-center gap-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xl">
-            {getInitials()}
-          </div>
+          <AvatarUpload 
+            avatarUrl={profile?.avatar_url || null}
+            fullName={fullName}
+            email={user?.email || ""}
+          />
           <div className="flex-1 min-w-0">
             <h2 className="font-display font-semibold text-lg truncate">
               {fullName || "Set your name"}
