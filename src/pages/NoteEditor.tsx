@@ -47,6 +47,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
 import { AISummaryModal } from "@/components/notes/AISummaryModal";
 import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
+import { NoteAttachments } from "@/components/notes/NoteAttachments";
 import { 
   useNote, 
   useCreateNote, 
@@ -560,6 +561,11 @@ export default function NoteEditor() {
                 </Button>
               </div>
             </Card>
+
+            {/* Attachments */}
+            {!isNewNote && id && (
+              <NoteAttachments noteId={id} />
+            )}
           </div>
         </div>
       </motion.div>

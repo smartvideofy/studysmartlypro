@@ -36,13 +36,14 @@ export function AISummaryModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg" aria-describedby="summary-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-accent" />
             AI Summary
           </DialogTitle>
         </DialogHeader>
+        <p id="summary-description" className="sr-only">AI-generated summary of your note</p>
 
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">

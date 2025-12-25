@@ -139,13 +139,14 @@ export function AIFlashcardsModal({
       }
       onOpenChange(v);
     }}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl" aria-describedby="flashcards-description">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Layers className="w-5 h-5 text-primary" />
             AI Generated Flashcards
           </DialogTitle>
         </DialogHeader>
+        <p id="flashcards-description" className="sr-only">Review and save AI-generated flashcards from your note</p>
 
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
