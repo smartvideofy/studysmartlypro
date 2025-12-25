@@ -15,7 +15,8 @@ import {
   Trash2,
   FolderPlus,
   Sparkles,
-  BookOpen
+  BookOpen,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +34,7 @@ import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
 import { AISummaryModal } from "@/components/notes/AISummaryModal";
 import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
+import { ImportDocumentModal } from "@/components/notes/ImportDocumentModal";
 import { cn } from "@/lib/utils";
 import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType, Note } from "@/hooks/useNotes";
 import { useAISummarize, useAIGenerateFlashcardsAdvanced } from "@/hooks/useAINotes";
@@ -60,6 +62,7 @@ export default function NotesPage() {
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
   const [summaryNote, setSummaryNote] = useState<Note | null>(null);
   const [flashcardsNote, setFlashcardsNote] = useState<Note | null>(null);
+  const [importDocumentOpen, setImportDocumentOpen] = useState(false);
   
   const { data: notes, isLoading: notesLoading } = useNotes();
   const { data: folders, isLoading: foldersLoading } = useFolders();
@@ -173,6 +176,11 @@ export default function NotesPage() {
             <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)}>
               <FolderPlus className="w-4 h-4" />
               <span className="hidden sm:inline">New Folder</span>
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={() => setImportDocumentOpen(true)}>
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Import</span>
             </Button>
             
             <Button variant="hero" size="sm" asChild>
@@ -409,6 +417,11 @@ export default function NotesPage() {
         isLoading={flashcardsLoading}
         noteTitle={flashcardsNote?.title || ''}
         noteId={flashcardsNote?.id || ''}
+      />
+
+      <ImportDocumentModal
+        open={importDocumentOpen}
+        onOpenChange={setImportDocumentOpen}
       />
     </DashboardLayout>
   );
