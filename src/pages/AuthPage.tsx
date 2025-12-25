@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -40,15 +40,19 @@ export default function AuthPage() {
   const [errors, setErrors] = useState<{ email?: string; password?: string; name?: string }>({});
   
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
   const { signIn, signUp, signInWithGoogle, resetPassword, user, isLoading: authLoading } = useAuth();
+
+  // Get intended redirect from ProtectedRoute or default to dashboard
+  const from = (location.state as { from?: string })?.from || "/dashboard";
 
   // Redirect if already logged in
   useEffect(() => {
     if (user && !authLoading) {
-      navigate("/dashboard");
+      navigate(from, { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, from]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -113,9 +117,9 @@ export default function AuthPage() {
         } else {
           toast({
             title: "Welcome back!",
-            description: "Redirecting to your dashboard...",
+            description: "Redirecting...",
           });
-          navigate("/dashboard");
+          navigate(from, { replace: true });
         }
       } else {
         const { error } = await signUp(email, password, name);

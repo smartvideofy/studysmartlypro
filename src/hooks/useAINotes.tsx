@@ -13,6 +13,31 @@ interface GenerateOptions {
   cardType?: 'qa' | 'definition' | 'fill-blank' | 'mixed';
 }
 
+async function ensureAuthenticated(): Promise<boolean> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    toast.error("Please sign in to use AI features");
+    return false;
+  }
+  return true;
+}
+
+function handleInvokeError(error: any, context: string): void {
+  console.error(`${context} error:`, error);
+  
+  const message = error?.message || '';
+  
+  if (message.includes('401') || message.includes('Unauthorized') || message.includes('Authentication')) {
+    toast.error("Please sign in again to use AI features");
+  } else if (message.includes('429') || message.includes('Rate limit')) {
+    toast.error("Too many requests. Please try again shortly.");
+  } else if (message.includes('402') || message.includes('credits')) {
+    toast.error("AI credits exhausted. Please try again later.");
+  } else {
+    toast.error(message || `Failed to ${context.toLowerCase()}`);
+  }
+}
+
 export function useAISummarize() {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -20,6 +45,11 @@ export function useAISummarize() {
   const summarize = async (noteTitle: string, noteContent: string) => {
     if (!noteContent.trim()) {
       toast.error("Note content is empty");
+      return null;
+    }
+
+    // Check authentication first
+    if (!(await ensureAuthenticated())) {
       return null;
     }
 
@@ -32,10 +62,10 @@ export function useAISummarize() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
       }
 
@@ -43,8 +73,7 @@ export function useAISummarize() {
       toast.success("Summary generated!");
       return data.summary;
     } catch (error: any) {
-      console.error("Summarize error:", error);
-      toast.error(error.message || "Failed to generate summary");
+      handleInvokeError(error, "Summarize");
       return null;
     } finally {
       setIsLoading(false);
@@ -64,6 +93,11 @@ export function useAIGenerateFlashcards() {
       return null;
     }
 
+    // Check authentication first
+    if (!(await ensureAuthenticated())) {
+      return null;
+    }
+
     setIsLoading(true);
     setFlashcards(null);
 
@@ -73,19 +107,22 @@ export function useAIGenerateFlashcards() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
+      }
+
+      if (!Array.isArray(data?.flashcards)) {
+        throw new Error("Invalid response from AI");
       }
 
       setFlashcards(data.flashcards);
       toast.success(`Generated ${data.flashcards.length} flashcards!`);
       return data.flashcards;
     } catch (error: any) {
-      console.error("Generate flashcards error:", error);
-      toast.error(error.message || "Failed to generate flashcards");
+      handleInvokeError(error, "Generate flashcards");
       return null;
     } finally {
       setIsLoading(false);
@@ -109,6 +146,11 @@ export function useAIGenerateFlashcardsAdvanced() {
       return null;
     }
 
+    // Check authentication first
+    if (!(await ensureAuthenticated())) {
+      return null;
+    }
+
     setIsLoading(true);
     setFlashcards(null);
 
@@ -125,19 +167,22 @@ export function useAIGenerateFlashcardsAdvanced() {
       });
 
       if (error) {
-        throw new Error(error.message);
+        throw error;
       }
 
-      if (data.error) {
+      if (data?.error) {
         throw new Error(data.error);
+      }
+
+      if (!Array.isArray(data?.flashcards)) {
+        throw new Error("Invalid response from AI");
       }
 
       setFlashcards(data.flashcards);
       toast.success(`Generated ${data.flashcards.length} flashcards!`);
       return data.flashcards;
     } catch (error: any) {
-      console.error("Generate flashcards error:", error);
-      toast.error(error.message || "Failed to generate flashcards");
+      handleInvokeError(error, "Generate flashcards");
       return null;
     } finally {
       setIsLoading(false);
