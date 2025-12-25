@@ -15,6 +15,7 @@ import FlashcardsPage from "./pages/FlashcardsPage";
 import DeckDetailPage from "./pages/DeckDetailPage";
 import StudySession from "./pages/StudySession";
 import GroupsPage from "./pages/GroupsPage";
+import GroupDetailPage from "./pages/GroupDetailPage";
 import ProgressPage from "./pages/ProgressPage";
 import SettingsPage from "./pages/SettingsPage";
 import HelpPage from "./pages/HelpPage";
@@ -85,6 +86,11 @@ const App = () => (
             <Route path="/groups" element={
               <ProtectedRoute>
                 <GroupsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/groups/:groupId" element={
+              <ProtectedRoute>
+                <GroupDetailPage />
               </ProtectedRoute>
             } />
             <Route path="/progress" element={

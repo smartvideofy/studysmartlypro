@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
   Users,
@@ -155,9 +156,11 @@ export default function GroupsPage() {
                       <span className="text-xs text-muted-foreground">
                         Updated {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
                       </span>
-                      <Button variant="outline" size="sm">
-                        <MessageSquare className="w-4 h-4" />
-                        Open
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={`/groups/${group.id}`}>
+                          <MessageSquare className="w-4 h-4" />
+                          Open
+                        </Link>
                       </Button>
                     </div>
                   </CardContent>
