@@ -1,96 +1,67 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
   User,
   Bell,
   Moon,
   Sun,
-  Shield,
-  Crown,
-  Check,
   LogOut,
-  Loader2
+  Loader2,
+  ChevronRight,
+  Clock,
+  Target
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
-import { toast } from "sonner";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    period: "/month",
-    features: ["5 notes", "50 flashcards", "Basic AI features"],
-    current: true,
-  },
-  {
-    name: "Pro",
-    price: "$9.99",
-    period: "/month",
-    features: ["Unlimited notes", "Unlimited flashcards", "Advanced AI", "Priority support"],
-    current: false,
-    popular: true,
-  },
-  {
-    name: "Team",
-    price: "$24.99",
-    period: "/month",
-    features: ["Everything in Pro", "Team collaboration", "Admin controls", "Analytics"],
-    current: false,
-  },
-];
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useProfile();
+  const { data: profile, isLoading } = useProfile();
   const updateProfile = useUpdateProfile();
   const { theme, setTheme } = useTheme();
 
   const [fullName, setFullName] = useState("");
+  const [studyGoal, setStudyGoal] = useState("general");
+  const [dailyMinutes, setDailyMinutes] = useState(30);
+  const [preferredTime, setPreferredTime] = useState("morning");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
 
-  // Sync state with profile data
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
+      setStudyGoal(profile.study_goal || "general");
+      setDailyMinutes(profile.daily_study_minutes || 30);
+      setPreferredTime(profile.preferred_study_time || "morning");
       setNotificationEnabled(profile.notification_enabled ?? true);
     }
   }, [profile]);
 
-  const handleSaveProfile = async () => {
-    setIsSaving(true);
-    try {
-      await updateProfile.mutateAsync({
-        full_name: fullName,
-        notification_enabled: notificationEnabled,
-      });
-    } finally {
-      setIsSaving(false);
-    }
+  const handleSave = () => {
+    updateProfile.mutate({
+      full_name: fullName,
+      study_goal: studyGoal,
+      daily_study_minutes: dailyMinutes,
+      preferred_study_time: preferredTime,
+      notification_enabled: notificationEnabled,
+    }, {
+      onSuccess: () => setHasChanges(false),
+    });
   };
 
   const handleSignOut = async () => {
@@ -98,23 +69,18 @@ export default function SettingsPage() {
     navigate("/auth");
   };
 
-  const isDarkMode = theme === "dark";
+  const isDark = theme === "dark";
 
   const getInitials = () => {
-    if (fullName) {
-      return fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
-    }
-    if (user?.email) {
-      return user.email[0].toUpperCase();
-    }
-    return "U";
+    if (fullName) return fullName.split(" ").map(n => n[0]).join("").toUpperCase().slice(0, 2);
+    return user?.email?.[0].toUpperCase() || "U";
   };
 
-  if (profileLoading) {
+  if (isLoading) {
     return (
       <DashboardLayout title="Settings">
         <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </DashboardLayout>
     );
@@ -122,207 +88,180 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout title="Settings">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-4xl space-y-6"
-      >
-        {/* Profile Section */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <User className="w-5 h-5" />
-                Profile
-              </CardTitle>
-              <CardDescription>Manage your account information</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-2xl">
-                  {getInitials()}
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">
-                    {user?.email}
-                  </p>
-                  <Button variant="outline" size="sm" disabled>
-                    Change Photo
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input 
-                    id="name" 
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Enter your name"
-                    className="mt-1.5" 
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email</Label>
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    value={user?.email || ""} 
-                    disabled
-                    className="mt-1.5" 
-                  />
-                </div>
-              </div>
-              
-              <Button 
-                variant="hero" 
-                size="sm"
-                onClick={handleSaveProfile}
-                disabled={isSaving}
-              >
-                {isSaving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                Save Changes
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="max-w-2xl space-y-8">
+        {/* Profile Header */}
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xl">
+            {getInitials()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="font-display font-semibold text-lg truncate">
+              {fullName || "Set your name"}
+            </h2>
+            <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
+          </div>
+        </div>
+
+        {/* Account Section */}
+        <Section title="Account">
+          <SettingRow label="Full Name" description="Your display name">
+            <Input
+              value={fullName}
+              onChange={(e) => { setFullName(e.target.value); setHasChanges(true); }}
+              placeholder="Enter your name"
+              className="max-w-[200px] h-9"
+            />
+          </SettingRow>
+          <Separator />
+          <SettingRow label="Email" description="Your account email">
+            <span className="text-sm text-muted-foreground">{user?.email}</span>
+          </SettingRow>
+        </Section>
+
+        {/* Study Preferences */}
+        <Section title="Study Preferences">
+          <SettingRow 
+            icon={<Target className="w-4 h-4" />}
+            label="Study Goal" 
+            description="What's your main focus?"
+          >
+            <Select value={studyGoal} onValueChange={(v) => { setStudyGoal(v); setHasChanges(true); }}>
+              <SelectTrigger className="w-[140px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="general">General</SelectItem>
+                <SelectItem value="exams">Exam Prep</SelectItem>
+                <SelectItem value="language">Language</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+          <Separator />
+          <SettingRow 
+            icon={<Clock className="w-4 h-4" />}
+            label="Daily Goal" 
+            description="Target study time per day"
+          >
+            <Select value={String(dailyMinutes)} onValueChange={(v) => { setDailyMinutes(Number(v)); setHasChanges(true); }}>
+              <SelectTrigger className="w-[120px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="15">15 min</SelectItem>
+                <SelectItem value="30">30 min</SelectItem>
+                <SelectItem value="45">45 min</SelectItem>
+                <SelectItem value="60">1 hour</SelectItem>
+                <SelectItem value="90">1.5 hours</SelectItem>
+                <SelectItem value="120">2 hours</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+          <Separator />
+          <SettingRow label="Preferred Time" description="When do you like to study?">
+            <Select value={preferredTime} onValueChange={(v) => { setPreferredTime(v); setHasChanges(true); }}>
+              <SelectTrigger className="w-[120px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="morning">Morning</SelectItem>
+                <SelectItem value="afternoon">Afternoon</SelectItem>
+                <SelectItem value="evening">Evening</SelectItem>
+                <SelectItem value="night">Night</SelectItem>
+              </SelectContent>
+            </Select>
+          </SettingRow>
+        </Section>
 
         {/* Notifications */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Bell className="w-5 h-5" />
-                Notifications
-              </CardTitle>
-              <CardDescription>Configure how you receive notifications</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Study Reminders</p>
-                  <p className="text-sm text-muted-foreground">Receive reminders to study</p>
-                </div>
-                <Switch 
-                  checked={notificationEnabled} 
-                  onCheckedChange={(checked) => {
-                    setNotificationEnabled(checked);
-                    updateProfile.mutate({ notification_enabled: checked });
-                  }} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Section title="Notifications">
+          <SettingRow 
+            icon={<Bell className="w-4 h-4" />}
+            label="Study Reminders" 
+            description="Get reminded to study"
+          >
+            <Switch
+              checked={notificationEnabled}
+              onCheckedChange={(checked) => {
+                setNotificationEnabled(checked);
+                updateProfile.mutate({ notification_enabled: checked });
+              }}
+            />
+          </SettingRow>
+        </Section>
 
         {/* Appearance */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-                Appearance
-              </CardTitle>
-              <CardDescription>Customize how the app looks</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Dark Mode</p>
-                  <p className="text-sm text-muted-foreground">Switch between light and dark theme</p>
-                </div>
-                <Switch 
-                  checked={isDarkMode} 
-                  onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")} 
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        <Section title="Appearance">
+          <SettingRow 
+            icon={isDark ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+            label="Dark Mode" 
+            description="Toggle dark theme"
+          >
+            <Switch
+              checked={isDark}
+              onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
+            />
+          </SettingRow>
+        </Section>
 
-        {/* Subscription */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Crown className="w-5 h-5 text-accent" />
-                Subscription
-              </CardTitle>
-              <CardDescription>Manage your subscription plan</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid sm:grid-cols-3 gap-4">
-                {plans.map((plan) => (
-                  <div
-                    key={plan.name}
-                    className={`p-4 rounded-xl border relative ${
-                      plan.current 
-                        ? "border-primary bg-primary/5" 
-                        : "border-border"
-                    }`}
-                  >
-                    {plan.popular && (
-                      <Badge variant="accent" className="absolute -top-2 right-2 text-xs">
-                        Popular
-                      </Badge>
-                    )}
-                    <h4 className="font-display font-semibold mb-1">{plan.name}</h4>
-                    <div className="mb-3">
-                      <span className="text-2xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground text-sm">{plan.period}</span>
-                    </div>
-                    <ul className="space-y-2 mb-4">
-                      {plan.features.map((feature) => (
-                        <li key={feature} className="text-sm flex items-center gap-2">
-                          <Check className="w-4 h-4 text-success" />
-                          {feature}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      variant={plan.current ? "outline" : "default"} 
-                      size="sm" 
-                      className="w-full"
-                      disabled={plan.current}
-                    >
-                      {plan.current ? "Current Plan" : "Upgrade"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Save Button */}
+        {hasChanges && (
+          <div className="sticky bottom-6 flex justify-end">
+            <Button onClick={handleSave} disabled={updateProfile.isPending}>
+              {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              Save Changes
+            </Button>
+          </div>
+        )}
 
-        {/* Danger Zone */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated" className="border-destructive/20">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <Shield className="w-5 h-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>Irreversible actions</CardDescription>
-            </CardHeader>
-            <CardContent className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Sign Out</p>
-                <p className="text-sm text-muted-foreground">Log out of your account</p>
-              </div>
-              <Button 
-                variant="outline" 
-                className="border-destructive/30 text-destructive hover:bg-destructive/10"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sign Out
-              </Button>
-            </CardContent>
-          </Card>
-        </motion.div>
-      </motion.div>
+        {/* Sign Out */}
+        <div className="pt-4">
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-3 w-full p-3 rounded-lg text-destructive hover:bg-destructive/5 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            <span className="text-sm font-medium">Sign Out</span>
+          </button>
+        </div>
+      </div>
     </DashboardLayout>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+        {title}
+      </h3>
+      <div className="rounded-xl border border-border bg-card overflow-hidden">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+interface SettingRowProps {
+  icon?: React.ReactNode;
+  label: string;
+  description?: string;
+  children: React.ReactNode;
+}
+
+function SettingRow({ icon, label, description, children }: SettingRowProps) {
+  return (
+    <div className="flex items-center justify-between gap-4 px-4 py-3">
+      <div className="flex items-center gap-3 min-w-0">
+        {icon && <span className="text-muted-foreground">{icon}</span>}
+        <div className="min-w-0">
+          <p className="text-sm font-medium">{label}</p>
+          {description && (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          )}
+        </div>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
   );
 }
