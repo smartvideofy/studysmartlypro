@@ -213,6 +213,50 @@ export type Database = {
           },
         ]
       }
+      note_attachments: {
+        Row: {
+          bucket_id: string
+          created_at: string
+          file_name: string
+          id: string
+          mime_type: string | null
+          note_id: string
+          object_path: string
+          size_bytes: number | null
+          user_id: string
+        }
+        Insert: {
+          bucket_id?: string
+          created_at?: string
+          file_name: string
+          id?: string
+          mime_type?: string | null
+          note_id: string
+          object_path: string
+          size_bytes?: number | null
+          user_id: string
+        }
+        Update: {
+          bucket_id?: string
+          created_at?: string
+          file_name?: string
+          id?: string
+          mime_type?: string | null
+          note_id?: string
+          object_path?: string
+          size_bytes?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "note_attachments_note_id_fkey"
+            columns: ["note_id"]
+            isOneToOne: false
+            referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_tags: {
         Row: {
           note_id: string
