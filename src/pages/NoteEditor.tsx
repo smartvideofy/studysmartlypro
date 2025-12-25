@@ -7,6 +7,7 @@ import {
   MoreHorizontal,
   Image,
   Mic,
+  MicOff,
   Link as LinkIcon,
   Sparkles,
   Layers,
@@ -59,8 +60,10 @@ import {
   useCreateTag
 } from "@/hooks/useNotes";
 import { useAISummarize, useAIGenerateFlashcards } from "@/hooks/useAINotes";
+import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 const toolbarButtons = [
   { icon: Bold, label: "Bold" },
@@ -103,6 +106,23 @@ export default function NoteEditor() {
   // AI hooks
   const { summarize, isLoading: isSummarizing, summary, setSummary } = useAISummarize();
   const { generateFlashcards, isLoading: isGenerating, flashcards, setFlashcards } = useAIGenerateFlashcards();
+
+  // Speech to text
+  const { 
+    isListening, 
+    interimTranscript, 
+    error: speechError, 
+    isSupported: isSpeechSupported,
+    toggleListening 
+  } = useSpeechToText();
+
+  // Handle speech transcript
+  const handleSpeechTranscript = useCallback((text: string) => {
+    setContent((prev) => {
+      const needsSpace = prev.length > 0 && !prev.endsWith(" ") && !prev.endsWith("\n");
+      return prev + (needsSpace ? " " : "") + text;
+    });
+  }, []);
 
   // Load note data
   useEffect(() => {
@@ -348,13 +368,37 @@ export default function NoteEditor() {
               <Button variant="ghost" size="icon-sm" title="Add Image">
                 <Image className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="icon-sm" title="Add Audio">
-                <Mic className="w-4 h-4" />
+              <Button 
+                variant={isListening ? "default" : "ghost"}
+                size="icon-sm" 
+                title={isSpeechSupported ? (isListening ? "Stop dictation" : "Start dictation") : "Not supported"}
+                onClick={() => toggleListening(handleSpeechTranscript)}
+                disabled={!isSpeechSupported}
+                className={cn(isListening && "bg-destructive hover:bg-destructive/90")}
+              >
+                {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
               </Button>
               <Button variant="ghost" size="icon-sm" title="Add Link">
                 <LinkIcon className="w-4 h-4" />
               </Button>
             </div>
+
+            {/* Voice Status */}
+            {isListening && (
+              <div className="flex items-center gap-2 py-2 px-3 mb-4 rounded-lg bg-destructive/10 text-destructive text-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-destructive opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-destructive" />
+                </span>
+                <span>Listening... {interimTranscript && <span className="text-muted-foreground italic">"{interimTranscript}"</span>}</span>
+              </div>
+            )}
+
+            {speechError && (
+              <div className="py-2 px-3 mb-4 rounded-lg bg-destructive/10 text-destructive text-sm">
+                {speechError}
+              </div>
+            )}
 
             {/* Content Area */}
             <textarea
