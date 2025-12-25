@@ -32,6 +32,7 @@ import {
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
+import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
 import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
 
@@ -58,6 +59,7 @@ const deckColors = [
 export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDeckOpen, setCreateDeckOpen] = useState(false);
+  const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<FlashcardDeck | null>(null);
   const [deletingDeck, setDeletingDeck] = useState<FlashcardDeck | null>(null);
   
@@ -209,7 +211,7 @@ export default function FlashcardsPage() {
           </div>
           
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" onClick={() => setAiGeneratorOpen(true)}>
               <Sparkles className="w-4 h-4" />
               <span className="hidden sm:inline">AI Generate</span>
             </Button>
@@ -343,6 +345,11 @@ export default function FlashcardsPage() {
         description={`Are you sure you want to delete "${deletingDeck?.name}"? All flashcards in this deck will be permanently deleted. This action cannot be undone.`}
         onConfirm={handleDeleteDeck}
         isLoading={deleteDeck.isPending}
+      />
+
+      <AIGeneratorModal
+        open={aiGeneratorOpen}
+        onOpenChange={setAiGeneratorOpen}
       />
     </DashboardLayout>
   );
