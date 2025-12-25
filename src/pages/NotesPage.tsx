@@ -10,12 +10,12 @@ import {
   Clock,
   Grid3X3,
   List,
-  Filter,
-  ChevronRight,
   Loader2,
   Edit,
   Trash2,
-  FolderPlus
+  FolderPlus,
+  Sparkles,
+  BookOpen
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,8 +31,11 @@ import {
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
+import { AISummaryModal } from "@/components/notes/AISummaryModal";
+import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
 import { cn } from "@/lib/utils";
-import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType } from "@/hooks/useNotes";
+import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType, Note } from "@/hooks/useNotes";
+import { useAISummarize, useAIGenerateFlashcardsAdvanced } from "@/hooks/useAINotes";
 import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
@@ -55,11 +58,15 @@ export default function NotesPage() {
   const [editingFolder, setEditingFolder] = useState<FolderType | null>(null);
   const [deletingFolder, setDeletingFolder] = useState<FolderType | null>(null);
   const [deletingNoteId, setDeletingNoteId] = useState<string | null>(null);
+  const [summaryNote, setSummaryNote] = useState<Note | null>(null);
+  const [flashcardsNote, setFlashcardsNote] = useState<Note | null>(null);
   
   const { data: notes, isLoading: notesLoading } = useNotes();
   const { data: folders, isLoading: foldersLoading } = useFolders();
   const deleteNote = useDeleteNote();
   const deleteFolder = useDeleteFolder();
+  const { summarize, isLoading: summaryLoading, summary } = useAISummarize();
+  const { generateFlashcards, isLoading: flashcardsLoading, flashcards } = useAIGenerateFlashcardsAdvanced();
 
   const isLoading = notesLoading || foldersLoading;
 
@@ -91,6 +98,20 @@ export default function NotesPage() {
       setDeletingNoteId(null);
     } catch (error) {
       // Error handled by mutation
+    }
+  };
+
+  const handleSummarize = (note: Note) => {
+    setSummaryNote(note);
+    if (note.content) {
+      summarize(note.title, note.content);
+    }
+  };
+
+  const handleGenerateFlashcards = (note: Note) => {
+    setFlashcardsNote(note);
+    if (note.content) {
+      generateFlashcards(note.title, note.content, { cardCount: 10, difficulty: 'mixed', cardType: 'mixed' });
     }
   };
 
@@ -273,6 +294,21 @@ export default function NotesPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
+                                onClick={() => handleSummarize(note)}
+                                disabled={!note.content}
+                              >
+                                <Sparkles className="w-4 h-4 mr-2" />
+                                AI Summary
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => handleGenerateFlashcards(note)}
+                                disabled={!note.content}
+                              >
+                                <BookOpen className="w-4 h-4 mr-2" />
+                                Generate Flashcards
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
                                 onClick={() => setDeletingNoteId(note.id)}
                                 className="text-destructive focus:text-destructive"
                               >
@@ -356,6 +392,23 @@ export default function NotesPage() {
         description="Are you sure you want to delete this note? This action cannot be undone."
         onConfirm={handleDeleteNote}
         isLoading={deleteNote.isPending}
+      />
+
+      <AISummaryModal
+        open={!!summaryNote}
+        onOpenChange={(open) => !open && setSummaryNote(null)}
+        summary={summary}
+        isLoading={summaryLoading}
+        noteTitle={summaryNote?.title || ''}
+      />
+
+      <AIFlashcardsModal
+        open={!!flashcardsNote}
+        onOpenChange={(open) => !open && setFlashcardsNote(null)}
+        flashcards={flashcards}
+        isLoading={flashcardsLoading}
+        noteTitle={flashcardsNote?.title || ''}
+        noteId={flashcardsNote?.id || ''}
       />
     </DashboardLayout>
   );
