@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -8,7 +8,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Layers, Loader2, Check, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Layers, Loader2, Check, X, ChevronLeft, ChevronRight, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCreateDeck, useCreateFlashcard } from "@/hooks/useFlashcards";
@@ -43,28 +44,45 @@ export function AIFlashcardsModal({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [deckName, setDeckName] = useState(noteTitle);
   const [step, setStep] = useState<'review' | 'create'>('review');
+  const [editingCard, setEditingCard] = useState<{ front: string; back: string } | null>(null);
 
   const createDeck = useCreateDeck();
   const createFlashcard = useCreateFlashcard();
 
-  // Update flashcards when new ones come in
-  useState(() => {
-    if (initialFlashcards) {
+  // Reset state when modal opens with new flashcards
+  useEffect(() => {
+    if (initialFlashcards && initialFlashcards.length > 0) {
       setFlashcards(initialFlashcards.map(f => ({ ...f, selected: true })));
       setCurrentIndex(0);
       setStep('review');
+      setDeckName(noteTitle);
+      setEditingCard(null);
     }
-  });
-
-  // Reset state when modal opens with new flashcards
-  if (initialFlashcards && flashcards.length === 0) {
-    setFlashcards(initialFlashcards.map(f => ({ ...f, selected: true })));
-  }
+  }, [initialFlashcards, noteTitle]);
 
   const toggleSelection = (index: number) => {
     setFlashcards(prev => 
       prev.map((f, i) => i === index ? { ...f, selected: !f.selected } : f)
     );
+  };
+
+  const startEditing = () => {
+    const card = flashcards[currentIndex];
+    setEditingCard({ front: card.front, back: card.back });
+  };
+
+  const saveEdit = () => {
+    if (!editingCard) return;
+    setFlashcards(prev =>
+      prev.map((f, i) =>
+        i === currentIndex ? { ...f, front: editingCard.front, back: editingCard.back } : f
+      )
+    );
+    setEditingCard(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingCard(null);
   };
 
   const selectedCount = flashcards.filter(f => f.selected).length;
@@ -117,6 +135,7 @@ export function AIFlashcardsModal({
       if (!v) {
         setFlashcards([]);
         setStep('review');
+        setEditingCard(null);
       }
       onOpenChange(v);
     }}>
@@ -139,7 +158,7 @@ export function AIFlashcardsModal({
               <>
                 <div className="flex items-center justify-between">
                   <p className="text-sm text-muted-foreground">
-                    Review and select flashcards to save
+                    Review and edit flashcards to save
                   </p>
                   <Badge variant="secondary">
                     {selectedCount} of {flashcards.length} selected
@@ -147,38 +166,75 @@ export function AIFlashcardsModal({
                 </div>
 
                 {/* Card Preview */}
-                <Card className="p-6 min-h-[200px] flex flex-col">
+                <Card className="p-6 min-h-[220px] flex flex-col">
                   <div className="flex items-center justify-between mb-4">
                     <Badge variant="outline">Card {currentIndex + 1} of {flashcards.length}</Badge>
-                    <Button
-                      variant={currentCard?.selected ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => toggleSelection(currentIndex)}
-                    >
-                      {currentCard?.selected ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Selected
-                        </>
-                      ) : (
-                        <>
-                          <X className="w-4 h-4" />
-                          Excluded
-                        </>
+                    <div className="flex gap-2">
+                      {!editingCard && (
+                        <Button variant="ghost" size="sm" onClick={startEditing}>
+                          <Pencil className="w-4 h-4" />
+                        </Button>
                       )}
-                    </Button>
+                      <Button
+                        variant={currentCard?.selected ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => toggleSelection(currentIndex)}
+                      >
+                        {currentCard?.selected ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Selected
+                          </>
+                        ) : (
+                          <>
+                            <X className="w-4 h-4" />
+                            Excluded
+                          </>
+                        )}
+                      </Button>
+                    </div>
                   </div>
                   
-                  <div className="flex-1 space-y-4">
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Question</p>
-                      <p className="text-foreground font-medium">{currentCard?.front}</p>
+                  {editingCard ? (
+                    <div className="flex-1 space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Question</Label>
+                        <Textarea
+                          value={editingCard.front}
+                          onChange={(e) => setEditingCard({ ...editingCard, front: e.target.value })}
+                          className="min-h-[60px]"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground uppercase tracking-wide">Answer</Label>
+                        <Textarea
+                          value={editingCard.back}
+                          onChange={(e) => setEditingCard({ ...editingCard, back: e.target.value })}
+                          className="min-h-[60px]"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={saveEdit}>
+                          <Check className="w-4 h-4" />
+                          Save
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={cancelEdit}>
+                          Cancel
+                        </Button>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Answer</p>
-                      <p className="text-foreground">{currentCard?.back}</p>
+                  ) : (
+                    <div className="flex-1 space-y-4">
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Question</p>
+                        <p className="text-foreground font-medium">{currentCard?.front}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Answer</p>
+                        <p className="text-foreground">{currentCard?.back}</p>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </Card>
 
                 {/* Navigation */}
@@ -192,12 +248,12 @@ export function AIFlashcardsModal({
                     <ChevronLeft className="w-4 h-4" />
                     Previous
                   </Button>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 max-w-[200px] overflow-x-auto">
                     {flashcards.map((f, i) => (
                       <button
                         key={i}
                         onClick={() => setCurrentIndex(i)}
-                        className={`w-2 h-2 rounded-full transition-colors ${
+                        className={`w-2 h-2 rounded-full transition-colors flex-shrink-0 ${
                           i === currentIndex 
                             ? 'bg-primary' 
                             : f.selected 

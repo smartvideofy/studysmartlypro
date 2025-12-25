@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { action, noteContent, noteTitle } = await req.json();
+    const { action, noteContent, noteTitle, cardCount, difficulty, cardType } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     
     if (!LOVABLE_API_KEY) {
@@ -27,11 +27,48 @@ Focus on key concepts, main ideas, and important details. Format using markdown 
 Keep the summary to 3-5 key points maximum.`;
       userPrompt = `Please summarize this note titled "${noteTitle}":\n\n${noteContent}`;
     } else if (action === 'generate-flashcards') {
+      const count = cardCount || 10;
+      const diff = difficulty || 'mixed';
+      const type = cardType || 'qa';
+      
+      // Build card type instructions
+      let typeInstructions = '';
+      if (type === 'qa') {
+        typeInstructions = 'Create question and answer pairs. The front should be a clear question, and the back should be a comprehensive answer.';
+      } else if (type === 'definition') {
+        typeInstructions = 'Create term-definition pairs. The front should be a key term or concept, and the back should be its definition.';
+      } else if (type === 'fill-blank') {
+        typeInstructions = 'Create fill-in-the-blank style cards. The front should be a sentence with a key word/phrase replaced by "___", and the back should be the missing word/phrase.';
+      } else {
+        typeInstructions = 'Mix different card types: questions, definitions, and fill-in-the-blank. Vary the format to keep learning engaging.';
+      }
+      
+      // Build difficulty instructions
+      let difficultyInstructions = '';
+      if (diff === 'beginner') {
+        difficultyInstructions = 'Focus on fundamental concepts and basic understanding. Keep questions simple and direct.';
+      } else if (diff === 'intermediate') {
+        difficultyInstructions = 'Include application and analysis questions. Expect some prior knowledge of the subject.';
+      } else if (diff === 'advanced') {
+        difficultyInstructions = 'Create challenging questions that require deep understanding, synthesis, and critical thinking.';
+      } else {
+        difficultyInstructions = 'Mix difficulty levels - include some basic, intermediate, and challenging questions.';
+      }
+      
       systemPrompt = `You are an expert educator creating flashcards for effective learning.
-Generate 5-10 flashcards based on the note content. Each flashcard should test understanding of key concepts.
-Return ONLY a valid JSON array with objects containing "front" (question) and "back" (answer) keys.
-Keep questions clear and answers concise but complete.`;
-      userPrompt = `Create flashcards from this note titled "${noteTitle}":\n\n${noteContent}\n\nReturn only JSON array like: [{"front": "Question?", "back": "Answer"}]`;
+Generate exactly ${count} flashcards based on the provided content.
+
+${typeInstructions}
+
+${difficultyInstructions}
+
+IMPORTANT: Return ONLY a valid JSON array with objects containing "front" and "back" keys.
+- "front": The question, term, or fill-in-the-blank prompt
+- "back": The answer, definition, or missing word/phrase
+
+Keep each card focused on a single concept. Be concise but complete.`;
+      
+      userPrompt = `Create ${count} flashcards from this content titled "${noteTitle}":\n\n${noteContent}\n\nReturn only JSON array like: [{"front": "...", "back": "..."}]`;
     } else {
       throw new Error('Invalid action. Use "summarize" or "generate-flashcards"');
     }

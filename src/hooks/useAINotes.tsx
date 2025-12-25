@@ -7,6 +7,12 @@ interface Flashcard {
   back: string;
 }
 
+interface GenerateOptions {
+  cardCount?: number;
+  difficulty?: 'beginner' | 'intermediate' | 'advanced' | 'mixed';
+  cardType?: 'qa' | 'definition' | 'fill-blank' | 'mixed';
+}
+
 export function useAISummarize() {
   const [isLoading, setIsLoading] = useState(false);
   const [summary, setSummary] = useState<string | null>(null);
@@ -64,6 +70,58 @@ export function useAIGenerateFlashcards() {
     try {
       const { data, error } = await supabase.functions.invoke('ai-notes', {
         body: { action: 'generate-flashcards', noteTitle, noteContent }
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data.error) {
+        throw new Error(data.error);
+      }
+
+      setFlashcards(data.flashcards);
+      toast.success(`Generated ${data.flashcards.length} flashcards!`);
+      return data.flashcards;
+    } catch (error: any) {
+      console.error("Generate flashcards error:", error);
+      toast.error(error.message || "Failed to generate flashcards");
+      return null;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return { generateFlashcards, isLoading, flashcards, setFlashcards };
+}
+
+export function useAIGenerateFlashcardsAdvanced() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [flashcards, setFlashcards] = useState<Flashcard[] | null>(null);
+
+  const generateFlashcards = async (
+    noteTitle: string, 
+    noteContent: string,
+    options?: GenerateOptions
+  ) => {
+    if (!noteContent.trim()) {
+      toast.error("Content is empty");
+      return null;
+    }
+
+    setIsLoading(true);
+    setFlashcards(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('ai-notes', {
+        body: { 
+          action: 'generate-flashcards', 
+          noteTitle, 
+          noteContent,
+          cardCount: options?.cardCount || 10,
+          difficulty: options?.difficulty || 'mixed',
+          cardType: options?.cardType || 'qa',
+        }
       });
 
       if (error) {
