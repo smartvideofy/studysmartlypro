@@ -145,13 +145,26 @@ export function useCreateStudyMaterial() {
           generate_flashcards: material.generate_flashcards ?? true,
           generate_questions: material.generate_questions ?? true,
           generate_concept_map: material.generate_concept_map ?? false,
+          processing_status: 'pending',
           user_id: user?.id!,
         })
         .select()
         .single();
 
       if (error) throw error;
-      return data as StudyMaterial;
+      
+      // Trigger processing in the background
+      const createdMaterial = data as StudyMaterial;
+      try {
+        await supabase.functions.invoke('process-material', {
+          body: { materialId: createdMaterial.id },
+        });
+      } catch (processingError) {
+        console.error('Failed to trigger processing:', processingError);
+        // Don't throw - material is created, processing can be retried
+      }
+      
+      return createdMaterial;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-materials'] });
