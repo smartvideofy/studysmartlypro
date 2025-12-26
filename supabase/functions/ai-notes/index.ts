@@ -91,7 +91,16 @@ function validateInputs(body: Record<string, unknown>): {
 // Verify JWT and get user
 async function verifyAuth(req: Request): Promise<string> {
   const authHeader = req.headers.get('Authorization');
+  console.log('Auth header present:', !!authHeader);
+  
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('Missing or invalid Authorization header');
+    throw new Error('Unauthorized');
+  }
+
+  const token = authHeader.replace('Bearer ', '');
+  if (!token || token === 'null' || token === 'undefined') {
+    console.error('Empty or invalid token value');
     throw new Error('Unauthorized');
   }
 
@@ -99,6 +108,7 @@ async function verifyAuth(req: Request): Promise<string> {
   const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
   
   if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase configuration');
     throw new Error('Service configuration error');
   }
 
@@ -114,7 +124,13 @@ async function verifyAuth(req: Request): Promise<string> {
 
   const { data: { user }, error } = await supabase.auth.getUser();
   
-  if (error || !user) {
+  if (error) {
+    console.error('Auth verification failed:', error.message);
+    throw new Error('Unauthorized');
+  }
+  
+  if (!user) {
+    console.error('No user returned from auth verification');
     throw new Error('Unauthorized');
   }
 

@@ -13,28 +13,63 @@ interface GenerateOptions {
   cardType?: 'qa' | 'definition' | 'fill-blank' | 'mixed';
 }
 
-async function ensureAuthenticated(): Promise<boolean> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    toast.error("Please sign in to use AI features");
-    return false;
+async function getAccessToken(): Promise<string | null> {
+  const { data: { session }, error } = await supabase.auth.getSession();
+  
+  if (error) {
+    console.error("Session error:", error);
+    return null;
   }
-  return true;
+  
+  if (!session?.access_token) {
+    return null;
+  }
+  
+  // Validate the token is still valid
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("Token validation failed:", userError);
+    // Token is invalid, sign out
+    await supabase.auth.signOut();
+    return null;
+  }
+  
+  return session.access_token;
 }
 
-function handleInvokeError(error: any, context: string): void {
+async function handleInvokeError(error: any, context: string): Promise<void> {
   console.error(`${context} error:`, error);
   
-  const message = error?.message || '';
+  // Try to extract error message from response body
+  let errorMessage = '';
   
-  if (message.includes('401') || message.includes('Unauthorized') || message.includes('Authentication')) {
+  if (error?.context?.json) {
+    try {
+      const jsonError = await error.context.json();
+      errorMessage = jsonError?.error || '';
+    } catch {
+      // Ignore parsing errors
+    }
+  }
+  
+  if (!errorMessage) {
+    errorMessage = error?.message || '';
+  }
+  
+  // Check status code
+  const status = error?.context?.status;
+  
+  if (status === 401 || errorMessage.includes('Authentication') || errorMessage.includes('Unauthorized')) {
     toast.error("Please sign in again to use AI features");
-  } else if (message.includes('429') || message.includes('Rate limit')) {
+    await supabase.auth.signOut();
+  } else if (status === 429 || errorMessage.includes('Rate limit')) {
     toast.error("Too many requests. Please try again shortly.");
-  } else if (message.includes('402') || message.includes('credits')) {
+  } else if (status === 402 || errorMessage.includes('credits')) {
     toast.error("AI credits exhausted. Please try again later.");
+  } else if (errorMessage) {
+    toast.error(errorMessage);
   } else {
-    toast.error(message || `Failed to ${context.toLowerCase()}`);
+    toast.error(`Failed to ${context.toLowerCase()}. Please try again.`);
   }
 }
 
@@ -48,8 +83,10 @@ export function useAISummarize() {
       return null;
     }
 
-    // Check authentication first
-    if (!(await ensureAuthenticated())) {
+    // Get access token
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      toast.error("Please sign in to use AI features");
       return null;
     }
 
@@ -58,7 +95,8 @@ export function useAISummarize() {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-notes', {
-        body: { action: 'summarize', noteTitle, noteContent }
+        body: { action: 'summarize', noteTitle, noteContent },
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
 
       if (error) {
@@ -73,7 +111,7 @@ export function useAISummarize() {
       toast.success("Summary generated!");
       return data.summary;
     } catch (error: any) {
-      handleInvokeError(error, "Summarize");
+      await handleInvokeError(error, "Summarize");
       return null;
     } finally {
       setIsLoading(false);
@@ -93,8 +131,10 @@ export function useAIGenerateFlashcards() {
       return null;
     }
 
-    // Check authentication first
-    if (!(await ensureAuthenticated())) {
+    // Get access token
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      toast.error("Please sign in to use AI features");
       return null;
     }
 
@@ -103,7 +143,8 @@ export function useAIGenerateFlashcards() {
 
     try {
       const { data, error } = await supabase.functions.invoke('ai-notes', {
-        body: { action: 'generate-flashcards', noteTitle, noteContent }
+        body: { action: 'generate-flashcards', noteTitle, noteContent },
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
 
       if (error) {
@@ -122,7 +163,7 @@ export function useAIGenerateFlashcards() {
       toast.success(`Generated ${data.flashcards.length} flashcards!`);
       return data.flashcards;
     } catch (error: any) {
-      handleInvokeError(error, "Generate flashcards");
+      await handleInvokeError(error, "Generate flashcards");
       return null;
     } finally {
       setIsLoading(false);
@@ -146,8 +187,10 @@ export function useAIGenerateFlashcardsAdvanced() {
       return null;
     }
 
-    // Check authentication first
-    if (!(await ensureAuthenticated())) {
+    // Get access token
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      toast.error("Please sign in to use AI features");
       return null;
     }
 
@@ -163,7 +206,8 @@ export function useAIGenerateFlashcardsAdvanced() {
           cardCount: options?.cardCount || 10,
           difficulty: options?.difficulty || 'mixed',
           cardType: options?.cardType || 'qa',
-        }
+        },
+        headers: { Authorization: `Bearer ${accessToken}` }
       });
 
       if (error) {
@@ -182,7 +226,7 @@ export function useAIGenerateFlashcardsAdvanced() {
       toast.success(`Generated ${data.flashcards.length} flashcards!`);
       return data.flashcards;
     } catch (error: any) {
-      handleInvokeError(error, "Generate flashcards");
+      await handleInvokeError(error, "Generate flashcards");
       return null;
     } finally {
       setIsLoading(false);
