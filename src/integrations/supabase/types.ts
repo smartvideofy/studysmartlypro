@@ -251,6 +251,50 @@ export type Database = {
           },
         ]
       }
+      material_flashcards: {
+        Row: {
+          back: string
+          created_at: string | null
+          difficulty: string | null
+          front: string
+          hint: string | null
+          id: string
+          material_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string | null
+          difficulty?: string | null
+          front: string
+          hint?: string | null
+          id?: string
+          material_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string | null
+          difficulty?: string | null
+          front?: string
+          hint?: string | null
+          id?: string
+          material_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "material_flashcards_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       note_attachments: {
         Row: {
           bucket_id: string
