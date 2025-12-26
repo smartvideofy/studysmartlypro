@@ -11,3 +11,7 @@ verify_jwt = false
 [functions.material-chat]
 # Public AI chat for study materials
 verify_jwt = false
+
+[functions.regenerate-content]
+# Regenerate specific AI content for study materials
+verify_jwt = false

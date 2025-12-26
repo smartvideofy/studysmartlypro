@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useConceptMap } from "@/hooks/useStudyMaterials";
+import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 
 interface ConceptMapTabProps {
   materialId: string;
@@ -18,6 +19,11 @@ interface ConceptMapTabProps {
 
 export default function ConceptMapTab({ materialId }: ConceptMapTabProps) {
   const { data: conceptMap, isLoading } = useConceptMap(materialId);
+  const regenerate = useRegenerateContent(materialId);
+
+  const handleRegenerate = () => {
+    regenerate.mutate("concept_map");
+  };
 
   if (isLoading) {
     return (
@@ -37,8 +43,12 @@ export default function ConceptMapTab({ materialId }: ConceptMapTabProps) {
         <p className="text-muted-foreground max-w-sm mb-6">
           Generate a visual concept map to see how ideas connect.
         </p>
-        <Button className="gap-2">
-          <Sparkles className="w-4 h-4" />
+        <Button className="gap-2" onClick={handleRegenerate} disabled={regenerate.isPending}>
+          {regenerate.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
           Generate Concept Map
         </Button>
       </div>
@@ -65,8 +75,18 @@ export default function ConceptMapTab({ materialId }: ConceptMapTabProps) {
           <Button variant="outline" size="icon" className="h-8 w-8">
             <Maximize2 className="w-4 h-4" />
           </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleRegenerate}
+            disabled={regenerate.isPending}
+          >
+            {regenerate.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
             Regenerate
           </Button>
         </div>

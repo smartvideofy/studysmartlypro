@@ -2,7 +2,6 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Lightbulb, 
-  Plus, 
   Save,
   Loader2,
   Sparkles,
@@ -10,7 +9,8 @@ import {
   ChevronRight,
   RotateCcw,
   FolderPlus,
-  Check
+  Check,
+  RefreshCw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ interface MaterialFlashcard {
 export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const regenerate = useRegenerateContent(materialId);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
@@ -127,10 +129,18 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
 
       if (error) throw error;
 
-      // Update deck card count
+      // Get current card count and update
+      const { data: deck } = await supabase
+        .from('flashcard_decks')
+        .select('card_count')
+        .eq('id', deckId)
+        .single();
+
+      const newCount = (deck?.card_count || 0) + flashcardsToInsert.length;
+
       await supabase
         .from('flashcard_decks')
-        .update({ card_count: flashcardsToInsert.length })
+        .update({ card_count: newCount })
         .eq('id', deckId);
     },
     onSuccess: () => {
@@ -145,12 +155,15 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
     },
   });
 
+  const handleRegenerate = () => {
+    regenerate.mutate("flashcards");
+  };
+
   const handleSaveToDecks = async () => {
     if (!flashcards) return;
 
     let deckId = selectedDeckId;
 
-    // Create new deck if needed
     if (isCreatingDeck && newDeckName.trim()) {
       try {
         const newDeck = await createDeckMutation.mutateAsync(newDeckName.trim());
@@ -211,12 +224,15 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         </div>
         <h3 className="text-lg font-semibold mb-2">No flashcards yet</h3>
         <p className="text-muted-foreground max-w-sm mb-6">
-          Flashcards will be generated automatically when the material is processed. 
-          Make sure "Generate Flashcards" is enabled when uploading.
+          Generate AI flashcards from your study material.
         </p>
-        <Button className="gap-2" onClick={() => refetch()}>
-          <Sparkles className="w-4 h-4" />
-          Refresh
+        <Button className="gap-2" onClick={handleRegenerate} disabled={regenerate.isPending}>
+          {regenerate.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
+          Generate Flashcards
         </Button>
       </div>
     );
@@ -235,6 +251,20 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleRegenerate}
+            disabled={regenerate.isPending}
+          >
+            {regenerate.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            Regenerate
+          </Button>
           <Button 
             variant="outline" 
             size="sm" 

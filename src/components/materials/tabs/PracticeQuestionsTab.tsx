@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePracticeQuestions, PracticeQuestion } from "@/hooks/useStudyMaterials";
+import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import { cn } from "@/lib/utils";
 
 interface PracticeQuestionsTabProps {
@@ -22,9 +23,14 @@ interface PracticeQuestionsTabProps {
 
 export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTabProps) {
   const { data: questions, isLoading } = usePracticeQuestions(materialId);
+  const regenerate = useRegenerateContent(materialId);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
   const [expandedExplanations, setExpandedExplanations] = useState<Set<string>>(new Set());
+
+  const handleRegenerate = () => {
+    regenerate.mutate("practice_questions");
+  };
 
   const handleSelectAnswer = (questionId: string, answer: string) => {
     setSelectedAnswers(prev => ({ ...prev, [questionId]: answer }));
@@ -68,8 +74,12 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
         <p className="text-muted-foreground max-w-sm mb-6">
           Generate practice questions to test your understanding.
         </p>
-        <Button className="gap-2">
-          <Sparkles className="w-4 h-4" />
+        <Button className="gap-2" onClick={handleRegenerate} disabled={regenerate.isPending}>
+          {regenerate.isPending ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Sparkles className="w-4 h-4" />
+          )}
           Generate Questions
         </Button>
       </div>
@@ -91,8 +101,18 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
               {questions.length} questions generated
             </p>
           </div>
-          <Button variant="outline" size="sm" className="gap-2">
-            <RefreshCw className="w-4 h-4" />
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleRegenerate}
+            disabled={regenerate.isPending}
+          >
+            {regenerate.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
             Regenerate
           </Button>
         </div>
