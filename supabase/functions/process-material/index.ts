@@ -26,7 +26,6 @@ interface StudyMaterial {
   generate_concept_map: boolean;
 }
 
-// Using 'any' type to avoid TypeScript issues in edge function context
 async function extractTextFromFile(supabase: any, material: StudyMaterial): Promise<string> {
   if (!material.file_path) {
     throw new Error('No file path provided');
@@ -54,40 +53,36 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
   // For images, use AI vision to extract text
   if (fileType === 'image') {
     const base64 = await blobToBase64(fileData);
-    return await extractTextFromImage(base64);
+    return await extractContentWithVision(base64, 'image', material.title);
   }
 
   // For audio, transcribe using AI
   if (fileType === 'audio') {
-    // Audio transcription would require a specialized service
-    // For now, return a placeholder
     return 'Audio content - transcription not yet implemented. Please provide a text-based document for AI processing.';
   }
 
-  // For PDFs and documents, use AI to describe/OCR the content
+  // For PDFs and documents, use AI vision to analyze each page
   if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
-    // For binary documents, we'll need specialized parsing
-    // For now, let's try to get text content if possible
+    // Try text extraction first
     try {
       const text = await fileData.text();
-      // If the text looks like valid content (not binary garbage), use it
-      if (text && text.length > 0 && !text.includes('\x00') && isPrintableText(text)) {
-        return text.substring(0, 50000); // Limit to 50k chars
+      if (text && text.length > 100 && !text.includes('\x00') && isPrintableText(text)) {
+        console.log('Successfully extracted text directly from document');
+        return text.substring(0, 50000);
       }
     } catch {
-      // Ignore text extraction errors for binary files
+      console.log('Direct text extraction failed, using AI vision');
     }
     
-    // For binary PDFs/docs, we can't extract text directly in edge functions
-    // Return a message indicating manual content entry is needed
-    return `Document uploaded: ${material.title}. Content extraction for ${fileType} files requires additional processing. The AI will generate study materials based on the document title, subject, and topic provided.`;
+    // Use AI vision to analyze the document as images
+    const base64 = await blobToBase64(fileData);
+    return await extractContentWithVision(base64, fileType, material.title);
   }
 
   return 'Unable to extract content from this file type.';
 }
 
 function isPrintableText(text: string): boolean {
-  // Check if at least 80% of characters are printable ASCII
   const printableChars = text.match(/[\x20-\x7E\n\r\t]/g) || [];
   return printableChars.length / text.length > 0.8;
 }
@@ -102,9 +97,13 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(binary);
 }
 
-async function extractTextFromImage(base64Image: string): Promise<string> {
-  console.log('Extracting text from image using AI vision...');
+async function extractContentWithVision(base64Data: string, fileType: string, title: string): Promise<string> {
+  console.log(`Extracting content from ${fileType} using AI vision...`);
   
+  const mimeType = fileType === 'pdf' ? 'application/pdf' : 
+                   fileType === 'image' ? 'image/png' : 
+                   'application/octet-stream';
+
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -119,11 +118,29 @@ async function extractTextFromImage(base64Image: string): Promise<string> {
           content: [
             {
               type: 'text',
-              text: 'Extract all text content from this image. If it contains handwritten notes, diagrams, or any educational content, describe it in detail. Format the content in a structured way that would be useful for studying.',
+              text: `You are analyzing a study document titled "${title}". 
+              
+Your task is to extract and transcribe ALL textual content from this document in a comprehensive and structured way.
+
+Instructions:
+1. Extract ALL text content visible in the document
+2. Preserve the structure: headings, subheadings, paragraphs, lists, tables
+3. If there are diagrams, charts, or images, describe them in detail
+4. If there are formulas or equations, transcribe them clearly
+5. Include any captions, footnotes, or annotations
+6. Maintain the logical flow and organization of the content
+
+Output Format:
+- Use clear section headings
+- Preserve bullet points and numbered lists
+- Format tables as markdown tables
+- Include [DIAGRAM: description] or [FIGURE: description] for visual elements
+
+Be thorough and comprehensive. The extracted content will be used to generate study materials, so accuracy is crucial.`,
             },
             {
               type: 'image_url',
-              image_url: { url: `data:image/png;base64,${base64Image}` },
+              image_url: { url: `data:${mimeType};base64,${base64Data}` },
             },
           ],
         },
@@ -132,23 +149,35 @@ async function extractTextFromImage(base64Image: string): Promise<string> {
   });
 
   if (!response.ok) {
-    console.error('Vision API error:', response.status);
-    throw new Error('Failed to extract text from image');
+    const errorText = await response.text();
+    console.error('Vision API error:', response.status, errorText);
+    throw new Error(`Failed to extract content from ${fileType}`);
   }
 
   const data = await response.json();
-  return data.choices?.[0]?.message?.content || 'Unable to extract text from image';
+  const extractedContent = data.choices?.[0]?.message?.content || '';
+  console.log(`Extracted ${extractedContent.length} characters from ${fileType}`);
+  return extractedContent;
 }
 
 async function generateTutorNotes(content: string, material: StudyMaterial): Promise<object> {
-  console.log('Generating tutor notes...');
+  console.log('Generating comprehensive tutor notes...');
   
-  const systemPrompt = `You are an expert tutor creating structured study notes. Generate comprehensive tutor notes in JSON format.
-The notes should include:
-- Topics and subtopics organized hierarchically
-- Clear definitions for key terms
-- Practical examples
-- Exam tips and important points
+  const systemPrompt = `You are an expert academic tutor and curriculum designer. Your task is to create exceptionally detailed and comprehensive tutor notes that would be valuable for a student studying this material.
+
+Your notes must be:
+- DETAILED: Each subtopic should have thorough explanations (minimum 200-300 words per subtopic)
+- ACADEMIC: Use precise terminology with clear definitions
+- STRUCTURED: Organize hierarchically with clear topic/subtopic relationships
+- PRACTICAL: Include real-world applications and examples
+- EXAM-FOCUSED: Highlight key points that are likely to appear in assessments
+
+For each subtopic, you MUST include:
+1. A comprehensive explanation of the concept
+2. At least 3-5 key definitions with clear, academic definitions
+3. Multiple practical examples (at least 2-3)
+4. Exam tips highlighting common misconceptions and key points
+5. Connections to other related topics
 
 Respond ONLY with valid JSON in this exact structure:
 {
@@ -158,26 +187,41 @@ Respond ONLY with valid JSON in this exact structure:
       "subtopics": [
         {
           "title": "Subtopic Title",
-          "content": "Detailed explanation...",
-          "definitions": [{"term": "Key Term", "definition": "Clear definition"}],
-          "examples": ["Example 1", "Example 2"],
-          "exam_tips": ["Important point for exams"]
+          "content": "Comprehensive explanation of 200-300 words covering the concept in depth, including background, key principles, significance, and applications...",
+          "definitions": [
+            {"term": "Key Term 1", "definition": "Detailed academic definition"},
+            {"term": "Key Term 2", "definition": "Detailed academic definition"},
+            {"term": "Key Term 3", "definition": "Detailed academic definition"}
+          ],
+          "examples": [
+            "Detailed Example 1 with context and explanation",
+            "Detailed Example 2 showing real-world application",
+            "Detailed Example 3 demonstrating the concept"
+          ],
+          "exam_tips": [
+            "Common exam question patterns related to this topic",
+            "Key points examiners look for",
+            "Common mistakes to avoid"
+          ]
         }
       ]
     }
   ]
 }`;
 
-  const userPrompt = `Create tutor notes for the following study material:
-Title: ${material.title}
-Subject: ${material.subject || 'General'}
-Topic: ${material.topic || 'Not specified'}
-Language: ${material.language || 'English'}
+  const userPrompt = `Create comprehensive, detailed tutor notes for the following study material. 
+Be THOROUGH and DETAILED - these notes should be sufficient for a student to learn the entire topic.
 
-Content:
-${content.substring(0, 30000)}
+Material Details:
+- Title: ${material.title}
+- Subject: ${material.subject || 'General'}
+- Topic: ${material.topic || 'Not specified'}
+- Language: ${material.language || 'English'}
 
-Generate structured tutor notes in the specified JSON format.`;
+Study Material Content:
+${content.substring(0, 40000)}
+
+Generate detailed, comprehensive tutor notes covering ALL the key concepts from this material.`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -202,7 +246,6 @@ Generate structured tutor notes in the specified JSON format.`;
   const data = await response.json();
   const responseText = data.choices?.[0]?.message?.content || '';
   
-  // Extract JSON from response
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
   if (jsonMatch) {
@@ -218,21 +261,37 @@ Generate structured tutor notes in the specified JSON format.`;
 }
 
 async function generateSummaries(content: string, material: StudyMaterial): Promise<string[]> {
-  console.log('Generating summaries...');
+  console.log('Generating comprehensive summaries...');
   
-  const systemPrompt = `You are an expert educator. Create a comprehensive summary of the study material.
-Include:
-- Key concepts and main ideas
-- Important facts and figures
-- Relationships between concepts
-Format using clear markdown with bullet points.`;
+  const systemPrompt = `You are an expert academic summarizer. Create a comprehensive, detailed summary that captures ALL the essential information from the study material.
 
-  const userPrompt = `Summarize the following study material:
+Your summary must include:
+1. **Executive Overview** (2-3 sentences on the main theme)
+2. **Key Concepts** - List and explain each major concept in detail
+3. **Important Facts & Data** - All significant facts, figures, dates, formulas
+4. **Relationships & Connections** - How different concepts relate to each other
+5. **Key Terminology** - Important terms with brief definitions
+6. **Main Arguments/Theories** - Core arguments or theoretical frameworks
+7. **Critical Points for Study** - What students must remember
+
+Use clear markdown formatting with:
+- Bold for key terms
+- Bullet points for lists
+- Numbered lists for sequential information
+- Clear section headings
+
+Be comprehensive - this summary should be a complete study guide.`;
+
+  const userPrompt = `Create a comprehensive summary for:
+
 Title: ${material.title}
 Subject: ${material.subject || 'General'}
+Topic: ${material.topic || 'Not specified'}
 
 Content:
-${content.substring(0, 30000)}`;
+${content.substring(0, 40000)}
+
+Generate a detailed, comprehensive summary that covers all important aspects of this material.`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -258,37 +317,55 @@ ${content.substring(0, 30000)}`;
 }
 
 async function generatePracticeQuestions(content: string, material: StudyMaterial): Promise<object[]> {
-  console.log('Generating practice questions...');
+  console.log('Generating comprehensive practice questions...');
   
-  const systemPrompt = `You are an expert educator creating practice questions. Generate 10 diverse practice questions.
-Include a mix of:
-- Multiple choice questions (with 4 options)
-- Short answer questions
-- Application-based questions
+  const systemPrompt = `You are an expert educator and assessment designer. Create 15 high-quality, diverse practice questions that thoroughly test understanding of the material.
+
+Include a balanced mix of:
+- 6 Multiple choice questions (MCQ) - with 4 plausible options
+- 4 Short answer questions - requiring 2-3 sentence responses
+- 3 Application-based questions - real-world scenario applications
+- 2 Analytical questions - requiring critical thinking
+
+For EACH question:
+1. Make it specific to the content provided
+2. Test genuine understanding, not just memorization
+3. Provide a detailed explanation of the correct answer
+4. For MCQs, make all options plausible (no obvious wrong answers)
 
 Return ONLY valid JSON array:
 [
   {
     "question_type": "mcq",
-    "question": "Question text?",
-    "options": ["A", "B", "C", "D"],
-    "correct_answer": "A",
-    "explanation": "Why this is correct"
+    "question": "Detailed question that tests understanding?",
+    "options": ["Option A - plausible", "Option B - plausible", "Option C - plausible", "Option D - plausible"],
+    "correct_answer": "The full correct option text",
+    "explanation": "Detailed explanation of why this is correct and why other options are wrong"
   },
   {
     "question_type": "short_answer",
-    "question": "Question text?",
-    "correct_answer": "Expected answer",
-    "explanation": "Explanation"
+    "question": "Question requiring a concise response?",
+    "correct_answer": "Model answer demonstrating expected response",
+    "explanation": "What key points the answer should include"
+  },
+  {
+    "question_type": "application",
+    "question": "Scenario-based question applying concepts?",
+    "correct_answer": "Expected application of the concept",
+    "explanation": "How to approach this type of problem"
   }
 ]`;
 
-  const userPrompt = `Create practice questions for:
+  const userPrompt = `Create comprehensive practice questions for:
+
 Title: ${material.title}
 Subject: ${material.subject || 'General'}
+Topic: ${material.topic || 'Not specified'}
 
 Content:
-${content.substring(0, 30000)}`;
+${content.substring(0, 40000)}
+
+Generate 15 diverse, challenging practice questions that thoroughly test understanding of this material.`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -325,28 +402,120 @@ ${content.substring(0, 30000)}`;
   }
 }
 
-async function generateConceptMap(content: string, material: StudyMaterial): Promise<object> {
-  console.log('Generating concept map...');
+async function generateFlashcards(content: string, material: StudyMaterial): Promise<object[]> {
+  console.log('Generating comprehensive flashcards...');
   
-  const systemPrompt = `You are an expert at creating visual concept maps. Analyze the content and create a concept map.
+  const systemPrompt = `You are an expert at creating effective flashcards for learning and memorization. Create 20 high-quality flashcards that cover the key concepts from the study material.
+
+Flashcard Types to Include:
+- Definition cards (term → definition)
+- Concept cards (concept → explanation)
+- Q&A cards (question → answer)
+- Application cards (scenario → solution)
+
+Guidelines:
+1. Front should be concise and clear
+2. Back should be comprehensive but focused
+3. Include hints for difficult cards
+4. Cover all major topics in the material
+5. Progress from basic to advanced concepts
+
+Return ONLY valid JSON array:
+[
+  {
+    "front": "Clear question or term",
+    "back": "Comprehensive answer or definition",
+    "hint": "Optional hint to help recall",
+    "difficulty": "easy|medium|hard"
+  }
+]`;
+
+  const userPrompt = `Create 20 high-quality flashcards for:
+
+Title: ${material.title}
+Subject: ${material.subject || 'General'}
+Topic: ${material.topic || 'Not specified'}
+
+Content:
+${content.substring(0, 40000)}
+
+Generate flashcards covering all key concepts, definitions, and important facts.`;
+
+  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to generate flashcards');
+  }
+
+  const data = await response.json();
+  const responseText = data.choices?.[0]?.message?.content || '[]';
+  
+  let jsonContent = responseText;
+  const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (jsonMatch) {
+    jsonContent = jsonMatch[1].trim();
+  }
+  
+  try {
+    return JSON.parse(jsonContent);
+  } catch {
+    return [];
+  }
+}
+
+async function generateConceptMap(content: string, material: StudyMaterial): Promise<object> {
+  console.log('Generating comprehensive concept map...');
+  
+  const systemPrompt = `You are an expert at creating visual concept maps for learning. Analyze the content and create a comprehensive concept map showing how different concepts relate.
+
+Create a map with:
+- 10-15 nodes representing key concepts
+- Clear relationships between connected concepts
+- Hierarchical layout (main concepts at top, sub-concepts below)
+- Meaningful edge labels describing relationships
+
+Layout Guidelines:
+- Main concept at center-top (x: 400, y: 50)
+- Second level nodes at y: 150, spaced across x: 100-700
+- Third level at y: 250
+- Keep nodes evenly spaced
+
 Return ONLY valid JSON:
 {
   "nodes": [
-    {"id": "1", "label": "Main Concept", "x": 400, "y": 50, "description": "Description"},
-    {"id": "2", "label": "Sub Concept", "x": 200, "y": 150, "description": "Description"}
+    {"id": "1", "label": "Main Concept", "x": 400, "y": 50, "description": "Detailed description of this concept"},
+    {"id": "2", "label": "Sub Concept 1", "x": 200, "y": 150, "description": "Description"},
+    {"id": "3", "label": "Sub Concept 2", "x": 600, "y": 150, "description": "Description"}
   ],
   "edges": [
-    {"source": "1", "target": "2", "label": "relates to"}
+    {"source": "1", "target": "2", "label": "includes"},
+    {"source": "1", "target": "3", "label": "leads to"}
   ]
-}
-Create 5-10 nodes with meaningful connections. Arrange x/y coordinates in a tree layout (center at x=400).`;
+}`;
 
-  const userPrompt = `Create a concept map for:
+  const userPrompt = `Create a comprehensive concept map for:
+
 Title: ${material.title}
 Subject: ${material.subject || 'General'}
+Topic: ${material.topic || 'Not specified'}
 
 Content:
-${content.substring(0, 20000)}`;
+${content.substring(0, 30000)}
+
+Generate a detailed concept map with 10-15 interconnected nodes.`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -435,7 +604,6 @@ serve(async (req) => {
       extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
     }
 
-    // Generate AI content based on user preferences
     const userId = material.user_id;
 
     // Generate tutor notes
@@ -496,6 +664,28 @@ serve(async (req) => {
       }
     }
 
+    // Generate flashcards
+    if (material.generate_flashcards) {
+      try {
+        const flashcards = await generateFlashcards(extractedContent, material);
+        for (const card of flashcards) {
+          await supabase
+            .from('material_flashcards')
+            .insert({
+              material_id: materialId,
+              user_id: userId,
+              front: (card as any).front,
+              back: (card as any).back,
+              hint: (card as any).hint || null,
+              difficulty: (card as any).difficulty || 'medium',
+            });
+        }
+        console.log('Flashcards generated');
+      } catch (e) {
+        console.error('Error generating flashcards:', e);
+      }
+    }
+
     // Generate concept map
     if (material.generate_concept_map) {
       try {
@@ -517,39 +707,40 @@ serve(async (req) => {
     // Update status to completed
     await supabase
       .from('study_materials')
-      .update({ processing_status: 'completed' })
+      .update({ 
+        processing_status: 'completed',
+        processing_error: null
+      })
       .eq('id', materialId);
 
     console.log('Processing completed successfully');
 
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-
+    return new Response(
+      JSON.stringify({ success: true, message: 'Material processed successfully' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
     console.error('Processing error:', error);
     
-    // Try to update status to failed
+    // Try to update material status to failed
     try {
-      const { materialId } = await req.json();
+      const { materialId } = await req.clone().json();
       if (materialId) {
         await supabase
           .from('study_materials')
           .update({ 
             processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Unknown error',
+            processing_error: error instanceof Error ? error.message : 'Unknown error'
           })
           .eq('id', materialId);
       }
     } catch {
-      // Ignore cleanup errors
+      console.error('Failed to update material status');
     }
 
-    return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Processing failed' 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

@@ -8,52 +8,182 @@ import {
   Sparkles,
   ChevronLeft,
   ChevronRight,
-  RotateCcw
+  RotateCcw,
+  FolderPlus,
+  Check
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 interface FlashcardsTabProps {
   materialId: string;
 }
 
-interface GeneratedFlashcard {
+interface MaterialFlashcard {
+  id: string;
   front: string;
   back: string;
   hint?: string;
+  difficulty?: string;
 }
 
 export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [selectedDeckId, setSelectedDeckId] = useState<string>("");
+  const [newDeckName, setNewDeckName] = useState("");
+  const [isCreatingDeck, setIsCreatingDeck] = useState(false);
+  const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
 
-  // Fetch flashcards linked to this material via flashcard_decks
-  const { data: flashcards, isLoading } = useQuery({
+  // Fetch flashcards from material_flashcards table
+  const { data: flashcards, isLoading, refetch } = useQuery({
     queryKey: ['material-flashcards', materialId],
     queryFn: async () => {
-      // First get decks linked to this material's note
-      const { data: decks } = await supabase
-        .from('flashcard_decks')
-        .select('id')
-        .eq('note_id', materialId);
-
-      if (!decks || decks.length === 0) return [];
-
-      const deckIds = decks.map(d => d.id);
-      const { data: cards, error } = await supabase
-        .from('flashcards')
+      const { data, error } = await supabase
+        .from('material_flashcards')
         .select('*')
-        .in('deck_id', deckIds);
+        .eq('material_id', materialId)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
-      return cards as GeneratedFlashcard[];
+      return data as MaterialFlashcard[];
     },
     enabled: !!user && !!materialId,
   });
+
+  // Fetch user's flashcard decks
+  const { data: decks } = useQuery({
+    queryKey: ['flashcard-decks'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flashcard_decks')
+        .select('*')
+        .order('name');
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user,
+  });
+
+  // Create new deck mutation
+  const createDeckMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const { data, error } = await supabase
+        .from('flashcard_decks')
+        .insert({
+          name,
+          user_id: user!.id,
+          description: `Created from study material`,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
+    },
+  });
+
+  // Save flashcards to deck mutation
+  const saveToDeckmutation = useMutation({
+    mutationFn: async ({ deckId, cards }: { deckId: string; cards: MaterialFlashcard[] }) => {
+      const flashcardsToInsert = cards.map(card => ({
+        deck_id: deckId,
+        front: card.front,
+        back: card.back,
+        hint: card.hint,
+      }));
+
+      const { error } = await supabase
+        .from('flashcards')
+        .insert(flashcardsToInsert);
+
+      if (error) throw error;
+
+      // Update deck card count
+      await supabase
+        .from('flashcard_decks')
+        .update({ card_count: flashcardsToInsert.length })
+        .eq('id', deckId);
+    },
+    onSuccess: () => {
+      toast.success('Flashcards saved to deck!');
+      setShowSaveDialog(false);
+      setSelectedCards(new Set());
+      queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
+    },
+    onError: (error) => {
+      toast.error('Failed to save flashcards');
+      console.error(error);
+    },
+  });
+
+  const handleSaveToDecks = async () => {
+    if (!flashcards) return;
+
+    let deckId = selectedDeckId;
+
+    // Create new deck if needed
+    if (isCreatingDeck && newDeckName.trim()) {
+      try {
+        const newDeck = await createDeckMutation.mutateAsync(newDeckName.trim());
+        deckId = newDeck.id;
+      } catch {
+        toast.error('Failed to create deck');
+        return;
+      }
+    }
+
+    if (!deckId || deckId === '__none__') {
+      toast.error('Please select or create a deck');
+      return;
+    }
+
+    const cardsToSave = selectedCards.size > 0
+      ? flashcards.filter(card => selectedCards.has(card.id))
+      : flashcards;
+
+    saveToDeckmutation.mutate({ deckId, cards: cardsToSave });
+  };
+
+  const toggleCardSelection = (cardId: string) => {
+    setSelectedCards(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(cardId)) {
+        newSet.delete(cardId);
+      } else {
+        newSet.add(cardId);
+      }
+      return newSet;
+    });
+  };
 
   const handlePrevious = () => {
     setIsFlipped(false);
@@ -81,11 +211,12 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         </div>
         <h3 className="text-lg font-semibold mb-2">No flashcards yet</h3>
         <p className="text-muted-foreground max-w-sm mb-6">
-          Generate flashcards from your material to help with memorization.
+          Flashcards will be generated automatically when the material is processed. 
+          Make sure "Generate Flashcards" is enabled when uploading.
         </p>
-        <Button className="gap-2">
+        <Button className="gap-2" onClick={() => refetch()}>
           <Sparkles className="w-4 h-4" />
-          Generate Flashcards
+          Refresh
         </Button>
       </div>
     );
@@ -104,13 +235,14 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add to Deck
-          </Button>
-          <Button variant="outline" size="sm" className="gap-2">
-            <Save className="w-4 h-4" />
-            Save All
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => setShowSaveDialog(true)}
+          >
+            <FolderPlus className="w-4 h-4" />
+            Save to Deck
           </Button>
         </div>
       </div>
@@ -118,8 +250,19 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
       {/* Flashcard Display */}
       <div className="flex-1 flex flex-col items-center justify-center">
         {/* Progress */}
-        <div className="text-sm text-muted-foreground mb-4">
-          Card {currentIndex + 1} of {flashcards.length}
+        <div className="flex items-center gap-4 mb-4">
+          <span className="text-sm text-muted-foreground">
+            Card {currentIndex + 1} of {flashcards.length}
+          </span>
+          {currentCard.difficulty && (
+            <span className={`text-xs px-2 py-1 rounded-full ${
+              currentCard.difficulty === 'easy' ? 'bg-green-500/10 text-green-500' :
+              currentCard.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' :
+              'bg-yellow-500/10 text-yellow-500'
+            }`}>
+              {currentCard.difficulty}
+            </span>
+          )}
         </div>
 
         {/* Card */}
@@ -179,22 +322,107 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         <div className="flex gap-2 pb-2">
           {flashcards.map((card, index) => (
             <button
-              key={index}
+              key={card.id}
               onClick={() => {
                 setCurrentIndex(index);
                 setIsFlipped(false);
               }}
-              className={`shrink-0 w-20 h-12 rounded-lg border text-xs p-2 text-left transition-all ${
+              className={`shrink-0 w-20 h-12 rounded-lg border text-xs p-2 text-left transition-all relative ${
                 index === currentIndex
                   ? 'border-primary bg-primary/10'
                   : 'border-border hover:border-primary/50'
               }`}
             >
               <span className="line-clamp-2">{card.front}</span>
+              {selectedCards.has(card.id) && (
+                <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 text-primary-foreground" />
+                </div>
+              )}
             </button>
           ))}
         </div>
       </ScrollArea>
+
+      {/* Save to Deck Dialog */}
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Save Flashcards to Deck</DialogTitle>
+            <DialogDescription>
+              {selectedCards.size > 0 
+                ? `Save ${selectedCards.size} selected cards to a deck`
+                : `Save all ${flashcards.length} flashcards to a deck`
+              }
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Select Deck</Label>
+              <Select 
+                value={selectedDeckId || '__none__'} 
+                onValueChange={(val) => {
+                  setSelectedDeckId(val === '__none__' ? '' : val);
+                  setIsCreatingDeck(false);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a deck" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Select a deck...</SelectItem>
+                  {decks?.map((deck) => (
+                    <SelectItem key={deck.id} value={deck.id}>
+                      {deck.name} ({deck.card_count || 0} cards)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-border" />
+              <span className="text-xs text-muted-foreground">or</span>
+              <div className="flex-1 h-px bg-border" />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Create New Deck</Label>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="New deck name..."
+                  value={newDeckName}
+                  onChange={(e) => {
+                    setNewDeckName(e.target.value);
+                    setIsCreatingDeck(e.target.value.length > 0);
+                    if (e.target.value.length > 0) {
+                      setSelectedDeckId('');
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSaveToDecks}
+              disabled={saveToDeckmutation.isPending || (!selectedDeckId && !newDeckName.trim())}
+            >
+              {saveToDeckmutation.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin mr-2" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              Save Cards
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
