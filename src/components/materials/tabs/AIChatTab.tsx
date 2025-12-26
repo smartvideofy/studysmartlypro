@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { toast } from "sonner";
 
 interface AIChatTabProps {
   materialId: string;
@@ -23,6 +24,8 @@ interface Message {
   content: string;
   timestamp: Date;
 }
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/material-chat`;
 
 export default function AIChatTab({ materialId, extractedContent }: AIChatTabProps) {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -50,17 +53,112 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
     setInput("");
     setIsLoading(true);
 
-    // Simulate AI response (in production, this would call the AI edge function)
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `Based on the material you uploaded, I can help answer questions about the content. However, the AI chat feature requires the backend edge function to be implemented. For now, I can confirm your question was received: "${userMessage.content}"`,
-        timestamp: new Date(),
-      };
-      setMessages(prev => [...prev, assistantMessage]);
+    let assistantSoFar = "";
+    
+    const upsertAssistant = (nextChunk: string) => {
+      assistantSoFar += nextChunk;
+      setMessages(prev => {
+        const last = prev[prev.length - 1];
+        if (last?.role === "assistant") {
+          return prev.map((m, i) => (i === prev.length - 1 ? { ...m, content: assistantSoFar } : m));
+        }
+        return [...prev, { 
+          id: crypto.randomUUID(), 
+          role: "assistant" as const, 
+          content: assistantSoFar, 
+          timestamp: new Date() 
+        }];
+      });
+    };
+
+    try {
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ 
+          materialId,
+          messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
+          extractedContent,
+        }),
+      });
+
+      if (resp.status === 429) {
+        toast.error("Rate limited. Please wait a moment and try again.");
+        setIsLoading(false);
+        return;
+      }
+      if (resp.status === 402) {
+        toast.error("AI credits exhausted. Please add funds to continue.");
+        setIsLoading(false);
+        return;
+      }
+      if (!resp.ok || !resp.body) {
+        throw new Error("Failed to start stream");
+      }
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let textBuffer = "";
+      let streamDone = false;
+
+      while (!streamDone) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        textBuffer += decoder.decode(value, { stream: true });
+
+        let newlineIndex: number;
+        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
+          let line = textBuffer.slice(0, newlineIndex);
+          textBuffer = textBuffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") {
+            streamDone = true;
+            break;
+          }
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsertAssistant(content);
+          } catch {
+            textBuffer = line + "\n" + textBuffer;
+            break;
+          }
+        }
+      }
+
+      // Final flush
+      if (textBuffer.trim()) {
+        for (let raw of textBuffer.split("\n")) {
+          if (!raw) continue;
+          if (raw.endsWith("\r")) raw = raw.slice(0, -1);
+          if (raw.startsWith(":") || raw.trim() === "") continue;
+          if (!raw.startsWith("data: ")) continue;
+          const jsonStr = raw.slice(6).trim();
+          if (jsonStr === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+            if (content) upsertAssistant(content);
+          } catch { /* ignore */ }
+        }
+      }
+
+    } catch (error) {
+      console.error("Chat error:", error);
+      toast.error("Failed to get response. Please try again.");
+      // Remove the loading state but keep user message
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -146,7 +244,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
               ))}
             </AnimatePresence>
 
-            {isLoading && (
+            {isLoading && messages[messages.length - 1]?.role === "user" && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
