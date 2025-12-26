@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   BookOpen, 
@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Search,
-  Plus
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -22,7 +22,7 @@ import NotificationBell from "@/components/notifications/NotificationBell";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: FileText, label: "Notes", path: "/notes" },
+  { icon: FileText, label: "Study Materials", path: "/materials" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
   { icon: Brain, label: "Study", path: "/study" },
   { icon: Users, label: "Groups", path: "/groups" },
@@ -42,6 +42,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -175,10 +176,10 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
               />
             </div>
 
-            {/* Quick Add */}
-            <Button variant="hero" size="sm">
-              <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Note</span>
+            {/* Quick Upload */}
+            <Button variant="hero" size="sm" onClick={() => navigate('/materials')}>
+              <Upload className="w-4 h-4" />
+              <span className="hidden sm:inline">Upload Material</span>
             </Button>
 
             {/* Notifications */}
