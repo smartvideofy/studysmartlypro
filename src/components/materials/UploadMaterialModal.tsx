@@ -236,12 +236,12 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Folder</Label>
-                <Select value={folderId} onValueChange={setFolderId}>
+                <Select value={folderId || '__none__'} onValueChange={(val) => setFolderId(val === '__none__' ? '' : val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="No folder" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">No folder</SelectItem>
+                    <SelectItem value="__none__">No folder</SelectItem>
                     {folders?.map((folder) => (
                       <SelectItem key={folder.id} value={folder.id}>
                         {folder.name}
