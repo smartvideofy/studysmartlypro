@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  Loader2
+  Loader2,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile } from "@/hooks/useProfile";
-import { useNotes } from "@/hooks/useNotes";
+import { useStudyMaterials } from "@/hooks/useStudyMaterials";
 import { useDecks, useDueCards } from "@/hooks/useFlashcards";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { formatDistanceToNow } from "date-fns";
@@ -39,24 +40,24 @@ const itemVariants = {
 };
 
 const quickActions = [
-  { icon: Plus, label: "New Note", path: "/notes/new", color: "primary" },
+  { icon: Upload, label: "Upload Material", path: "/materials", color: "primary" },
   { icon: Layers, label: "Create Deck", path: "/flashcards/new", color: "accent" },
   { icon: Brain, label: "Study Session", path: "/study", color: "success" },
-  { icon: Sparkles, label: "AI Summary", path: "/ai", color: "primary" },
+  { icon: Sparkles, label: "AI Summary", path: "/materials", color: "primary" },
 ];
 
 export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile();
-  const { data: notes, isLoading: notesLoading } = useNotes();
+  const { data: materials, isLoading: materialsLoading } = useStudyMaterials();
   const { data: decks, isLoading: decksLoading } = useDecks();
   const { data: dueCards } = useDueCards();
   const { data: stats, isLoading: statsLoading } = useStudyStats();
 
-  const isLoading = profileLoading || notesLoading || decksLoading || statsLoading;
+  const isLoading = profileLoading || materialsLoading || decksLoading || statsLoading;
 
   const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
   const totalDue = dueCards?.length || 0;
-  const recentNotes = notes?.slice(0, 3) || [];
+  const recentMaterials = materials?.slice(0, 3) || [];
   
   // Calculate upcoming reviews from decks
   const upcomingReviews = decks?.slice(0, 3).map(deck => ({
@@ -115,9 +116,9 @@ export default function Dashboard() {
                     </Link>
                   </Button>
                   <Button variant="outline" asChild>
-                    <Link to="/notes/new">
-                      <Plus className="w-4 h-4" />
-                      New Note
+                    <Link to="/materials">
+                      <Upload className="w-4 h-4" />
+                      Upload Material
                     </Link>
                   </Button>
                 </div>
@@ -132,7 +133,7 @@ export default function Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { icon: FileText, label: "Total Notes", value: notes?.length || 0, color: "text-primary", bg: "bg-primary/10" },
+            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/10" },
             { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/10" },
             { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/10" },
             { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "bg-primary/10" },
@@ -173,43 +174,48 @@ export default function Dashboard() {
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Recent Notes */}
+          {/* Recent Materials */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
             <Card variant="elevated">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                  <CardTitle>Recent Notes</CardTitle>
+                  <CardTitle>Recent Materials</CardTitle>
                   <CardDescription>Continue where you left off</CardDescription>
                 </div>
                 <Button variant="ghost" size="sm" asChild>
-                  <Link to="/notes">
+                  <Link to="/materials">
                     View All
                     <ArrowRight className="w-4 h-4" />
                   </Link>
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {recentNotes.length > 0 ? (
-                  recentNotes.map((note) => (
+                {recentMaterials.length > 0 ? (
+                  recentMaterials.map((material) => (
                     <Link
-                      key={note.id}
-                      to={`/notes/${note.id}`}
+                      key={material.id}
+                      to={`/materials/${material.id}`}
                       className="block p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div>
-                          <h4 className="font-medium mb-1">{note.title}</h4>
+                          <h4 className="font-medium mb-1">{material.title}</h4>
                           <div className="flex items-center gap-2">
                             <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(note.updated_at), { addSuffix: true })}
+                              {formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}
                             </span>
+                            {material.subject && (
+                              <Badge variant="secondary" className="text-xs">
+                                {material.subject}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                         <BookOpen className="w-4 h-4 text-muted-foreground" />
                       </div>
-                      {note.content && (
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {note.content.substring(0, 100)}...
+                      {material.file_type && (
+                        <p className="text-sm text-muted-foreground">
+                          {material.file_type.toUpperCase()} • {material.processing_status === 'completed' ? 'Ready' : material.processing_status}
                         </p>
                       )}
                     </Link>
@@ -217,11 +223,11 @@ export default function Dashboard() {
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No notes yet. Create your first note!</p>
+                    <p>No materials yet. Upload your first study material!</p>
                     <Button variant="outline" size="sm" className="mt-3" asChild>
-                      <Link to="/notes/new">
-                        <Plus className="w-4 h-4 mr-1" />
-                        New Note
+                      <Link to="/materials">
+                        <Upload className="w-4 h-4 mr-1" />
+                        Upload Material
                       </Link>
                     </Button>
                   </div>

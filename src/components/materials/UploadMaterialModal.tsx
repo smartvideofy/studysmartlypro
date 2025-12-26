@@ -78,7 +78,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
       // Upload file to storage
       const uploadResult = await uploadFile.mutateAsync(file);
 
-      // Create material record
+      // Create material record (processing is triggered automatically)
       await createMaterial.mutateAsync({
         title: title.trim(),
         file_name: uploadResult.fileName,
@@ -93,7 +93,6 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
         generate_flashcards: generateFlashcards,
         generate_questions: generateQuestions,
         generate_concept_map: generateConceptMap,
-        processing_status: 'pending',
       });
 
       // Reset and close

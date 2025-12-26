@@ -3,3 +3,7 @@ project_id = "ngcmmvyebvekyutbixee"
 [functions.ai-notes]
 # JWT verification enabled - function also validates internally for custom error handling
 verify_jwt = true
+
+[functions.process-material]
+# Called internally to process uploaded materials
+verify_jwt = false

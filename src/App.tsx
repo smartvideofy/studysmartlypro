@@ -9,8 +9,6 @@ import SplashScreen from "./pages/SplashScreen";
 import AuthPage from "./pages/AuthPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import Dashboard from "./pages/Dashboard";
-import NotesPage from "./pages/NotesPage";
-import NoteEditor from "./pages/NoteEditor";
 import StudyMaterialsPage from "./pages/StudyMaterialsPage";
 import MaterialWorkspace from "./pages/MaterialWorkspace";
 import FlashcardsPage from "./pages/FlashcardsPage";
@@ -59,16 +57,9 @@ const App = () => (
             
             {/* Legacy Notes routes - redirect to materials */}
             <Route path="/notes" element={<Navigate to="/materials" replace />} />
-            <Route path="/notes/new" element={
-              <ProtectedRoute>
-                <NoteEditor />
-              </ProtectedRoute>
-            } />
-            <Route path="/notes/:id" element={
-              <ProtectedRoute>
-                <NoteEditor />
-              </ProtectedRoute>
-            } />
+            <Route path="/notes/new" element={<Navigate to="/materials" replace />} />
+            <Route path="/notes/:id" element={<Navigate to="/materials" replace />} />
+            
             <Route path="/flashcards" element={
               <ProtectedRoute>
                 <FlashcardsPage />
