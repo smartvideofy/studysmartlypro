@@ -1,4 +1,5 @@
 project_id = "ngcmmvyebvekyutbixee"
 
 [functions.ai-notes]
-verify_jwt = false
+# JWT verification enabled - function also validates internally for custom error handling
+verify_jwt = true
