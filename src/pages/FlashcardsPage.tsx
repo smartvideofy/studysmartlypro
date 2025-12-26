@@ -5,36 +5,24 @@ import {
   Plus, 
   Search, 
   Layers, 
-  MoreHorizontal,
   Clock,
   Play,
-  ChevronRight,
   Sparkles,
   Brain,
   Target,
   CheckCircle2,
-  Loader2,
-  Edit,
-  Trash2
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
+import { FlashcardDeckCard } from "@/components/flashcards/FlashcardDeckCard";
 import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
-import { formatDistanceToNow } from "date-fns";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -48,13 +36,6 @@ const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
-
-const deckColors = [
-  "bg-primary/10 text-primary",
-  "bg-success/10 text-success",
-  "bg-accent/10 text-accent",
-  "bg-warning/10 text-warning",
-];
 
 export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,7 +100,7 @@ export default function FlashcardsPage() {
         >
           <Card variant="interactive" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Layers className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -131,7 +112,7 @@ export default function FlashcardsPage() {
           
           <Card variant="interactive" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5 text-success" />
               </div>
               <div>
@@ -143,7 +124,7 @@ export default function FlashcardsPage() {
           
           <Card variant="interactive" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
                 <Target className="w-5 h-5 text-accent" />
               </div>
               <div>
@@ -155,7 +136,7 @@ export default function FlashcardsPage() {
           
           <Card variant="interactive" className="p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary" />
               </div>
               <div>
@@ -226,97 +207,33 @@ export default function FlashcardsPage() {
         {/* Decks Grid */}
         <motion.div variants={itemVariants}>
           {filteredDecks.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {filteredDecks.map((deck, index) => {
-                const progressPercent = deck.card_count ? Math.round((0 / deck.card_count) * 100) : 0;
-                
-                return (
-                  <Card key={deck.id} variant="interactive" className="group">
-                    <CardContent className="p-5">
-                      <div className="flex items-start justify-between mb-4">
-                        <Link to={`/flashcards/${deck.id}`} className="flex items-center gap-3 flex-1">
-                          <div className={`w-12 h-12 rounded-xl ${deckColors[index % deckColors.length]} flex items-center justify-center`}>
-                            <Layers className="w-6 h-6" />
-                          </div>
-                          <div>
-                            <h4 className="font-display font-semibold hover:text-primary transition-colors">{deck.name}</h4>
-                            <p className="text-sm text-muted-foreground">{deck.subject || 'General'}</p>
-                          </div>
-                        </Link>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => setEditingDeck(deck)}>
-                              <Edit className="w-4 h-4 mr-2" />
-                              Edit Deck
-                            </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link to={`/flashcards/${deck.id}`}>
-                                <Layers className="w-4 h-4 mr-2" />
-                                Manage Cards
-                              </Link>
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem 
-                              onClick={() => setDeletingDeck(deck)}
-                              className="text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="w-4 h-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-muted-foreground">Progress</span>
-                          <span className="font-medium">0 / {deck.card_count || 0} mastered</span>
-                        </div>
-                        
-                        <Progress value={progressPercent} className="h-2" />
-                        
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="flex items-center gap-1 text-accent">
-                              <Target className="w-4 h-4" />
-                              {deck.card_count || 0} cards
-                            </span>
-                            <span className="text-muted-foreground flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {formatDistanceToNow(new Date(deck.updated_at), { addSuffix: true })}
-                            </span>
-                          </div>
-                          
-                          <Button variant="outline" size="sm" asChild>
-                            <Link to={`/study/${deck.id}`}>
-                              Study
-                              <ChevronRight className="w-4 h-4" />
-                            </Link>
-                          </Button>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+              {filteredDecks.map((deck, index) => (
+                <FlashcardDeckCard
+                  key={deck.id}
+                  deck={deck}
+                  index={index}
+                  onEdit={setEditingDeck}
+                  onDelete={setDeletingDeck}
+                />
+              ))}
             </div>
           ) : decks && decks.length === 0 ? (
-            <div className="text-center py-12">
-              <Layers className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h3 className="font-display text-xl font-semibold mb-2">No decks yet</h3>
-              <p className="text-muted-foreground mb-6">Create your first flashcard deck to start learning</p>
-              <Button variant="hero" onClick={() => setCreateDeckOpen(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Deck
+            <div className="text-center py-16">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Layers className="w-10 h-10 text-primary" />
+              </div>
+              <h3 className="font-display text-2xl font-semibold mb-2">No decks yet</h3>
+              <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
+                Create your first flashcard deck to start learning with spaced repetition
+              </p>
+              <Button variant="hero" size="lg" onClick={() => setCreateDeckOpen(true)}>
+                <Plus className="w-5 h-5" />
+                Create Your First Deck
               </Button>
             </div>
           ) : (
-            <div className="text-center py-12">
+            <div className="text-center py-16">
               <Search className="w-16 h-16 mx-auto mb-4 text-muted-foreground/50" />
               <h3 className="font-display text-xl font-semibold mb-2">No matching decks</h3>
               <p className="text-muted-foreground">Try a different search term</p>
