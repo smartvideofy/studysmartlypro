@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      concept_maps: {
+        Row: {
+          created_at: string | null
+          edges: Json
+          id: string
+          material_id: string
+          nodes: Json
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          edges: Json
+          id?: string
+          material_id: string
+          nodes: Json
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          edges?: Json
+          id?: string
+          material_id?: string
+          nodes?: Json
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "concept_maps_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       flashcard_decks: {
         Row: {
           card_count: number | null
@@ -361,6 +399,50 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          explanation: string | null
+          id: string
+          material_id: string
+          options: Json | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          material_id: string
+          options?: Json | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          material_id?: string
+          options?: Json | null
+          question?: string
+          question_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_questions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -472,6 +554,83 @@ export type Database = {
         }
         Relationships: []
       }
+      study_materials: {
+        Row: {
+          created_at: string | null
+          extracted_content: string | null
+          file_name: string | null
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          folder_id: string | null
+          generate_concept_map: boolean | null
+          generate_flashcards: boolean | null
+          generate_questions: boolean | null
+          generate_tutor_notes: boolean | null
+          id: string
+          language: string | null
+          processing_error: string | null
+          processing_status: string | null
+          subject: string | null
+          title: string
+          topic: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          extracted_content?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          generate_concept_map?: boolean | null
+          generate_flashcards?: boolean | null
+          generate_questions?: boolean | null
+          generate_tutor_notes?: boolean | null
+          id?: string
+          language?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          subject?: string | null
+          title: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          extracted_content?: string | null
+          file_name?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          folder_id?: string | null
+          generate_concept_map?: boolean | null
+          generate_flashcards?: boolean | null
+          generate_questions?: boolean | null
+          generate_tutor_notes?: boolean | null
+          id?: string
+          language?: string | null
+          processing_error?: string | null
+          processing_status?: string | null
+          subject?: string | null
+          title?: string
+          topic?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_materials_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_sessions: {
         Row: {
           cards_studied: number | null
@@ -516,6 +675,41 @@ export type Database = {
           },
         ]
       }
+      summaries: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          material_id: string
+          summary_type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          material_id: string
+          summary_type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          material_id?: string
+          summary_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "summaries_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tags: {
         Row: {
           color: string | null
@@ -539,6 +733,41 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      tutor_notes: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          material_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          material_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          material_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tutor_notes_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
