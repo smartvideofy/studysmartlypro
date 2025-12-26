@@ -128,10 +128,25 @@ export function useCreateStudyMaterial() {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (material: Partial<StudyMaterial>) => {
+    mutationFn: async (material: Omit<Partial<StudyMaterial>, 'id' | 'user_id' | 'created_at' | 'updated_at'> & { title: string }) => {
       const { data, error } = await supabase
         .from('study_materials')
-        .insert([{ ...material, user_id: user?.id }])
+        .insert({
+          title: material.title,
+          folder_id: material.folder_id ?? null,
+          file_name: material.file_name ?? null,
+          file_type: material.file_type ?? null,
+          file_path: material.file_path ?? null,
+          file_size: material.file_size ?? null,
+          language: material.language ?? 'en',
+          subject: material.subject ?? null,
+          topic: material.topic ?? null,
+          generate_tutor_notes: material.generate_tutor_notes ?? true,
+          generate_flashcards: material.generate_flashcards ?? true,
+          generate_questions: material.generate_questions ?? true,
+          generate_concept_map: material.generate_concept_map ?? false,
+          user_id: user?.id!,
+        })
         .select()
         .single();
 
