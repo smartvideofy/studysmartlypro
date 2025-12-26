@@ -4,31 +4,29 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   ChevronLeft, 
   ChevronRight, 
-  RotateCcw,
-  ThumbsUp,
-  ThumbsDown,
   Lightbulb,
   Clock,
-  Target,
   Flame,
   X,
-  Volume2,
   Loader2,
   Layers,
-  CheckCircle2
+  CheckCircle2,
+  ThumbsUp,
+  ThumbsDown,
+  RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { StudyFlashcard } from "@/components/flashcards/StudyFlashcard";
 import { cn } from "@/lib/utils";
 import { 
   useDeck, 
   useDueFlashcards, 
   useFlashcards,
-  useReviewFlashcard,
-  Flashcard 
+  useReviewFlashcard
 } from "@/hooks/useFlashcards";
 import { 
   useCreateStudySession, 
@@ -219,26 +217,27 @@ export default function StudySession() {
           </motion.div>
 
           <div className="grid grid-cols-3 gap-4 mb-8">
-            <Card variant="elevated" className="p-4">
-              <div className="text-2xl font-bold text-primary">{cards.length}</div>
-              <div className="text-sm text-muted-foreground">Cards Studied</div>
+            <Card className="p-6 text-center bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
+              <div className="text-3xl font-bold font-display text-primary">{cards.length}</div>
+              <div className="text-sm text-muted-foreground mt-1">Cards Studied</div>
             </Card>
-            <Card variant="elevated" className="p-4">
-              <div className="text-2xl font-bold text-success">{accuracy}%</div>
-              <div className="text-sm text-muted-foreground">Accuracy</div>
+            <Card className="p-6 text-center bg-gradient-to-br from-success/5 to-transparent border-success/20">
+              <div className="text-3xl font-bold font-display text-success">{accuracy}%</div>
+              <div className="text-sm text-muted-foreground mt-1">Accuracy</div>
             </Card>
-            <Card variant="elevated" className="p-4">
-              <div className="text-2xl font-bold">{formatTime(elapsedSeconds)}</div>
-              <div className="text-sm text-muted-foreground">Time</div>
+            <Card className="p-6 text-center bg-gradient-to-br from-accent/5 to-transparent border-accent/20">
+              <div className="text-3xl font-bold font-display">{formatTime(elapsedSeconds)}</div>
+              <div className="text-sm text-muted-foreground mt-1">Time Spent</div>
             </Card>
           </div>
 
           <div className="flex justify-center gap-4">
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="lg" asChild>
               <Link to="/flashcards">Back to Decks</Link>
             </Button>
             <Button 
               variant="hero" 
+              size="lg"
               onClick={() => {
                 setCurrentIndex(0);
                 setResults([]);
@@ -246,6 +245,7 @@ export default function StudySession() {
                 setIsFlipped(false);
               }}
             >
+              <RotateCcw className="w-4 h-4" />
               Study Again
             </Button>
           </div>
@@ -264,19 +264,19 @@ export default function StudySession() {
         >
           {/* Session Header */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Badge variant="secondary">
-                <Clock className="w-3 h-3 mr-1" />
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
+                <Clock className="w-3.5 h-3.5" />
                 {formatTime(elapsedSeconds)}
               </Badge>
-              <Badge variant="accent">
-                <Flame className="w-3 h-3 mr-1" />
+              <Badge variant="accent" className="gap-1.5 px-3 py-1.5">
+                <Flame className="w-3.5 h-3.5" />
                 {correctCount} correct
               </Badge>
             </div>
             
             <Button variant="ghost" size="sm" onClick={handleEndSession}>
-              <X className="w-4 h-4 mr-1" />
+              <X className="w-4 h-4" />
               End Session
             </Button>
           </div>
@@ -284,57 +284,24 @@ export default function StudySession() {
           {/* Progress */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Card {currentIndex + 1} of {cards.length}</span>
-              <span className="flex items-center gap-2">
-                <span className="text-success">{correctCount} correct</span>
-                <span className="text-muted-foreground">·</span>
-                <span className="text-destructive">{results.length - correctCount} incorrect</span>
+              <span className="text-muted-foreground font-medium">
+                Card {currentIndex + 1} of {cards.length}
+              </span>
+              <span className="flex items-center gap-3">
+                <span className="text-success font-medium">{correctCount} correct</span>
+                <span className="text-destructive font-medium">{results.length - correctCount} incorrect</span>
               </span>
             </div>
             <Progress value={progress} className="h-2" />
           </div>
 
           {/* Flashcard */}
-          <div className="perspective-1000">
-            <motion.div
-              className="relative w-full h-[400px] cursor-pointer"
-              onClick={handleFlip}
-              style={{ transformStyle: "preserve-3d" }}
-            >
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={isFlipped ? "back" : "front"}
-                  initial={{ rotateY: isFlipped ? -90 : 90, opacity: 0 }}
-                  animate={{ rotateY: 0, opacity: 1 }}
-                  exit={{ rotateY: isFlipped ? 90 : -90, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0"
-                >
-                  <Card 
-                    variant="elevated" 
-                    className={cn(
-                      "h-full flex flex-col items-center justify-center p-8 text-center",
-                      isFlipped ? "bg-success/5 border-success/20" : ""
-                    )}
-                  >
-                    <Badge variant={isFlipped ? "success" : "secondary"} className="mb-4">
-                      {isFlipped ? "Answer" : "Question"}
-                    </Badge>
-                    
-                    <p className="font-display text-2xl font-semibold mb-6 max-w-lg">
-                      {isFlipped ? currentCard?.back : currentCard?.front}
-                    </p>
-                    
-                    {!isFlipped && (
-                      <p className="text-sm text-muted-foreground">
-                        Click to reveal answer
-                      </p>
-                    )}
-                  </Card>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
-          </div>
+          <StudyFlashcard
+            front={currentCard?.front || ""}
+            back={currentCard?.back || ""}
+            isFlipped={isFlipped}
+            onFlip={handleFlip}
+          />
 
           {/* Hint Section */}
           <AnimatePresence>
@@ -344,7 +311,7 @@ export default function StudySession() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
               >
-                <Card variant="glass" className="p-4 flex items-start gap-3">
+                <Card className="p-4 flex items-start gap-3 bg-accent/5 border-accent/20">
                   <Lightbulb className="w-5 h-5 text-accent shrink-0 mt-0.5" />
                   <div>
                     <p className="font-medium text-sm mb-1">Hint</p>
@@ -362,25 +329,22 @@ export default function StudySession() {
                 <Button 
                   variant="outline" 
                   size="lg"
+                  className="gap-2"
                   onClick={() => setShowHint(true)}
                   disabled={showHint || !currentCard?.hint}
                 >
                   <Lightbulb className="w-5 h-5" />
-                  Hint
+                  Show Hint
                 </Button>
                 
                 <Button 
                   variant="hero" 
                   size="lg"
+                  className="gap-2 min-w-[140px]"
                   onClick={handleFlip}
                 >
                   <RotateCcw className="w-5 h-5" />
-                  Flip Card
-                </Button>
-                
-                <Button variant="outline" size="lg" disabled>
-                  <Volume2 className="w-5 h-5" />
-                  Listen
+                  Reveal Answer
                 </Button>
               </>
             ) : (
@@ -388,7 +352,7 @@ export default function StudySession() {
                 <Button 
                   variant="outline" 
                   size="lg"
-                  className="border-destructive/30 text-destructive hover:bg-destructive/10"
+                  className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 min-w-[140px]"
                   onClick={() => handleAnswer(false)}
                   disabled={reviewFlashcard.isPending}
                 >
@@ -397,8 +361,9 @@ export default function StudySession() {
                 </Button>
                 
                 <Button 
-                  variant="success" 
+                  variant="default" 
                   size="lg"
+                  className="gap-2 bg-success hover:bg-success/90 text-success-foreground min-w-[140px]"
                   onClick={() => handleAnswer(true)}
                   disabled={reviewFlashcard.isPending}
                 >
@@ -424,14 +389,14 @@ export default function StudySession() {
               Previous
             </Button>
             
-            <div className="flex gap-1">
+            <div className="flex gap-1.5">
               {cards.slice(0, 10).map((_, idx) => (
                 <div 
                   key={idx}
                   className={cn(
-                    "w-2 h-2 rounded-full transition-colors",
+                    "w-2.5 h-2.5 rounded-full transition-all duration-200",
                     idx === currentIndex 
-                      ? "bg-primary" 
+                      ? "bg-primary scale-125" 
                       : idx < currentIndex 
                         ? results[idx]?.correct ? "bg-success" : "bg-destructive"
                         : "bg-muted"

@@ -220,6 +220,61 @@
   .animate-pulse-soft {
     animation: pulse-soft 3s ease-in-out infinite;
   }
+
+  /* Quizlet-style flashcard styles */
+  .flashcard-deck {
+    @apply relative overflow-hidden rounded-2xl bg-card border border-border/50;
+    box-shadow: var(--shadow-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .flashcard-deck:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .flashcard-deck::before {
+    content: '';
+    @apply absolute inset-x-0 top-0 h-1 rounded-t-2xl;
+    background: var(--gradient-primary);
+  }
+  
+  .flashcard-flip-container {
+    perspective: 1200px;
+  }
+  
+  .flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  
+  .flashcard-inner.flipped {
+    transform: rotateY(180deg);
+  }
+  
+  .flashcard-face {
+    position: absolute;
+    inset: 0;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    @apply rounded-2xl bg-card border border-border flex flex-col items-center justify-center p-8;
+    box-shadow: var(--shadow-lg);
+  }
+  
+  .flashcard-back {
+    transform: rotateY(180deg);
+    @apply bg-gradient-to-br from-primary/5 to-accent/5;
+  }
+  
+  .deck-color-1 { --deck-color: hsl(245 58% 51%); }
+  .deck-color-2 { --deck-color: hsl(152 55% 45%); }
+  .deck-color-3 { --deck-color: hsl(35 95% 55%); }
+  .deck-color-4 { --deck-color: hsl(280 60% 55%); }
+  .deck-color-5 { --deck-color: hsl(190 70% 45%); }
+  .deck-color-6 { --deck-color: hsl(0 72% 55%); }
 }
 
 @layer utilities {
