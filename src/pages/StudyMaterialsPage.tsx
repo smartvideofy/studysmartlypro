@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -7,7 +8,6 @@ import {
   List, 
   Search, 
   Filter,
-  FileText,
   BookOpen
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -17,11 +17,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MaterialCard from "@/components/materials/MaterialCard";
 import UploadMaterialModal from "@/components/materials/UploadMaterialModal";
 import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
-import CreateFolderModal from "@/components/notes/CreateFolderModal";
-import { useStudyMaterials, StudyMaterial } from "@/hooks/useStudyMaterials";
-import { useNotes } from "@/hooks/useNotes";
+import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
+import { useStudyMaterials, useDeleteStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
+import { useFolders } from "@/hooks/useNotes";
 
 export default function StudyMaterialsPage() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
@@ -31,7 +32,8 @@ export default function StudyMaterialsPage() {
   const [materialToDelete, setMaterialToDelete] = useState<StudyMaterial | null>(null);
 
   const { data: materials, isLoading } = useStudyMaterials(selectedFolderId);
-  const { folders } = useNotes(selectedFolderId);
+  const { data: folders } = useFolders();
+  const deleteMaterial = useDeleteStudyMaterial();
 
   const filteredMaterials = materials?.filter((m) =>
     m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -42,6 +44,14 @@ export default function StudyMaterialsPage() {
   const handleDelete = (material: StudyMaterial) => {
     setMaterialToDelete(material);
     setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (materialToDelete) {
+      deleteMaterial.mutate(materialToDelete.id);
+      setDeleteModalOpen(false);
+      setMaterialToDelete(null);
+    }
   };
 
   return (
@@ -198,8 +208,9 @@ export default function StudyMaterialsPage() {
                 >
                   <MaterialCard
                     material={material}
-                    viewMode={viewMode}
+                    onClick={() => navigate(`/materials/${material.id}`)}
                     onDelete={() => handleDelete(material)}
+                    onSettings={() => navigate(`/materials/${material.id}/settings`)}
                   />
                 </motion.div>
               ))}
@@ -212,7 +223,6 @@ export default function StudyMaterialsPage() {
       <UploadMaterialModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
-        folderId={selectedFolderId}
       />
 
       <CreateFolderModal
@@ -223,7 +233,8 @@ export default function StudyMaterialsPage() {
       <DeleteMaterialModal
         open={deleteModalOpen}
         onOpenChange={setDeleteModalOpen}
-        material={materialToDelete}
+        onConfirm={confirmDelete}
+        title={materialToDelete?.title || ''}
       />
     </DashboardLayout>
   );
