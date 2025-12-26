@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import SplashScreen from "./pages/SplashScreen";
@@ -11,6 +11,8 @@ import OnboardingPage from "./pages/OnboardingPage";
 import Dashboard from "./pages/Dashboard";
 import NotesPage from "./pages/NotesPage";
 import NoteEditor from "./pages/NoteEditor";
+import StudyMaterialsPage from "./pages/StudyMaterialsPage";
+import MaterialWorkspace from "./pages/MaterialWorkspace";
 import FlashcardsPage from "./pages/FlashcardsPage";
 import DeckDetailPage from "./pages/DeckDetailPage";
 import StudySession from "./pages/StudySession";
@@ -43,11 +45,20 @@ const App = () => (
                 <Dashboard />
               </ProtectedRoute>
             } />
-            <Route path="/notes" element={
+            {/* Study Materials - new primary flow */}
+            <Route path="/materials" element={
               <ProtectedRoute>
-                <NotesPage />
+                <StudyMaterialsPage />
               </ProtectedRoute>
             } />
+            <Route path="/materials/:id" element={
+              <ProtectedRoute>
+                <MaterialWorkspace />
+              </ProtectedRoute>
+            } />
+            
+            {/* Legacy Notes routes - redirect to materials */}
+            <Route path="/notes" element={<Navigate to="/materials" replace />} />
             <Route path="/notes/new" element={
               <ProtectedRoute>
                 <NoteEditor />
