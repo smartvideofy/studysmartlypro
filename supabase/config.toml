@@ -7,3 +7,7 @@ verify_jwt = true
 [functions.process-material]
 # Called internally to process uploaded materials
 verify_jwt = false
+
+[functions.material-chat]
+# Public AI chat for study materials
+verify_jwt = false

@@ -260,29 +260,44 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
   }
 }
 
-async function generateSummaries(content: string, material: StudyMaterial): Promise<string[]> {
+async function generateSummaries(content: string, material: StudyMaterial): Promise<{ type: string; content: string }[]> {
   console.log('Generating comprehensive summaries...');
   
-  const systemPrompt = `You are an expert academic summarizer. Create a comprehensive, detailed summary that captures ALL the essential information from the study material.
+  const summaries: { type: string; content: string }[] = [];
 
-Your summary must include:
-1. **Executive Overview** (2-3 sentences on the main theme)
-2. **Key Concepts** - List and explain each major concept in detail
-3. **Important Facts & Data** - All significant facts, figures, dates, formulas
-4. **Relationships & Connections** - How different concepts relate to each other
-5. **Key Terminology** - Important terms with brief definitions
-6. **Main Arguments/Theories** - Core arguments or theoretical frameworks
-7. **Critical Points for Study** - What students must remember
+  // Generate Quick Summary
+  const quickPrompt = `Create a concise 2-minute summary of this study material. Focus on the main idea and 3-5 key takeaways.
 
-Use clear markdown formatting with:
-- Bold for key terms
-- Bullet points for lists
-- Numbered lists for sequential information
-- Clear section headings
+Title: ${material.title}
+Subject: ${material.subject || 'General'}
 
-Be comprehensive - this summary should be a complete study guide.`;
+Content:
+${content.substring(0, 30000)}
 
-  const userPrompt = `Create a comprehensive summary for:
+Format: Write 2-3 paragraphs that capture the essence of the material. A student should be able to read this in under 2 minutes and understand the core concepts.`;
+
+  const quickResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [{ role: 'user', content: quickPrompt }],
+    }),
+  });
+
+  if (quickResponse.ok) {
+    const quickData = await quickResponse.json();
+    summaries.push({ 
+      type: 'quick', 
+      content: quickData.choices?.[0]?.message?.content || '' 
+    });
+  }
+
+  // Generate Detailed Summary
+  const detailedPrompt = `Create a comprehensive, detailed summary of this study material.
 
 Title: ${material.title}
 Subject: ${material.subject || 'General'}
@@ -291,9 +306,26 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 40000)}
 
-Generate a detailed, comprehensive summary that covers all important aspects of this material.`;
+Structure your summary as follows:
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+Overview
+A brief introduction to the material's main theme and purpose.
+
+Key Concepts
+Explain each major concept covered in the material with clear definitions and examples.
+
+Important Details
+Include significant facts, figures, dates, formulas, and specific information that students need to know.
+
+Connections and Relationships
+Describe how different concepts relate to each other and build upon one another.
+
+Summary
+A final paragraph consolidating the most critical points for study.
+
+Write in clear, flowing paragraphs. Use proper headings and organize content logically. Avoid excessive formatting markers.`;
+
+  const detailedResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${lovableApiKey}`,
@@ -301,19 +333,57 @@ Generate a detailed, comprehensive summary that covers all important aspects of 
     },
     body: JSON.stringify({
       model: 'google/gemini-2.5-flash',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
+      messages: [{ role: 'user', content: detailedPrompt }],
     }),
   });
 
-  if (!response.ok) {
-    throw new Error('Failed to generate summaries');
+  if (detailedResponse.ok) {
+    const detailedData = await detailedResponse.json();
+    summaries.push({ 
+      type: 'detailed', 
+      content: detailedData.choices?.[0]?.message?.content || '' 
+    });
   }
 
-  const data = await response.json();
-  return [data.choices?.[0]?.message?.content || 'Summary not available'];
+  // Generate Bullet Points / Key Points
+  const bulletPrompt = `Extract the key points from this study material as a numbered list.
+
+Title: ${material.title}
+Subject: ${material.subject || 'General'}
+
+Content:
+${content.substring(0, 30000)}
+
+Create 10-15 key points that capture the most important information. Each point should be a complete, standalone statement that a student should remember.
+
+Format each point as a simple sentence without any special formatting characters like asterisks or bullet markers. Just plain numbered points.
+
+Example format:
+1. First key point here
+2. Second key point here
+3. Third key point here`;
+
+  const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      messages: [{ role: 'user', content: bulletPrompt }],
+    }),
+  });
+
+  if (bulletResponse.ok) {
+    const bulletData = await bulletResponse.json();
+    summaries.push({ 
+      type: 'bullet_points', 
+      content: bulletData.choices?.[0]?.message?.content || '' 
+    });
+  }
+
+  return summaries;
 }
 
 async function generatePracticeQuestions(content: string, material: StudyMaterial): Promise<object[]> {
@@ -632,8 +702,8 @@ serve(async (req) => {
           .insert({
             material_id: materialId,
             user_id: userId,
-            summary_type: 'detailed',
-            content: summary,
+            summary_type: summary.type,
+            content: summary.content,
           });
       }
       console.log('Summaries generated');
