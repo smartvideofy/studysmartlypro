@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { FlashcardEditorModal } from "@/components/flashcards/FlashcardEditorModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
@@ -116,36 +117,37 @@ export default function DeckDetailPage() {
   }
 
   return (
-    <DashboardLayout title={deck.name}>
+    <DashboardLayout title="">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
         className="space-y-6"
       >
+        {/* Breadcrumb */}
+        <PageBreadcrumb 
+          items={[
+            { label: "Flashcards", href: "/flashcards" },
+            { label: deck.name }
+          ]} 
+        />
+
         {/* Header */}
         <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
-          <div className="flex items-start gap-4">
-            <Button variant="ghost" size="icon" asChild>
-              <Link to="/flashcards">
-                <ArrowLeft className="w-5 h-5" />
-              </Link>
-            </Button>
-            <div>
-              <div className="flex items-center gap-3 mb-1">
-                <h1 className="font-display text-2xl font-bold">{deck.name}</h1>
-                {deck.is_public && <Badge variant="accent">Public</Badge>}
-              </div>
-              {deck.subject && (
-                <Badge variant="muted" className="mb-2">{deck.subject}</Badge>
-              )}
-              {deck.description && (
-                <p className="text-muted-foreground text-sm max-w-lg">{deck.description}</p>
-              )}
-              <p className="text-xs text-muted-foreground mt-2">
-                {deck.card_count} cards · Updated {formatDistanceToNow(new Date(deck.updated_at), { addSuffix: true })}
-              </p>
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="font-display text-2xl font-bold">{deck.name}</h1>
+              {deck.is_public && <Badge variant="accent">Public</Badge>}
             </div>
+            {deck.subject && (
+              <Badge variant="muted" className="mb-2">{deck.subject}</Badge>
+            )}
+            {deck.description && (
+              <p className="text-muted-foreground text-sm max-w-lg">{deck.description}</p>
+            )}
+            <p className="text-xs text-muted-foreground mt-2">
+              {deck.card_count} cards · Updated {formatDistanceToNow(new Date(deck.updated_at), { addSuffix: true })}
+            </p>
           </div>
 
           <div className="flex items-center gap-2">

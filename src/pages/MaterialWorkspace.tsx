@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { useStudyMaterial } from "@/hooks/useStudyMaterials";
 import MaterialViewer from "@/components/materials/MaterialViewer";
 import TutorNotesTab from "@/components/materials/tabs/TutorNotesTab";
@@ -77,10 +78,12 @@ export default function MaterialWorkspace() {
         </Button>
         
         <div className="flex-1 min-w-0">
-          <h1 className="font-display font-semibold truncate">{material.title}</h1>
-          {material.subject && (
-            <p className="text-xs text-muted-foreground">{material.subject}</p>
-          )}
+          <PageBreadcrumb 
+            items={[
+              { label: "Materials", href: "/materials" },
+              { label: material.title }
+            ]} 
+          />
         </div>
 
         <Button 

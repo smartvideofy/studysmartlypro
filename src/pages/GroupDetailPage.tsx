@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -96,18 +97,22 @@ export default function GroupDetailPage() {
 
   return (
     <DashboardLayout title="">
+      {/* Breadcrumb */}
+      <PageBreadcrumb 
+        items={[
+          { label: "Groups", href: "/groups" },
+          { label: group.name }
+        ]} 
+        className="mb-4"
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/groups")}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div>
-            <h1 className="text-2xl font-display font-bold">{group.name}</h1>
-            {group.description && (
-              <p className="text-muted-foreground text-sm mt-1">{group.description}</p>
-            )}
-          </div>
+        <div>
+          <h1 className="text-2xl font-display font-bold">{group.name}</h1>
+          {group.description && (
+            <p className="text-muted-foreground text-sm mt-1">{group.description}</p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isOwner ? (

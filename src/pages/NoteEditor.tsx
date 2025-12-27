@@ -44,6 +44,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
 import { AISummaryModal } from "@/components/notes/AISummaryModal";
 import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
@@ -252,28 +253,28 @@ export default function NoteEditor() {
         animate={{ opacity: 1 }}
         className="space-y-4"
       >
+        {/* Breadcrumb */}
+        <PageBreadcrumb 
+          items={[
+            { label: "Notes", href: "/notes" },
+            { label: isNewNote ? "New Note" : (title || "Untitled") }
+          ]} 
+          className="mb-4"
+        />
+
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Button 
-              variant="ghost" 
-              size="icon-sm"
-              onClick={() => navigate("/notes")}
-            >
-              <ArrowLeft className="w-4 h-4" />
-            </Button>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
-              <span>
-                {lastSaved 
-                  ? `Last saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}`
-                  : isNewNote ? "New note" : "Not saved yet"
-                }
-              </span>
-              {hasChanges && (
-                <Badge variant="muted" className="text-xs">Unsaved changes</Badge>
-              )}
-            </div>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Clock className="w-4 h-4" />
+            <span>
+              {lastSaved 
+                ? `Last saved ${formatDistanceToNow(lastSaved, { addSuffix: true })}`
+                : isNewNote ? "New note" : "Not saved yet"
+              }
+            </span>
+            {hasChanges && (
+              <Badge variant="muted" className="text-xs">Unsaved changes</Badge>
+            )}
           </div>
           
           <div className="flex items-center gap-2">
