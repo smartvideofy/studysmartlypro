@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { StudyFlashcard } from "@/components/flashcards/StudyFlashcard";
 import { cn } from "@/lib/utils";
 import { 
@@ -255,13 +256,22 @@ export default function StudySession() {
   }
 
   return (
-    <DashboardLayout title={`Studying: ${deck.name}`}>
+    <DashboardLayout title="">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="space-y-6"
         >
+          {/* Breadcrumb */}
+          <PageBreadcrumb 
+            items={[
+              { label: "Flashcards", href: "/flashcards" },
+              { label: deck.name, href: `/flashcards/${deckId}` },
+              { label: "Study" }
+            ]} 
+          />
+
           {/* Session Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
