@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { 
   TrendingUp,
   Clock,
@@ -9,10 +10,12 @@ import {
   BarChart3,
   CheckCircle2,
   Layers,
-  Loader2
+  Loader2,
+  Play
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { useDecks } from "@/hooks/useFlashcards";
@@ -68,6 +71,7 @@ export default function ProgressPage() {
   const deckProgress = decks?.map((deck, i) => {
     const colors = ["bg-primary", "bg-success", "bg-accent", "bg-warning"];
     return {
+      id: deck.id,
       name: deck.name,
       total: deck.card_count || 0,
       mastered: Math.floor((deck.card_count || 0) * 0.7), // Placeholder - would need actual mastery data
@@ -241,12 +245,21 @@ export default function ProgressPage() {
                     const percentage = deck.total > 0 ? Math.round((deck.mastered / deck.total) * 100) : 0;
                     
                     return (
-                      <div key={deck.name}>
+                      <Link 
+                        key={deck.id} 
+                        to={`/study/${deck.id}`}
+                        className="block hover:bg-secondary/50 rounded-lg p-2 -m-2 transition-colors"
+                      >
                         <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-medium truncate max-w-[60%]">{deck.name}</span>
-                          <span className="text-muted-foreground">
-                            {deck.total} cards
-                          </span>
+                          <span className="font-medium truncate max-w-[50%]">{deck.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">
+                              {deck.total} cards
+                            </span>
+                            <Button variant="ghost" size="icon-sm" className="h-6 w-6">
+                              <Play className="w-3 h-3" />
+                            </Button>
+                          </div>
                         </div>
                         <div className="h-2 bg-secondary rounded-full overflow-hidden">
                           <motion.div
@@ -256,13 +269,16 @@ export default function ProgressPage() {
                             className={`h-full rounded-full ${deck.color}`}
                           />
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 ) : (
                   <div className="py-8 text-center text-muted-foreground">
                     <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />
                     <p>No decks created yet</p>
+                    <Button variant="outline" size="sm" className="mt-3" asChild>
+                      <Link to="/flashcards">Create a Deck</Link>
+                    </Button>
                   </div>
                 )}
               </CardContent>

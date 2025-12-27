@@ -133,20 +133,22 @@ export default function Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/10" },
-            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/10" },
-            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/10" },
-            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "bg-primary/10" },
+            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/10", path: "/materials" },
+            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/10", path: "/flashcards" },
+            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/10", path: "/progress" },
+            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "bg-primary/10", path: "/progress" },
           ].map((stat) => (
-            <Card key={stat.label} variant="interactive">
-              <CardContent className="p-4">
-                <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
-                  <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                </div>
-                <div className="font-display text-2xl font-bold">{stat.value}</div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </CardContent>
-            </Card>
+            <Link key={stat.label} to={stat.path}>
+              <Card variant="interactive" className="h-full hover:ring-2 hover:ring-primary/20 transition-all">
+                <CardContent className="p-4">
+                  <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                  </div>
+                  <div className="font-display text-2xl font-bold">{stat.value}</div>
+                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                </CardContent>
+              </Card>
+            </Link>
           ))}
         </motion.div>
 
