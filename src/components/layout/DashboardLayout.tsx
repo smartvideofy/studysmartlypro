@@ -55,7 +55,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-sidebar-border">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/dashboard" className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center shrink-0">
               <BookOpen className="w-5 h-5 text-primary-foreground" />
             </div>

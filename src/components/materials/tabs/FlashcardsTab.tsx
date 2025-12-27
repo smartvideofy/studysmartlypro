@@ -12,6 +12,7 @@ import {
   Check,
   RefreshCw
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
@@ -51,6 +52,7 @@ interface MaterialFlashcard {
 
 export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const regenerate = useRegenerateContent(materialId);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -60,6 +62,7 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const [newDeckName, setNewDeckName] = useState("");
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
+  const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
 
   // Fetch flashcards from material_flashcards table
   const { data: flashcards, isLoading, refetch } = useQuery({
@@ -143,8 +146,14 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         .update({ card_count: newCount })
         .eq('id', deckId);
     },
-    onSuccess: () => {
-      toast.success('Flashcards saved to deck!');
+    onSuccess: (_, variables) => {
+      setSavedDeckId(variables.deckId);
+      toast.success('Flashcards saved to deck!', {
+        action: {
+          label: 'View Deck',
+          onClick: () => navigate(`/flashcards/${variables.deckId}`),
+        },
+      });
       setShowSaveDialog(false);
       setSelectedCards(new Set());
       queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
@@ -274,6 +283,16 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
             <FolderPlus className="w-4 h-4" />
             Save to Deck
           </Button>
+          {savedDeckId && (
+            <Button 
+              variant="hero" 
+              size="sm" 
+              className="gap-2"
+              onClick={() => navigate(`/flashcards/${savedDeckId}`)}
+            >
+              View Saved Deck
+            </Button>
+          )}
         </div>
       </div>
 

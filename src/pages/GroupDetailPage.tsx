@@ -238,10 +238,9 @@ export default function GroupDetailPage() {
           ) : (
             <div className="grid gap-3">
               {sharedNotes.map((shared) => (
-                <Link
+                <div
                   key={shared.id}
-                  to={`/notes/${shared.note_id}`}
-                  className="block p-4 border border-border rounded-xl hover:bg-secondary/50 transition-colors"
+                  className="block p-4 border border-border rounded-xl bg-card"
                 >
                   <h3 className="font-medium">{shared.notes?.title || "Untitled"}</h3>
                   <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
@@ -250,7 +249,7 @@ export default function GroupDetailPage() {
                   <p className="text-xs text-muted-foreground mt-2">
                     Shared {formatDistanceToNow(new Date(shared.shared_at), { addSuffix: true })}
                   </p>
-                </Link>
+                </div>
               ))}
             </div>
           )}

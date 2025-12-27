@@ -86,7 +86,8 @@ export default function MaterialWorkspace() {
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => navigate(`/materials/${id}/settings`)}
+          onClick={() => navigate("/settings")}
+          title="Settings"
         >
           <Settings className="w-5 h-5" />
         </Button>
