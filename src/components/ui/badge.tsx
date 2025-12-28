@@ -4,18 +4,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
+        default: "border-transparent bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
         secondary: "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground border-border",
-        success: "border-transparent bg-success text-success-foreground",
-        accent: "border-transparent bg-accent text-accent-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
+        outline: "text-foreground border-border bg-background",
+        success: "border-transparent bg-success text-success-foreground shadow-sm",
+        accent: "border-transparent bg-accent text-accent-foreground shadow-sm",
         muted: "border-transparent bg-muted text-muted-foreground",
         ghost: "border-border/50 bg-transparent text-muted-foreground",
+        premium: "border-transparent bg-gradient-to-r from-primary to-accent text-primary-foreground shadow-sm",
+        "outline-primary": "border-primary/30 bg-primary/5 text-primary",
+        "outline-success": "border-success/30 bg-success/5 text-success",
+        "outline-accent": "border-accent/30 bg-accent/5 text-accent",
+        glow: "border-transparent bg-primary text-primary-foreground shadow-glow-sm",
       },
     },
     defaultVariants: {
