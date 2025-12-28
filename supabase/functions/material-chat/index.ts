@@ -17,6 +17,31 @@ serve(async (req) => {
   }
 
   try {
+    // Verify user authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Create authenticated client to verify user
+    const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+    
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`Authenticated user: ${user.id}`);
+
     const { materialId, messages, extractedContent } = await req.json();
 
     if (!materialId) {
@@ -27,18 +52,24 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get material content if not provided
-    let content = extractedContent;
-    if (!content) {
-      const { data: material, error } = await supabase
-        .from('study_materials')
-        .select('extracted_content, title, subject, topic')
-        .eq('id', materialId)
-        .single();
+    // Verify user owns this material
+    const { data: material, error: materialError } = await supabase
+      .from('study_materials')
+      .select('extracted_content, title, subject, topic, user_id')
+      .eq('id', materialId)
+      .single();
 
-      if (error) throw error;
-      content = material?.extracted_content || `Title: ${material?.title}`;
+    if (materialError) throw materialError;
+
+    if (material?.user_id !== user.id) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
+
+    // Get material content if not provided
+    const content = extractedContent || material?.extracted_content || `Title: ${material?.title}`;
 
     const systemPrompt = `You are an expert academic tutor helping students understand their study material. You have access to the following study content:
 
