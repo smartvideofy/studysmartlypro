@@ -5,13 +5,13 @@ project_id = "ngcmmvyebvekyutbixee"
 verify_jwt = true
 
 [functions.process-material]
-# Called internally to process uploaded materials
-verify_jwt = false
+# JWT verification - requires authenticated user
+verify_jwt = true
 
 [functions.material-chat]
-# Public AI chat for study materials
-verify_jwt = false
+# JWT verification - requires authenticated user  
+verify_jwt = true
 
 [functions.regenerate-content]
-# Regenerate specific AI content for study materials
-verify_jwt = false
+# JWT verification - requires authenticated user
+verify_jwt = true
