@@ -17,8 +17,11 @@ import {
   Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/notifications/NotificationBell";
+import { GlobalSearch } from "./GlobalSearch";
+import { useProfile } from "@/hooks/useProfile";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -41,8 +44,12 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const { data: profile } = useProfile();
+
+  const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -166,15 +173,15 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           </div>
           
           <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search..."
-                className="h-9 w-64 pl-9 pr-4 rounded-lg bg-secondary border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-            </div>
+            {/* Search Button */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden md:flex items-center gap-2 h-9 w-64 pl-3 pr-2 rounded-lg bg-secondary text-sm text-muted-foreground hover:bg-secondary/80 transition-colors"
+            >
+              <Search className="w-4 h-4" />
+              <span className="flex-1 text-left">Search...</span>
+              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">⌘K</kbd>
+            </button>
 
             {/* Quick Upload */}
             <Button variant="hero" size="sm" onClick={() => navigate('/materials')}>
@@ -186,9 +193,14 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <NotificationBell />
 
             {/* Avatar */}
-            <button className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-sm">
-              S
-            </button>
+            <Link to="/settings">
+              <Avatar className="w-8 h-8 hover:ring-2 hover:ring-primary/20 transition-all">
+                <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                  {userInitial}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
           </div>
         </header>
 
@@ -197,6 +209,9 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
           {children}
         </div>
       </main>
+
+      {/* Global Search Modal */}
+      <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
     </div>
   );
 }

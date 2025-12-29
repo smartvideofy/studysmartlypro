@@ -144,7 +144,7 @@ export default function HelpPage() {
   };
 
   const handleEmailSupport = () => {
-    window.location.href = "mailto:support@studyly.app?subject=Support Request";
+    window.location.href = "mailto:support@studily.app?subject=Support Request";
   };
 
   return (
