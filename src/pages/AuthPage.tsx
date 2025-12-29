@@ -176,7 +176,7 @@ export default function AuthPage() {
             <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
               <BookOpen className="w-6 h-6" />
             </div>
-            <span className="font-display text-2xl font-bold">Studyly</span>
+            <span className="font-display text-2xl font-bold">Studily</span>
           </motion.div>
           
           {/* Main content */}
@@ -244,7 +244,7 @@ export default function AuthPage() {
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
               <BookOpen className="w-6 h-6 text-primary-foreground" />
             </div>
-            <span className="font-display text-2xl font-bold">Studyly</span>
+            <span className="font-display text-2xl font-bold">Studily</span>
           </div>
 
           {/* Form Header */}

@@ -67,7 +67,7 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                   exit={{ opacity: 0, x: -10 }}
                   className="font-display text-xl font-bold"
                 >
-                  Studyly
+                  Studily
                 </motion.span>
               )}
             </AnimatePresence>
