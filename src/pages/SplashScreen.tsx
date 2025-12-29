@@ -41,7 +41,7 @@ export default function SplashScreen() {
 
         {/* App Name */}
         <h1 className="font-display text-4xl font-bold gradient-text mb-4">
-          Studyly
+          Studily
         </h1>
 
         {/* Tagline */}
