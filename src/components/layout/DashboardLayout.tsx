@@ -11,7 +11,6 @@ import {
   BarChart3,
   Settings,
   HelpCircle,
-  ChevronLeft,
   ChevronRight,
   Search,
   Upload
@@ -92,13 +91,19 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+                  "group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
                   isActive
                     ? "bg-sidebar-accent text-sidebar-accent-foreground font-medium"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 )}
               >
-                <Icon className={cn("w-5 h-5 shrink-0", isActive && "text-primary")} />
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: isActive ? 0 : 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Icon className={cn("w-5 h-5 shrink-0 transition-colors", isActive && "text-primary")} />
+                </motion.div>
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.span
@@ -124,9 +129,15 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
               <Link
                 key={item.path}
                 to={item.path}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-200"
+                className="group flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-all duration-200"
               >
-                <Icon className="w-5 h-5 shrink-0" />
+                <motion.div
+                  whileHover={{ scale: 1.1, rotate: 5 }}
+                  whileTap={{ scale: 0.95 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Icon className="w-5 h-5 shrink-0" />
+                </motion.div>
                 <AnimatePresence>
                   {!collapsed && (
                     <motion.span
@@ -145,16 +156,20 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         </div>
 
         {/* Collapse Button */}
-        <button
+        <motion.button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-background border border-border rounded-full flex items-center justify-center hover:bg-secondary transition-colors"
+          className="absolute -right-3 top-20 w-6 h-6 bg-background border border-border rounded-full flex items-center justify-center hover:bg-secondary transition-colors shadow-sm"
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 400, damping: 17 }}
         >
-          {collapsed ? (
+          <motion.div
+            animate={{ rotate: collapsed ? 0 : 180 }}
+            transition={{ duration: 0.2 }}
+          >
             <ChevronRight className="w-4 h-4" />
-          ) : (
-            <ChevronLeft className="w-4 h-4" />
-          )}
-        </button>
+          </motion.div>
+        </motion.button>
       </motion.aside>
 
       {/* Main Content */}

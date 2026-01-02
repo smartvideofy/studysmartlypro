@@ -426,6 +426,125 @@
   .text-pretty {
     text-wrap: pretty;
   }
+  
+  /* Micro-interaction utilities */
+  .interactive {
+    @apply transition-all duration-200 cursor-pointer;
+  }
+  
+  .interactive:hover {
+    @apply -translate-y-0.5;
+  }
+  
+  .interactive:active {
+    @apply scale-[0.98] translate-y-0;
+  }
+  
+  .press {
+    @apply transition-transform duration-150;
+  }
+  
+  .press:active {
+    @apply scale-[0.96];
+  }
+  
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+  
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+  
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow-sm);
+  }
+  
+  .hover-scale {
+    @apply transition-transform duration-200;
+  }
+  
+  .hover-scale:hover {
+    @apply scale-105;
+  }
+  
+  .hover-scale-sm {
+    @apply transition-transform duration-200;
+  }
+  
+  .hover-scale-sm:hover {
+    @apply scale-[1.02];
+  }
+  
+  .hover-bright {
+    @apply transition-all duration-200;
+  }
+  
+  .hover-bright:hover {
+    @apply brightness-110;
+  }
+  
+  .ripple {
+    @apply relative overflow-hidden;
+  }
+  
+  .ripple::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: radial-gradient(circle, hsl(var(--primary) / 0.15) 0%, transparent 70%);
+    transform: scale(0);
+    opacity: 0;
+    transition: transform 0.5s ease-out, opacity 0.3s ease-out;
+  }
+  
+  .ripple:active::after {
+    transform: scale(2.5);
+    opacity: 1;
+    transition: transform 0s, opacity 0s;
+  }
+  
+  .icon-spin {
+    @apply transition-transform duration-300;
+  }
+  
+  .icon-spin:hover {
+    @apply rotate-12;
+  }
+  
+  .icon-bounce {
+    @apply transition-transform duration-200;
+  }
+  
+  .icon-bounce:hover {
+    animation: icon-bounce 0.5s ease-in-out;
+  }
+  
+  .link-underline {
+    @apply relative;
+  }
+  
+  .link-underline::after {
+    content: '';
+    @apply absolute bottom-0 left-0 w-full h-0.5 bg-primary scale-x-0 origin-right transition-transform duration-300;
+  }
+  
+  .link-underline:hover::after {
+    @apply scale-x-100 origin-left;
+  }
+  
+  .fade-in-up {
+    animation: fade-in-up 0.4s ease-out;
+  }
+  
+  .stagger-1 { animation-delay: 50ms; }
+  .stagger-2 { animation-delay: 100ms; }
+  .stagger-3 { animation-delay: 150ms; }
+  .stagger-4 { animation-delay: 200ms; }
+  .stagger-5 { animation-delay: 250ms; }
 }
 
 @keyframes float {
@@ -473,6 +592,44 @@
   to {
     box-shadow: 0 0 40px hsl(var(--primary) / 0.4);
   }
+}
+
+@keyframes icon-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  25% {
+    transform: translateY(-4px);
+  }
+  50% {
+    transform: translateY(0);
+  }
+  75% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
 }
 
 /* Smooth page transitions */
