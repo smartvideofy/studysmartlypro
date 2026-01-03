@@ -90,16 +90,25 @@ export default function Dashboard() {
       >
         {/* Welcome Section */}
         <motion.div variants={itemVariants}>
-          <Card variant="gradient" className="overflow-hidden">
+          <Card variant="glass" className="overflow-hidden border-0">
             <div className="relative p-6 md:p-8">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              {/* Decorative orbs */}
+              <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 blur-3xl -translate-y-1/2 translate-x-1/3" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 rounded-full bg-gradient-to-tr from-success/15 to-primary/10 blur-2xl translate-y-1/3 -translate-x-1/4" />
+              
               <div className="relative">
-                <Badge variant="accent" className="mb-3">
-                  <Flame className="w-3 h-3 mr-1" />
-                  {streakDays} Day Streak
-                </Badge>
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 }}
+                >
+                  <Badge variant="accent" className="mb-3 shadow-sm">
+                    <Flame className="w-3 h-3 mr-1" />
+                    {streakDays} Day Streak
+                  </Badge>
+                </motion.div>
                 <h2 className="font-display text-2xl md:text-3xl font-bold mb-2">
-                  Welcome back, {userName}! 👋
+                  Welcome back, <span className="gradient-text">{userName}</span>! 👋
                 </h2>
                 <p className="text-muted-foreground mb-6 max-w-lg">
                   {totalDue > 0 ? (
@@ -109,13 +118,13 @@ export default function Dashboard() {
                   )}
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="hero" asChild>
+                  <Button variant="hero" asChild className="shadow-glow-sm">
                     <Link to="/study">
                       Start Studying
                       <ArrowRight className="w-4 h-4" />
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild>
+                  <Button variant="glass" asChild>
                     <Link to="/materials">
                       <Upload className="w-4 h-4" />
                       Upload Material
@@ -133,22 +142,29 @@ export default function Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/10", path: "/materials" },
-            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/10", path: "/flashcards" },
-            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/10", path: "/progress" },
-            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "bg-primary/10", path: "/progress" },
-          ].map((stat) => (
-            <Link key={stat.label} to={stat.path}>
-              <Card variant="interactive" className="h-full hover:ring-2 hover:ring-primary/20 transition-all">
-                <CardContent className="p-4">
-                  <div className={`w-10 h-10 rounded-lg ${stat.bg} flex items-center justify-center mb-3`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`} />
-                  </div>
-                  <div className="font-display text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </CardContent>
-              </Card>
-            </Link>
+            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/materials" },
+            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "from-accent/15 to-accent/5", path: "/flashcards" },
+            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "from-success/15 to-success/5", path: "/progress" },
+            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/progress" },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            >
+              <Link to={stat.path}>
+                <Card variant="glass" className="h-full hover:shadow-card-hover hover:border-primary/20 transition-all duration-300">
+                  <CardContent className="p-5">
+                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-3`}>
+                      <stat.icon className={`w-5 h-5 ${stat.color}`} />
+                    </div>
+                    <div className="font-display text-2xl font-bold">{stat.value}</div>
+                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  </CardContent>
+                </Card>
+              </Link>
+            </motion.div>
           ))}
         </motion.div>
 
@@ -156,19 +172,30 @@ export default function Dashboard() {
         <motion.div variants={itemVariants}>
           <h3 className="font-display text-lg font-semibold mb-4">Quick Actions</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {quickActions.map((action) => {
+            {quickActions.map((action, index) => {
               const Icon = action.icon;
+              const colorMap: Record<string, string> = {
+                primary: "from-primary/15 to-primary/5 text-primary",
+                accent: "from-accent/15 to-accent/5 text-accent",
+                success: "from-success/15 to-success/5 text-success",
+              };
               return (
-                <Link
+                <motion.div
                   key={action.label}
-                  to={action.path}
-                  className="group glass-card-hover rounded-xl p-4 flex flex-col items-center text-center"
+                  whileHover={{ y: -4, scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <div className={`w-12 h-12 rounded-xl bg-${action.color}/10 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform`}>
-                    <Icon className={`w-6 h-6 text-${action.color}`} />
-                  </div>
-                  <span className="text-sm font-medium">{action.label}</span>
-                </Link>
+                  <Link
+                    to={action.path}
+                    className="group glass-card rounded-xl p-5 flex flex-col items-center text-center hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 block"
+                  >
+                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colorMap[action.color]} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    <span className="text-sm font-medium">{action.label}</span>
+                  </Link>
+                </motion.div>
               );
             })}
           </div>
@@ -178,7 +205,7 @@ export default function Dashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Recent Materials */}
           <motion.div variants={itemVariants} className="lg:col-span-2">
-            <Card variant="elevated">
+            <Card variant="glass">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Recent Materials</CardTitle>
@@ -191,42 +218,51 @@ export default function Dashboard() {
                   </Link>
                 </Button>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {recentMaterials.length > 0 ? (
                   recentMaterials.map((material) => (
-                    <Link
+                    <motion.div
                       key={material.id}
-                      to={`/materials/${material.id}`}
-                      className="block p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
+                      whileHover={{ x: 4 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div>
-                          <h4 className="font-medium mb-1">{material.title}</h4>
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              {formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}
-                            </span>
-                            {material.subject && (
-                              <Badge variant="secondary" className="text-xs">
-                                {material.subject}
-                              </Badge>
-                            )}
+                      <Link
+                        to={`/materials/${material.id}`}
+                        className="block p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 border border-transparent hover:border-primary/10 transition-all duration-300"
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h4 className="font-medium mb-1">{material.title}</h4>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                {formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}
+                              </span>
+                              {material.subject && (
+                                <Badge variant="secondary" className="text-xs">
+                                  {material.subject}
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <BookOpen className="w-4 h-4 text-primary" />
                           </div>
                         </div>
-                        <BookOpen className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      {material.file_type && (
-                        <p className="text-sm text-muted-foreground">
-                          {material.file_type.toUpperCase()} • {material.processing_status === 'completed' ? 'Ready' : material.processing_status}
-                        </p>
-                      )}
-                    </Link>
+                        {material.file_type && (
+                          <p className="text-sm text-muted-foreground">
+                            {material.file_type.toUpperCase()} • {material.processing_status === 'completed' ? 'Ready' : material.processing_status}
+                          </p>
+                        )}
+                      </Link>
+                    </motion.div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>No materials yet. Upload your first study material!</p>
-                    <Button variant="outline" size="sm" className="mt-3" asChild>
+                  <div className="text-center py-10 text-muted-foreground">
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-secondary/50 flex items-center justify-center">
+                      <FileText className="w-8 h-8 opacity-50" />
+                    </div>
+                    <p className="mb-3">No materials yet. Upload your first study material!</p>
+                    <Button variant="outline" size="sm" asChild>
                       <Link to="/materials">
                         <Upload className="w-4 h-4 mr-1" />
                         Upload Material
@@ -240,19 +276,20 @@ export default function Dashboard() {
 
           {/* Upcoming Reviews */}
           <motion.div variants={itemVariants}>
-            <Card variant="elevated">
+            <Card variant="glass">
               <CardHeader>
                 <CardTitle>Due for Review</CardTitle>
                 <CardDescription>Spaced repetition schedule</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-3">
                 {upcomingReviews.length > 0 ? (
                   upcomingReviews.map((review) => (
-                    <div
+                    <motion.div
                       key={review.id}
-                      className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
+                      whileHover={{ x: 4 }}
+                      className="flex items-center gap-4 p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-all duration-300"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
                         <Layers className="w-5 h-5 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -261,20 +298,20 @@ export default function Dashboard() {
                           {review.cards} cards · {review.due}
                         </p>
                       </div>
-                      <Button variant="ghost" size="icon-sm" asChild>
+                      <Button variant="ghost" size="icon-sm" asChild className="hover:bg-primary/10">
                         <Link to={`/study/${review.id}`}>
                           <ArrowRight className="w-4 h-4" />
                         </Link>
                       </Button>
-                    </div>
+                    </motion.div>
                   ))
                 ) : (
-                  <div className="text-center py-4 text-muted-foreground">
+                  <div className="text-center py-6 text-muted-foreground">
                     <p className="text-sm">No decks yet</p>
                   </div>
                 )}
 
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full mt-2" asChild>
                   <Link to="/study">
                     Start Review Session
                   </Link>
@@ -286,11 +323,13 @@ export default function Dashboard() {
 
         {/* Study Progress */}
         <motion.div variants={itemVariants}>
-          <Card variant="elevated">
+          <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="flex items-center gap-2">
-                  <TrendingUp className="w-5 h-5 text-success" />
+                  <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 text-success" />
+                  </div>
                   Weekly Progress
                 </CardTitle>
                 <CardDescription>Your study activity this week</CardDescription>
@@ -303,24 +342,26 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-            <div className="grid grid-cols-7 gap-2">
+              <div className="grid grid-cols-7 gap-2">
                 {(stats?.weekData || []).map((data, i) => {
                   const maxMinutes = Math.max(...(stats?.weekData || []).map(d => d.minutes), 1);
                   const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
                   const isToday = i === (stats?.weekData?.length || 0) - 1;
                   return (
                     <div key={data.day} className="flex flex-col items-center gap-2">
-                      <div className="w-full h-24 bg-secondary rounded-lg relative overflow-hidden">
+                      <div className="w-full h-24 bg-secondary/40 rounded-xl relative overflow-hidden backdrop-blur-sm">
                         <motion.div
                           initial={{ height: 0 }}
                           animate={{ height: `${height}%` }}
-                          transition={{ delay: i * 0.05, duration: 0.5 }}
-                          className={`absolute bottom-0 left-0 right-0 rounded-lg ${
-                            isToday ? "bg-primary" : "bg-primary/40"
+                          transition={{ delay: i * 0.05, duration: 0.5, ease: "easeOut" }}
+                          className={`absolute bottom-0 left-0 right-0 rounded-xl ${
+                            isToday 
+                              ? "bg-gradient-to-t from-primary to-primary/60" 
+                              : "bg-gradient-to-t from-primary/40 to-primary/20"
                           }`}
                         />
                       </div>
-                      <span className={`text-xs ${isToday ? "font-semibold text-primary" : "text-muted-foreground"}`}>
+                      <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
                         {data.day}
                       </span>
                     </div>

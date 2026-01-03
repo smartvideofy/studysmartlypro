@@ -9,12 +9,12 @@ const cardVariants = cva(
       variant: {
         default: "bg-card border-border shadow-soft",
         elevated: "bg-card border-border shadow-medium hover:shadow-large",
-        glass: "bg-card/80 backdrop-blur-2xl border-border/50 shadow-medium",
-        interactive: "bg-card border-border shadow-soft hover:shadow-card-hover hover:border-primary/20 hover:-translate-y-0.5 cursor-pointer",
+        glass: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-[var(--glass-shine)] before:pointer-events-none before:rounded-[inherit]",
+        interactive: "bg-[hsl(var(--glass-bg))] backdrop-blur-xl border-[hsl(var(--glass-border))] shadow-soft hover:shadow-card-hover hover:border-primary/25 hover:-translate-y-1 cursor-pointer",
         feature: "bg-card border-border shadow-soft overflow-hidden relative",
-        gradient: "bg-gradient-to-br from-card via-card to-secondary/30 border-border shadow-medium",
-        premium: "bg-card border-border/60 shadow-medium hover:shadow-large hover:border-primary/25 relative overflow-hidden",
-        spotlight: "bg-card border-border shadow-medium relative before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/5 before:via-transparent before:to-accent/5 before:pointer-events-none",
+        gradient: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-mesh before:pointer-events-none",
+        premium: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass hover:shadow-card-hover hover:border-primary/30 relative overflow-hidden before:absolute before:inset-0 before:bg-[var(--glass-shine)] before:pointer-events-none",
+        spotlight: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/8 before:via-transparent before:to-accent/6 before:pointer-events-none",
       },
     },
     defaultVariants: {

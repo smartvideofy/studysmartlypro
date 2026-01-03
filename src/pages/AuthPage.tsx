@@ -148,21 +148,29 @@ export default function AuthPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="min-h-screen bg-background bg-gradient-mesh flex items-center justify-center">
         <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-gradient-mesh">
       {/* Left Panel - Branding & Features */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary to-[hsl(280,60%,50%)]">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary to-[hsl(290,75%,55%)]">
         {/* Decorative elements */}
         <div className="absolute inset-0">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-60" />
-          <div className="absolute top-20 -left-20 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 -right-20 w-96 h-96 bg-accent/20 rounded-full blur-3xl" />
+          <motion.div 
+            className="absolute top-20 -left-20 w-80 h-80 bg-white/15 rounded-full blur-3xl"
+            animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+          />
+          <motion.div 
+            className="absolute bottom-20 -right-20 w-96 h-96 bg-accent/25 rounded-full blur-3xl"
+            animate={{ x: [0, -20, 0], y: [0, 20, 0] }}
+            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+          />
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl" />
         </div>
         
@@ -203,9 +211,12 @@ export default function AuthPage() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.2 + i * 0.1 }}
-                  className="p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/15 transition-colors"
+                  whileHover={{ scale: 1.03, y: -2 }}
+                  className="p-5 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 hover:bg-white/15 transition-all duration-300 cursor-default shadow-lg"
                 >
-                  <feature.icon className="w-6 h-6 mb-3 text-accent" />
+                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
+                    <feature.icon className="w-5 h-5 text-accent" />
+                  </div>
                   <h3 className="font-semibold mb-1">{feature.label}</h3>
                   <p className="text-sm text-white/70">{feature.description}</p>
                 </motion.div>
@@ -233,18 +244,27 @@ export default function AuthPage() {
       </div>
 
       {/* Right Panel - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background">
+      <div className="flex-1 flex items-center justify-center p-6 bg-background/50 backdrop-blur-xl relative">
+        {/* Background orbs */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="orb orb-primary w-64 h-64 -top-32 -right-32 opacity-40" />
+          <div className="orb orb-success w-48 h-48 bottom-20 -left-24 opacity-30" />
+        </div>
+
         <motion.div
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-[420px]"
+          className="w-full max-w-[440px] relative z-10"
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
+            <motion.div 
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-glow-sm"
+            >
               <BookOpen className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <span className="font-display text-2xl font-bold">Studily</span>
+            </motion.div>
+            <span className="font-display text-2xl font-bold gradient-text">Studily</span>
           </div>
 
           {/* Form Header */}
@@ -275,9 +295,9 @@ export default function AuthPage() {
             <div className="mb-6">
               <Button
                 type="button"
-                variant="outline"
+                variant="glass"
                 size="lg"
-                className="w-full h-12 text-base font-medium border-2 hover:bg-muted/50"
+                className="w-full h-12 text-base font-medium hover:shadow-md"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
               >
@@ -292,10 +312,10 @@ export default function AuthPage() {
               
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border" />
+                  <div className="w-full border-t border-border/50" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-4 text-muted-foreground font-medium">or</span>
+                  <span className="bg-background/80 backdrop-blur-sm px-4 text-muted-foreground font-medium rounded-full">or</span>
                 </div>
               </div>
             </div>

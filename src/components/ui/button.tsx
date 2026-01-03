@@ -5,34 +5,34 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-soft hover:shadow-medium hover:bg-primary-hover active:scale-[0.98]",
+          "bg-primary text-primary-foreground shadow-soft hover:shadow-medium hover:bg-primary-hover active:scale-[0.97]",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-soft hover:shadow-medium hover:brightness-110 active:scale-[0.98]",
+          "bg-destructive text-destructive-foreground shadow-soft hover:shadow-medium hover:brightness-110 active:scale-[0.97]",
         outline:
-          "border border-border bg-background hover:bg-secondary hover:border-primary/30 active:scale-[0.98]",
+          "border border-border bg-background/50 backdrop-blur-sm hover:bg-secondary/80 hover:border-primary/30 active:scale-[0.97]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.98]",
+          "bg-secondary text-secondary-foreground hover:bg-secondary/80 active:scale-[0.97]",
         ghost: 
-          "hover:bg-secondary hover:text-secondary-foreground",
+          "hover:bg-secondary/70 hover:text-secondary-foreground backdrop-blur-sm",
         link: 
           "text-primary underline-offset-4 hover:underline",
         hero:
-          "bg-primary text-primary-foreground shadow-glow-sm hover:shadow-glow hover:bg-primary-hover active:scale-[0.98] font-semibold",
+          "bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-glow-sm hover:shadow-glow hover:brightness-110 active:scale-[0.97] font-semibold",
         accent:
-          "bg-accent text-accent-foreground shadow-soft hover:shadow-accent-glow hover:brightness-105 active:scale-[0.98]",
+          "bg-gradient-to-r from-accent to-accent/90 text-accent-foreground shadow-soft hover:shadow-glow-accent hover:brightness-105 active:scale-[0.97]",
         success:
-          "bg-success text-success-foreground shadow-soft hover:shadow-medium hover:brightness-105 active:scale-[0.98]",
+          "bg-gradient-to-r from-success to-success/90 text-success-foreground shadow-soft hover:shadow-medium hover:brightness-105 active:scale-[0.97]",
         glass:
-          "bg-card/70 backdrop-blur-xl border border-border/60 text-foreground hover:bg-card/85 hover:border-primary/25 active:scale-[0.98] shadow-soft",
+          "bg-[hsl(var(--glass-bg))] backdrop-blur-xl border border-[hsl(var(--glass-border))] text-foreground hover:bg-[hsl(0_0%_100%/0.8)] hover:border-primary/30 active:scale-[0.97] shadow-glass",
         premium:
-          "relative overflow-hidden bg-primary text-primary-foreground shadow-glow font-semibold before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 hover:shadow-lg active:scale-[0.98]",
+          "relative overflow-hidden bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-glow font-semibold before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 hover:shadow-lg active:scale-[0.97]",
         "outline-primary":
-          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground active:scale-[0.98]",
+          "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground active:scale-[0.97]",
       },
       size: {
         default: "h-10 px-5 py-2",
