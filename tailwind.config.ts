@@ -81,6 +81,7 @@ export default {
         xl: "calc(var(--radius) + 4px)",
         "2xl": "calc(var(--radius) + 8px)",
         "3xl": "calc(var(--radius) + 16px)",
+        "4xl": "calc(var(--radius) + 24px)",
       },
       boxShadow: {
         'xs': 'var(--shadow-xs)',
@@ -90,8 +91,10 @@ export default {
         'xl': 'var(--shadow-xl)',
         'glow': 'var(--shadow-glow)',
         'glow-sm': 'var(--shadow-glow-sm)',
-        'accent-glow': 'var(--shadow-accent-glow)',
+        'glow-accent': 'var(--shadow-glow-accent)',
+        'glass': 'var(--shadow-glass)',
         'card-hover': 'var(--shadow-card-hover)',
+        'elevated': 'var(--shadow-elevated)',
       },
       keyframes: {
         "accordion-down": {
