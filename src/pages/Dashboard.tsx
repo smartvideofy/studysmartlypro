@@ -12,7 +12,6 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  Loader2,
   Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,6 +24,15 @@ import { useStudyMaterials } from "@/hooks/useStudyMaterials";
 import { useDecks, useDueCards } from "@/hooks/useFlashcards";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { formatDistanceToNow } from "date-fns";
+import { 
+  Skeleton,
+  SkeletonStatCard, 
+  SkeletonQuickAction, 
+  SkeletonMaterialItem, 
+  SkeletonReviewItem, 
+  SkeletonWelcome,
+  SkeletonProgressChart
+} from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -45,6 +53,79 @@ const quickActions = [
   { icon: Brain, label: "Study Session", path: "/study", color: "success" },
   { icon: Sparkles, label: "AI Summary", path: "/materials", color: "primary" },
 ];
+
+function DashboardSkeleton() {
+  return (
+    <DashboardLayout title="Dashboard">
+      <div className="space-y-8 animate-in fade-in duration-300">
+        {/* Welcome Skeleton */}
+        <SkeletonWelcome />
+
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonStatCard key={i} />
+          ))}
+        </div>
+
+        {/* Quick Actions Skeleton */}
+        <div>
+          <Skeleton className="h-6 w-32 mb-4" />
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonQuickAction key={i} />
+            ))}
+          </div>
+        </div>
+
+        {/* Main Content Skeleton */}
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 rounded-xl border border-border/40 bg-card/50 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-48" />
+              </div>
+              <Skeleton className="h-9 w-20 rounded-lg" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonMaterialItem key={i} />
+              ))}
+            </div>
+          </div>
+          <div className="rounded-xl border border-border/40 bg-card/50 p-6">
+            <div className="space-y-2 mb-4">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-44" />
+            </div>
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonReviewItem key={i} />
+              ))}
+            </div>
+            <Skeleton className="h-10 w-full rounded-lg mt-4" />
+          </div>
+        </div>
+
+        {/* Progress Skeleton */}
+        <div className="rounded-xl border border-border/40 bg-card/50 p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-8 h-8 rounded-lg" />
+                <Skeleton className="h-5 w-36" />
+              </div>
+              <Skeleton className="h-4 w-48" />
+            </div>
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+          <SkeletonProgressChart />
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
 
 export default function Dashboard() {
   const { data: profile, isLoading: profileLoading } = useProfile();
@@ -71,13 +152,7 @@ export default function Dashboard() {
   const streakDays = stats?.streak || 0;
 
   if (isLoading) {
-    return (
-      <DashboardLayout title="Dashboard">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
