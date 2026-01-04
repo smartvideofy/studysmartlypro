@@ -20,6 +20,7 @@ import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
 import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { useStudyMaterials, useDeleteStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
 import { useFolders } from "@/hooks/useNotes";
+import { SkeletonMaterialCard } from "@/components/ui/skeleton";
 
 export default function StudyMaterialsPage() {
   const navigate = useNavigate();
@@ -162,10 +163,7 @@ export default function StudyMaterialsPage() {
               }
             >
               {[...Array(8)].map((_, i) => (
-                <div 
-                  key={i}
-                  className="h-48 rounded-xl bg-secondary/50 animate-pulse"
-                />
+                <SkeletonMaterialCard key={i} viewMode={viewMode} />
               ))}
             </motion.div>
           ) : filteredMaterials.length === 0 ? (
