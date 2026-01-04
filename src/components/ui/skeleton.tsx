@@ -205,6 +205,57 @@ function SkeletonMaterialCard({ className, viewMode = "grid", ...props }: React.
   );
 }
 
+function SkeletonDeckCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-2xl border border-border/40 bg-card/50 overflow-hidden",
+        className
+      )}
+      {...props}
+    >
+      {/* Top gradient bar */}
+      <Skeleton className="h-1 w-full rounded-none" />
+      <div className="p-5 space-y-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-center gap-3">
+            <Skeleton className="w-12 h-12 rounded-xl" />
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+          <Skeleton className="w-8 h-8 rounded-lg" />
+        </div>
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+        <div className="flex items-center gap-3 pt-2">
+          <Skeleton className="h-9 flex-1 rounded-lg" />
+          <Skeleton className="h-9 flex-1 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonFlashcardStat({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-4 flex items-center gap-3",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="w-10 h-10 rounded-xl" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-12" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+    </div>
+  );
+}
+
 export { 
   Skeleton, 
   SkeletonCard, 
@@ -214,5 +265,7 @@ export {
   SkeletonReviewItem,
   SkeletonWelcome,
   SkeletonProgressChart,
-  SkeletonMaterialCard
+  SkeletonMaterialCard,
+  SkeletonDeckCard,
+  SkeletonFlashcardStat
 };

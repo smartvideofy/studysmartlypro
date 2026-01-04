@@ -10,8 +10,7 @@ import {
   Sparkles,
   Brain,
   Target,
-  CheckCircle2,
-  Loader2
+  CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -23,6 +22,7 @@ import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
 import { FlashcardDeckCard } from "@/components/flashcards/FlashcardDeckCard";
 import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
+import { Skeleton, SkeletonDeckCard, SkeletonFlashcardStat } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -36,6 +36,37 @@ const itemVariants = {
   hidden: { opacity: 0, y: 20 },
   visible: { opacity: 1, y: 0 },
 };
+
+function FlashcardsSkeleton() {
+  return (
+    <DashboardLayout title="Flashcards">
+      <div className="space-y-6 animate-in fade-in duration-300">
+        {/* Stats Skeleton */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonFlashcardStat key={i} />
+          ))}
+        </div>
+
+        {/* Search & Actions Skeleton */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-9 w-28 rounded-lg" />
+            <Skeleton className="h-9 w-24 rounded-lg" />
+          </div>
+        </div>
+
+        {/* Decks Grid Skeleton */}
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <SkeletonDeckCard key={i} />
+          ))}
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
 
 export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -76,13 +107,7 @@ export default function FlashcardsPage() {
   };
 
   if (isLoading) {
-    return (
-      <DashboardLayout title="Flashcards">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </DashboardLayout>
-    );
+    return <FlashcardsSkeleton />;
   }
 
   return (
