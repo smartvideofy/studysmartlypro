@@ -23,6 +23,8 @@ import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonGroupCard } from "@/components/ui/skeleton";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -42,11 +44,18 @@ export default function GroupsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   
-  const { data: myGroups, isLoading: groupsLoading } = useGroups();
-  const { data: publicGroups, isLoading: publicLoading } = usePublicGroups();
+  const queryClient = useQueryClient();
+  const { data: myGroups, isLoading: groupsLoading, isError: groupsError } = useGroups();
+  const { data: publicGroups, isLoading: publicLoading, isError: publicError } = usePublicGroups();
   const joinGroup = useJoinGroup();
 
   const isLoading = groupsLoading || publicLoading;
+  const hasError = groupsError || publicError;
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['groups'] });
+    queryClient.invalidateQueries({ queryKey: ['public-groups'] });
+  };
 
   // Filter groups based on search
   const filteredMyGroups = myGroups?.filter(g => 
@@ -104,6 +113,18 @@ export default function GroupsPage() {
             </CardContent>
           </Card>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <DashboardLayout title="Study Groups">
+        <ErrorRecovery
+          title="Failed to load groups"
+          message="We couldn't load your study groups. Please check your connection and try again."
+          onRetry={handleRetry}
+        />
       </DashboardLayout>
     );
   }

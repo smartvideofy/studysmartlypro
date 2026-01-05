@@ -19,6 +19,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { useDecks } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -62,10 +64,17 @@ const getAchievements = (stats: any, deckCount: number) => [
 ];
 
 export default function ProgressPage() {
-  const { data: stats, isLoading: statsLoading } = useStudyStats();
-  const { data: decks, isLoading: decksLoading } = useDecks();
+  const queryClient = useQueryClient();
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useStudyStats();
+  const { data: decks, isLoading: decksLoading, isError: decksError } = useDecks();
 
   const isLoading = statsLoading || decksLoading;
+  const hasError = statsError || decksError;
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['study-stats'] });
+    queryClient.invalidateQueries({ queryKey: ['decks'] });
+  };
 
   // Calculate subject/deck progress
   const deckProgress = decks?.map((deck, i) => {
@@ -151,6 +160,18 @@ export default function ProgressPage() {
             </CardContent>
           </Card>
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <DashboardLayout title="Progress">
+        <ErrorRecovery
+          title="Failed to load progress"
+          message="We couldn't load your progress data. Please check your connection and try again."
+          onRetry={handleRetry}
+        />
       </DashboardLayout>
     );
   }

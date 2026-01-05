@@ -21,6 +21,8 @@ import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { useStudyMaterials, useDeleteStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
 import { useFolders } from "@/hooks/useNotes";
 import { SkeletonMaterialCard } from "@/components/ui/skeleton";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function StudyMaterialsPage() {
   const navigate = useNavigate();
@@ -32,9 +34,15 @@ export default function StudyMaterialsPage() {
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<StudyMaterial | null>(null);
 
-  const { data: materials, isLoading } = useStudyMaterials(selectedFolderId);
+  const queryClient = useQueryClient();
+  const { data: materials, isLoading, isError } = useStudyMaterials(selectedFolderId);
   const { data: folders } = useFolders();
   const deleteMaterial = useDeleteStudyMaterial();
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+    queryClient.invalidateQueries({ queryKey: ['folders'] });
+  };
 
   const filteredMaterials = materials?.filter((m) =>
     m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -165,6 +173,19 @@ export default function StudyMaterialsPage() {
               {[...Array(8)].map((_, i) => (
                 <SkeletonMaterialCard key={i} viewMode={viewMode} />
               ))}
+            </motion.div>
+          ) : isError ? (
+            <motion.div
+              key="error"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <ErrorRecovery
+                title="Failed to load materials"
+                message="We couldn't load your study materials. Please check your connection and try again."
+                onRetry={handleRetry}
+              />
             </motion.div>
           ) : filteredMaterials.length === 0 ? (
             <motion.div

@@ -39,6 +39,8 @@ import { cn } from "@/lib/utils";
 import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType, Note } from "@/hooks/useNotes";
 import { useAISummarize, useAIGenerateFlashcardsAdvanced } from "@/hooks/useAINotes";
 import { formatDistanceToNow } from "date-fns";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -64,14 +66,21 @@ export default function NotesPage() {
   const [flashcardsNote, setFlashcardsNote] = useState<Note | null>(null);
   const [importDocumentOpen, setImportDocumentOpen] = useState(false);
   
-  const { data: notes, isLoading: notesLoading } = useNotes();
-  const { data: folders, isLoading: foldersLoading } = useFolders();
+  const queryClient = useQueryClient();
+  const { data: notes, isLoading: notesLoading, isError: notesError } = useNotes();
+  const { data: folders, isLoading: foldersLoading, isError: foldersError } = useFolders();
   const deleteNote = useDeleteNote();
   const deleteFolder = useDeleteFolder();
   const { summarize, isLoading: summaryLoading, summary } = useAISummarize();
   const { generateFlashcards, isLoading: flashcardsLoading, flashcards } = useAIGenerateFlashcardsAdvanced();
 
   const isLoading = notesLoading || foldersLoading;
+  const hasError = notesError || foldersError;
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['notes'] });
+    queryClient.invalidateQueries({ queryKey: ['folders'] });
+  };
 
   // Filter notes based on search query
   const filteredNotes = notes?.filter(note => 
@@ -124,6 +133,18 @@ export default function NotesPage() {
         <div className="flex items-center justify-center min-h-[50vh]">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (hasError) {
+    return (
+      <DashboardLayout title="Notes">
+        <ErrorRecovery
+          title="Failed to load notes"
+          message="We couldn't load your notes. Please check your connection and try again."
+          onRetry={handleRetry}
+        />
       </DashboardLayout>
     );
   }
