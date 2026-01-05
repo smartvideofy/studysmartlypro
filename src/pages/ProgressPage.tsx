@@ -10,7 +10,6 @@ import {
   BarChart3,
   CheckCircle2,
   Layers,
-  Loader2,
   Play
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -19,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { useDecks } from "@/hooks/useFlashcards";
+import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -97,8 +97,59 @@ export default function ProgressPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Progress">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Stats Skeleton */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <SkeletonProgressStat key={i} />
+            ))}
+          </div>
+
+          {/* Charts Grid Skeleton */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            <Card variant="elevated">
+              <CardHeader>
+                <Skeleton className="h-6 w-36" />
+                <Skeleton className="h-4 w-48 mt-1" />
+              </CardHeader>
+              <CardContent>
+                <SkeletonProgressChart />
+              </CardContent>
+            </Card>
+
+            <Card variant="elevated">
+              <CardHeader>
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-28 mt-1" />
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="space-y-2">
+                    <div className="flex justify-between">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                    <Skeleton className="h-2 w-full rounded-full" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Achievements Skeleton */}
+          <Card variant="elevated">
+            <CardHeader>
+              <Skeleton className="h-6 w-32" />
+              <Skeleton className="h-4 w-44 mt-1" />
+            </CardHeader>
+            <CardContent>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <SkeletonAchievement key={i} />
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );

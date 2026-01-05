@@ -129,6 +129,10 @@ export function useCreateStudyMaterial() {
 
   return useMutation({
     mutationFn: async (material: Omit<Partial<StudyMaterial>, 'id' | 'user_id' | 'created_at' | 'updated_at'> & { title: string }) => {
+      if (!user?.id) {
+        throw new Error('You must be logged in to create study materials');
+      }
+      
       const { data, error } = await supabase
         .from('study_materials')
         .insert({
@@ -146,7 +150,7 @@ export function useCreateStudyMaterial() {
           generate_questions: material.generate_questions ?? true,
           generate_concept_map: material.generate_concept_map ?? false,
           processing_status: 'pending',
-          user_id: user?.id!,
+          user_id: user.id,
         })
         .select()
         .single();

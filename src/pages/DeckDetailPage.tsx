@@ -10,7 +10,6 @@ import {
   Trash2,
   Play,
   Layers,
-  Loader2,
   CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -31,6 +30,7 @@ import { FlashcardEditorModal } from "@/components/flashcards/FlashcardEditorMod
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { useDeck, useFlashcards, useDeleteDeck, useDeleteFlashcard, Flashcard } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
+import { Skeleton, SkeletonFlashcardRow } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -91,8 +91,36 @@ export default function DeckDetailPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Loading...">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Breadcrumb Skeleton */}
+          <Skeleton className="h-5 w-48" />
+          
+          {/* Header Skeleton */}
+          <div className="flex items-start justify-between gap-4">
+            <div className="space-y-3">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-4 w-72" />
+              <Skeleton className="h-3 w-40" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-10 w-24 rounded-lg" />
+              <Skeleton className="h-10 w-10 rounded-lg" />
+            </div>
+          </div>
+
+          {/* Search & Add Skeleton */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+            <Skeleton className="h-9 w-28 rounded-lg" />
+          </div>
+
+          {/* Cards List Skeleton */}
+          <div className="space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <SkeletonFlashcardRow key={i} />
+            ))}
+          </div>
         </div>
       </DashboardLayout>
     );

@@ -22,6 +22,7 @@ import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
+import { Skeleton, SkeletonGroupCard } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -66,8 +67,42 @@ export default function GroupsPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Study Groups">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Search & Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+            <Skeleton className="h-9 w-32 rounded-lg" />
+          </div>
+
+          {/* My Groups Skeleton */}
+          <div>
+            <Skeleton className="h-6 w-28 mb-4" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <SkeletonGroupCard key={i} />
+              ))}
+            </div>
+          </div>
+
+          {/* Discover Groups Skeleton */}
+          <Card variant="elevated">
+            <CardHeader>
+              <Skeleton className="h-6 w-48" />
+              <Skeleton className="h-4 w-40 mt-1" />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {Array.from({ length: 2 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
+                  <Skeleton className="w-12 h-12 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-48" />
+                  </div>
+                  <Skeleton className="h-9 w-20 rounded-lg" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     );

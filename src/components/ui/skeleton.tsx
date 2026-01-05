@@ -256,6 +256,107 @@ function SkeletonFlashcardStat({ className, ...props }: React.HTMLAttributes<HTM
   );
 }
 
+function SkeletonGroupCard({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-5 space-y-4",
+        className
+      )}
+      {...props}
+    >
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-5 w-16 rounded-full" />
+        <Skeleton className="h-5 w-14 rounded-full" />
+      </div>
+      <Skeleton className="h-5 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <div className="flex items-center justify-between pt-2">
+        <Skeleton className="h-3 w-24" />
+        <Skeleton className="h-9 w-20 rounded-lg" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonProgressStat({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-4 flex items-center gap-3",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="w-10 h-10 rounded-lg" />
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-12" />
+        <Skeleton className="h-3 w-24" />
+      </div>
+    </div>
+  );
+}
+
+function SkeletonAchievement({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-4 space-y-3",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="w-12 h-12 rounded-xl" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-3 w-full" />
+    </div>
+  );
+}
+
+function SkeletonHelpCategory({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-4 flex items-center gap-4",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="w-12 h-12 rounded-xl" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-3 w-40" />
+      </div>
+      <Skeleton className="h-4 w-16" />
+    </div>
+  );
+}
+
+function SkeletonFlashcardRow({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn(
+        "rounded-xl border border-border/40 bg-card/50 p-4 flex items-start gap-4",
+        className
+      )}
+      {...props}
+    >
+      <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+      <div className="flex-1 grid md:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-12" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-3 w-12" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      </div>
+      <Skeleton className="w-8 h-8 rounded-lg flex-shrink-0" />
+    </div>
+  );
+}
+
 export { 
   Skeleton, 
   SkeletonCard, 
@@ -267,5 +368,10 @@ export {
   SkeletonProgressChart,
   SkeletonMaterialCard,
   SkeletonDeckCard,
-  SkeletonFlashcardStat
+  SkeletonFlashcardStat,
+  SkeletonGroupCard,
+  SkeletonProgressStat,
+  SkeletonAchievement,
+  SkeletonHelpCategory,
+  SkeletonFlashcardRow
 };

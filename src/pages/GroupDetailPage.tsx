@@ -74,9 +74,46 @@ export default function GroupDetailPage() {
   if (groupLoading) {
     return (
       <DashboardLayout title="Group">
-        <div className="space-y-4">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-64 w-full" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Breadcrumb Skeleton */}
+          <Skeleton className="h-5 w-40" />
+          
+          {/* Header Skeleton */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-72" />
+            </div>
+            <Skeleton className="h-9 w-24 rounded-lg" />
+          </div>
+
+          {/* Tabs Skeleton */}
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24 rounded-lg" />
+              <Skeleton className="h-10 w-32 rounded-lg" />
+              <Skeleton className="h-10 w-28 rounded-lg" />
+            </div>
+            
+            {/* Chat Content Skeleton */}
+            <div className="border border-border rounded-xl bg-card overflow-hidden">
+              <div className="h-[400px] p-4 space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div 
+                    key={i} 
+                    className={`flex flex-col max-w-[75%] ${i % 2 === 0 ? '' : 'ml-auto items-end'}`}
+                  >
+                    <Skeleton className={`h-12 ${i % 2 === 0 ? 'w-64' : 'w-48'} rounded-xl`} />
+                    <Skeleton className="h-3 w-20 mt-1" />
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-border p-3 flex gap-2">
+                <Skeleton className="flex-1 h-10 rounded-lg" />
+                <Skeleton className="h-10 w-10 rounded-lg" />
+              </div>
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );
