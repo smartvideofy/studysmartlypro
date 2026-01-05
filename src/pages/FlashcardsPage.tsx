@@ -23,6 +23,8 @@ import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
 import { FlashcardDeckCard } from "@/components/flashcards/FlashcardDeckCard";
 import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonDeckCard, SkeletonFlashcardStat } from "@/components/ui/skeleton";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -76,11 +78,18 @@ export default function FlashcardsPage() {
   const [deletingDeck, setDeletingDeck] = useState<FlashcardDeck | null>(null);
   
   const navigate = useNavigate();
-  const { data: decks, isLoading: decksLoading } = useDecks();
-  const { data: dueCards } = useDueCards();
+  const queryClient = useQueryClient();
+  const { data: decks, isLoading: decksLoading, isError: decksError } = useDecks();
+  const { data: dueCards, isError: dueCardsError } = useDueCards();
   const deleteDeck = useDeleteDeck();
 
   const isLoading = decksLoading;
+  const hasError = decksError || dueCardsError;
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['decks'] });
+    queryClient.invalidateQueries({ queryKey: ['due-cards'] });
+  };
 
   // Filter decks based on search
   const filteredDecks = decks?.filter(deck => 
@@ -108,6 +117,18 @@ export default function FlashcardsPage() {
 
   if (isLoading) {
     return <FlashcardsSkeleton />;
+  }
+
+  if (hasError) {
+    return (
+      <DashboardLayout title="Flashcards">
+        <ErrorRecovery
+          title="Failed to load flashcards"
+          message="We couldn't load your flashcard decks. Please check your connection and try again."
+          onRetry={handleRetry}
+        />
+      </DashboardLayout>
+    );
   }
 
   return (

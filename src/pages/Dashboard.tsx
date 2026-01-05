@@ -33,6 +33,8 @@ import {
   SkeletonWelcome,
   SkeletonProgressChart
 } from "@/components/ui/skeleton";
+import { ErrorRecovery } from "@/components/ui/error-recovery";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -128,13 +130,22 @@ function DashboardSkeleton() {
 }
 
 export default function Dashboard() {
-  const { data: profile, isLoading: profileLoading } = useProfile();
-  const { data: materials, isLoading: materialsLoading } = useStudyMaterials();
-  const { data: decks, isLoading: decksLoading } = useDecks();
+  const queryClient = useQueryClient();
+  const { data: profile, isLoading: profileLoading, isError: profileError } = useProfile();
+  const { data: materials, isLoading: materialsLoading, isError: materialsError } = useStudyMaterials();
+  const { data: decks, isLoading: decksLoading, isError: decksError } = useDecks();
   const { data: dueCards } = useDueCards();
-  const { data: stats, isLoading: statsLoading } = useStudyStats();
+  const { data: stats, isLoading: statsLoading, isError: statsError } = useStudyStats();
 
   const isLoading = profileLoading || materialsLoading || decksLoading || statsLoading;
+  const hasError = profileError || materialsError || decksError || statsError;
+
+  const handleRetry = () => {
+    queryClient.invalidateQueries({ queryKey: ['profile'] });
+    queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+    queryClient.invalidateQueries({ queryKey: ['decks'] });
+    queryClient.invalidateQueries({ queryKey: ['study-stats'] });
+  };
 
   const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
   const totalDue = dueCards?.length || 0;
@@ -153,6 +164,18 @@ export default function Dashboard() {
 
   if (isLoading) {
     return <DashboardSkeleton />;
+  }
+
+  if (hasError) {
+    return (
+      <DashboardLayout title="Dashboard">
+        <ErrorRecovery
+          title="Failed to load dashboard"
+          message="We couldn't load your dashboard data. Please check your connection and try again."
+          onRetry={handleRetry}
+        />
+      </DashboardLayout>
+    );
   }
 
   return (
