@@ -62,7 +62,15 @@ serve(async (req) => {
       });
     }
 
-    const body = req.method === 'POST' ? await req.json() : {};
+    let body: any = {};
+    if (req.method === 'POST') {
+      try {
+        const text = await req.text();
+        body = text ? JSON.parse(text) : {};
+      } catch {
+        body = {};
+      }
+    }
 
     switch (path) {
       case 'initialize':
