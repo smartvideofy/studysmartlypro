@@ -1,17 +1,16 @@
 project_id = "ngcmmvyebvekyutbixee"
 
 [functions.ai-notes]
-# JWT verification enabled - function also validates internally for custom error handling
 verify_jwt = true
 
 [functions.process-material]
-# JWT verification - requires authenticated user
 verify_jwt = true
 
 [functions.material-chat]
-# JWT verification - requires authenticated user  
 verify_jwt = true
 
 [functions.regenerate-content]
-# JWT verification - requires authenticated user
 verify_jwt = true
+
+[functions.paystack]
+verify_jwt = false
