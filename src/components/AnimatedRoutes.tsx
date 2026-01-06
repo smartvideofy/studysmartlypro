@@ -16,6 +16,7 @@ import GroupDetailPage from "@/pages/GroupDetailPage";
 import ProgressPage from "@/pages/ProgressPage";
 import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
+import PricingPage from "@/pages/PricingPage";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
@@ -136,6 +137,13 @@ export const AnimatedRoutes = () => {
           <ProtectedRoute>
             <PageTransition>
               <HelpPage />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/pricing" element={
+          <ProtectedRoute>
+            <PageTransition>
+              <PricingPage />
             </PageTransition>
           </ProtectedRoute>
         } />

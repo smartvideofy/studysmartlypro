@@ -13,7 +13,8 @@ import {
   HelpCircle,
   ChevronRight,
   Search,
-  Upload
+  Upload,
+  CreditCard
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,6 +33,7 @@ const navItems = [
 ];
 
 const bottomNavItems = [
+  { icon: CreditCard, label: "Pricing", path: "/pricing" },
   { icon: Settings, label: "Settings", path: "/settings" },
   { icon: HelpCircle, label: "Help", path: "/help" },
 ];
