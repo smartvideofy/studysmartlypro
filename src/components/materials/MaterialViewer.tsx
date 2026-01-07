@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { 
   FileText, 
@@ -25,7 +25,7 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
   const [fileUrl, setFileUrl] = useState<string | null>(null);
 
   // Get signed URL for the file
-  useState(() => {
+  useEffect(() => {
     if (material.file_path) {
       supabase.storage
         .from("study-materials")
@@ -36,7 +36,7 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
           }
         });
     }
-  });
+  }, [material.file_path]);
 
   const getFileIcon = () => {
     switch (material.file_type) {
