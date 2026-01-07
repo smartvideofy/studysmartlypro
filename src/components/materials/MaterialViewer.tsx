@@ -1,14 +1,11 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { 
   FileText, 
   Image, 
   Music, 
   File,
   ZoomIn,
-  ZoomOut,
-  ChevronLeft,
-  ChevronRight
+  ZoomOut
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -152,28 +149,6 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
             <ZoomIn className="w-4 h-4" />
           </Button>
         </div>
-
-        {material.file_type === "pdf" && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
-            <span className="text-sm text-muted-foreground">Page {currentPage}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => setCurrentPage(currentPage + 1)}
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
-        )}
 
         <div className="text-xs text-muted-foreground">
           {material.file_type?.toUpperCase()}

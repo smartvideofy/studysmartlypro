@@ -8,12 +8,25 @@ import {
   List, 
   Search, 
   Filter,
-  BookOpen
+  BookOpen,
+  FileText,
+  FileAudio,
+  FileImage,
+  X
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import MaterialCard from "@/components/materials/MaterialCard";
 import UploadMaterialModal from "@/components/materials/UploadMaterialModal";
 import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
@@ -24,11 +37,14 @@ import { SkeletonMaterialCard } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 
+type FileTypeFilter = 'pdf' | 'docx' | 'pptx' | 'audio' | 'image';
+
 export default function StudyMaterialsPage() {
   const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
+  const [fileTypeFilters, setFileTypeFilters] = useState<FileTypeFilter[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -44,11 +60,26 @@ export default function StudyMaterialsPage() {
     queryClient.invalidateQueries({ queryKey: ['folders'] });
   };
 
-  const filteredMaterials = materials?.filter((m) =>
-    m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    m.topic?.toLowerCase().includes(searchQuery.toLowerCase())
-  ) ?? [];
+  const toggleFileTypeFilter = (type: FileTypeFilter) => {
+    setFileTypeFilters(prev => 
+      prev.includes(type) 
+        ? prev.filter(t => t !== type) 
+        : [...prev, type]
+    );
+  };
+
+  const clearFilters = () => setFileTypeFilters([]);
+
+  const filteredMaterials = materials?.filter((m) => {
+    const matchesSearch = m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      m.topic?.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    const matchesFileType = fileTypeFilters.length === 0 || 
+      fileTypeFilters.includes(m.file_type as FileTypeFilter);
+    
+    return matchesSearch && matchesFileType;
+  }) ?? [];
 
   const handleDelete = (material: StudyMaterial) => {
     setMaterialToDelete(material);
@@ -124,11 +155,98 @@ export default function StudyMaterialsPage() {
               </TabsList>
             </Tabs>
             
-            <Button variant="outline" size="icon" className="h-9 w-9">
-              <Filter className="w-4 h-4" />
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button 
+                  variant={fileTypeFilters.length > 0 ? "secondary" : "outline"} 
+                  size="icon" 
+                  className="h-9 w-9 relative"
+                >
+                  <Filter className="w-4 h-4" />
+                  {fileTypeFilters.length > 0 && (
+                    <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-xs rounded-full flex items-center justify-center">
+                      {fileTypeFilters.length}
+                    </span>
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>Filter by Type</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuCheckboxItem
+                  checked={fileTypeFilters.includes('pdf')}
+                  onCheckedChange={() => toggleFileTypeFilter('pdf')}
+                >
+                  <FileText className="w-4 h-4 mr-2 text-red-500" />
+                  PDF
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={fileTypeFilters.includes('docx')}
+                  onCheckedChange={() => toggleFileTypeFilter('docx')}
+                >
+                  <FileText className="w-4 h-4 mr-2 text-blue-500" />
+                  Word
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={fileTypeFilters.includes('pptx')}
+                  onCheckedChange={() => toggleFileTypeFilter('pptx')}
+                >
+                  <FileText className="w-4 h-4 mr-2 text-orange-500" />
+                  PowerPoint
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={fileTypeFilters.includes('audio')}
+                  onCheckedChange={() => toggleFileTypeFilter('audio')}
+                >
+                  <FileAudio className="w-4 h-4 mr-2 text-purple-500" />
+                  Audio
+                </DropdownMenuCheckboxItem>
+                <DropdownMenuCheckboxItem
+                  checked={fileTypeFilters.includes('image')}
+                  onCheckedChange={() => toggleFileTypeFilter('image')}
+                >
+                  <FileImage className="w-4 h-4 mr-2 text-green-500" />
+                  Image
+                </DropdownMenuCheckboxItem>
+                {fileTypeFilters.length > 0 && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="w-full justify-start text-muted-foreground"
+                      onClick={clearFilters}
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Clear filters
+                    </Button>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
+
+        {/* Active Filters */}
+        {fileTypeFilters.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-sm text-muted-foreground">Filters:</span>
+            {fileTypeFilters.map(filter => (
+              <Badge 
+                key={filter} 
+                variant="secondary" 
+                className="gap-1 cursor-pointer hover:bg-destructive/20"
+                onClick={() => toggleFileTypeFilter(filter)}
+              >
+                {filter.toUpperCase()}
+                <X className="w-3 h-3" />
+              </Badge>
+            ))}
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-6 text-xs">
+              Clear all
+            </Button>
+          </div>
+        )}
 
         {/* Folders */}
         {folders && folders.length > 0 && (
@@ -229,7 +347,7 @@ export default function StudyMaterialsPage() {
                     material={material}
                     onClick={() => navigate(`/materials/${material.id}`)}
                     onDelete={() => handleDelete(material)}
-                    onSettings={() => navigate(`/materials/${material.id}/settings`)}
+                    onSettings={() => navigate(`/materials/${material.id}`)}
                   />
                 </motion.div>
               ))}
