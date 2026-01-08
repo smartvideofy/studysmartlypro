@@ -164,8 +164,8 @@ export function useCreateStudyMaterial() {
           body: { materialId: createdMaterial.id },
         });
       } catch (processingError) {
-        console.error('Failed to trigger processing:', processingError);
         // Don't throw - material is created, processing can be retried
+        toast.info('Material uploaded. Processing will start shortly.');
       }
       
       return createdMaterial;
@@ -175,8 +175,7 @@ export function useCreateStudyMaterial() {
       toast.success('Material uploaded successfully');
     },
     onError: (error) => {
-      toast.error('Failed to upload material');
-      console.error(error);
+      toast.error('Failed to upload material: ' + (error instanceof Error ? error.message : 'Please try again'));
     },
   });
 }
@@ -202,8 +201,7 @@ export function useUpdateStudyMaterial() {
       queryClient.invalidateQueries({ queryKey: ['study-material', data.id] });
     },
     onError: (error) => {
-      toast.error('Failed to update material');
-      console.error(error);
+      toast.error('Failed to update material: ' + (error instanceof Error ? error.message : 'Please try again'));
     },
   });
 }
@@ -226,8 +224,7 @@ export function useDeleteStudyMaterial() {
       toast.success('Material deleted');
     },
     onError: (error) => {
-      toast.error('Failed to delete material');
-      console.error(error);
+      toast.error('Failed to delete material: ' + (error instanceof Error ? error.message : 'Please try again'));
     },
   });
 }
@@ -336,8 +333,7 @@ export function useUploadMaterialFile() {
       };
     },
     onError: (error) => {
-      toast.error('Failed to upload file');
-      console.error(error);
+      toast.error('Failed to upload file: ' + (error instanceof Error ? error.message : 'Please try again'));
     },
   });
 }
