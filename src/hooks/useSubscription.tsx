@@ -93,7 +93,7 @@ export function useSubscription() {
       });
 
       if (error) {
-        console.error('Error fetching subscription:', error);
+        // Silently fall back to free plan on error - user can still use the app
         return { plan: 'free', status: 'active' };
       }
 

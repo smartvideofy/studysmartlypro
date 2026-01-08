@@ -85,8 +85,7 @@ export function useUploadNoteAttachment() {
       toast.success("File uploaded successfully");
     },
     onError: (error: Error) => {
-      console.error("Upload error:", error);
-      toast.error(error.message || "Failed to upload file");
+      toast.error(error.message || "Failed to upload file. Please try again.");
     },
   });
 }
@@ -102,8 +101,7 @@ export function useDeleteNoteAttachment() {
         .remove([attachment.object_path]);
 
       if (storageError) {
-        console.error("Storage delete error:", storageError);
-        // Continue anyway to clean up metadata
+        // Continue anyway to clean up metadata - storage file may already be deleted
       }
 
       // Delete metadata
@@ -121,8 +119,7 @@ export function useDeleteNoteAttachment() {
       toast.success("File deleted");
     },
     onError: (error: Error) => {
-      console.error("Delete error:", error);
-      toast.error(error.message || "Failed to delete file");
+      toast.error(error.message || "Failed to delete file. Please try again.");
     },
   });
 }
