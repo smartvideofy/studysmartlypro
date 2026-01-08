@@ -52,8 +52,8 @@ const itemVariants = {
 const quickActions = [
   { icon: Upload, label: "Upload Material", path: "/materials", color: "primary" },
   { icon: Layers, label: "Create Deck", path: "/flashcards/new", color: "accent" },
-  { icon: Brain, label: "Study Session", path: "/study", color: "success" },
-  { icon: Sparkles, label: "AI Summary", path: "/materials", color: "primary" },
+  { icon: Brain, label: "Study Session", path: "/flashcards", color: "success" },
+  { icon: Sparkles, label: "AI Features", path: "/materials", color: "primary" },
 ];
 
 function DashboardSkeleton() {
