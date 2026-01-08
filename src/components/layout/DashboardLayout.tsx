@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  BookOpen, 
   LayoutDashboard, 
   FileText, 
   Layers, 
@@ -22,6 +21,7 @@ import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { GlobalSearch } from "./GlobalSearch";
 import { useProfile } from "@/hooks/useProfile";
+import logoImage from "@/assets/logo.png";
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -74,9 +74,9 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
             <motion.div 
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shrink-0 shadow-glow-sm"
+              className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-glow-sm"
             >
-              <BookOpen className="w-5 h-5 text-primary-foreground" />
+              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
