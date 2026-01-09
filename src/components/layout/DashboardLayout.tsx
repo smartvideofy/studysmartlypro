@@ -11,9 +11,14 @@ import {
   Settings,
   HelpCircle,
   ChevronRight,
+  ChevronDown,
   Search,
   Upload,
-  CreditCard
+  CreditCard,
+  BookOpen,
+  Lightbulb,
+  MessageSquare,
+  Network
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -27,9 +32,17 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: FileText, label: "Study Materials", path: "/materials" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
-  { icon: Brain, label: "Study", path: "/study" },
   { icon: Users, label: "Groups", path: "/groups" },
   { icon: BarChart3, label: "Progress", path: "/progress" },
+];
+
+const studySubItems = [
+  { icon: BookOpen, label: "Tutor Notes", tab: "tutor-notes" },
+  { icon: FileText, label: "Summaries", tab: "summaries" },
+  { icon: Lightbulb, label: "Flashcards", tab: "flashcards" },
+  { icon: Brain, label: "Questions", tab: "questions" },
+  { icon: Network, label: "Concept Map", tab: "concept-map" },
+  { icon: MessageSquare, label: "AI Chat", tab: "chat" },
 ];
 
 const bottomNavItems = [
@@ -41,16 +54,27 @@ const bottomNavItems = [
 interface DashboardLayoutProps {
   children: React.ReactNode;
   title?: string;
+  materialId?: string;
+  activeStudyTab?: string;
+  onStudyTabChange?: (tab: string) => void;
 }
 
-export default function DashboardLayout({ children, title }: DashboardLayoutProps) {
+export default function DashboardLayout({ 
+  children, 
+  title,
+  materialId,
+  activeStudyTab,
+  onStudyTabChange
+}: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [studyMenuOpen, setStudyMenuOpen] = useState(!!materialId);
   const location = useLocation();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
+  const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
 
   return (
     <div className="min-h-screen bg-background bg-gradient-mesh flex">
@@ -96,7 +120,8 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
           {navItems.map((item, index) => {
-            const isActive = location.pathname === item.path;
+            const isActive = location.pathname === item.path || 
+              (item.path === "/materials" && location.pathname.startsWith("/materials"));
             const Icon = item.icon;
             
             return (
@@ -148,6 +173,95 @@ export default function DashboardLayout({ children, title }: DashboardLayoutProp
               </motion.div>
             );
           })}
+
+          {/* Study Menu with Submenus - Shows when in material workspace */}
+          {isInMaterialWorkspace && (
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <button
+                onClick={() => setStudyMenuOpen(!studyMenuOpen)}
+                className={cn(
+                  "w-full group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
+                  "bg-primary/10 text-primary font-medium"
+                )}
+              >
+                <motion.div
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-primary to-primary/60"
+                />
+                <motion.div
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.9 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                >
+                  <Brain className="w-5 h-5 shrink-0 text-primary icon-glow" />
+                </motion.div>
+                <AnimatePresence>
+                  {!collapsed && (
+                    <>
+                      <motion.span
+                        initial={{ opacity: 0, width: 0 }}
+                        animate={{ opacity: 1, width: 'auto' }}
+                        exit={{ opacity: 0, width: 0 }}
+                        className="flex-1 text-sm whitespace-nowrap overflow-hidden text-left"
+                      >
+                        Study Tools
+                      </motion.span>
+                      <motion.div
+                        animate={{ rotate: studyMenuOpen ? 180 : 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <ChevronDown className="w-4 h-4" />
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
+              </button>
+
+              {/* Submenus */}
+              <AnimatePresence>
+                {studyMenuOpen && !collapsed && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="ml-4 pl-3 border-l border-border/50 mt-1 space-y-0.5">
+                      {studySubItems.map((subItem) => {
+                        const SubIcon = subItem.icon;
+                        const isSubActive = activeStudyTab === subItem.tab;
+                        
+                        return (
+                          <motion.button
+                            key={subItem.tab}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            onClick={() => onStudyTabChange?.(subItem.tab)}
+                            className={cn(
+                              "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-all duration-200",
+                              isSubActive
+                                ? "bg-primary/15 text-primary font-medium"
+                                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                            )}
+                          >
+                            <SubIcon className={cn(
+                              "w-4 h-4 shrink-0",
+                              isSubActive && "text-primary"
+                            )} />
+                            <span>{subItem.label}</span>
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
         </nav>
 
         {/* Bottom Navigation */}
