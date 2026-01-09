@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { BookOpen } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 
 export default function SplashScreen() {
   const navigate = useNavigate();
@@ -71,9 +71,9 @@ export default function SplashScreen() {
               repeatType: "reverse",
               ease: "easeInOut"
             }}
-            className="w-24 h-24 rounded-2xl bg-gradient-to-br from-primary via-primary to-primary/80 flex items-center justify-center mb-8 shadow-glow"
+            className="w-24 h-24 rounded-2xl overflow-hidden mb-8 shadow-glow"
           >
-            <BookOpen className="w-12 h-12 text-primary-foreground" />
+            <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
           </motion.div>
 
           {/* App Name */}

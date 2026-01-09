@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  BookOpen, 
   Mail, 
   Lock, 
   User, 
@@ -17,6 +16,7 @@ import {
   Users,
   TrendingUp
 } from "lucide-react";
+import logoImage from "@/assets/logo.png";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -181,8 +181,8 @@ export default function AuthPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="w-12 h-12 rounded-xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <BookOpen className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl overflow-hidden">
+              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
             </div>
             <span className="font-display text-2xl font-bold">Studily</span>
           </motion.div>
@@ -260,9 +260,9 @@ export default function AuthPage() {
           <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
             <motion.div 
               whileHover={{ scale: 1.05, rotate: 5 }}
-              className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-glow-sm"
+              className="w-12 h-12 rounded-xl overflow-hidden shadow-glow-sm"
             >
-              <BookOpen className="w-6 h-6 text-primary-foreground" />
+              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
             </motion.div>
             <span className="font-display text-2xl font-bold gradient-text">Studily</span>
           </div>
