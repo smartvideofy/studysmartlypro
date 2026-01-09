@@ -2,8 +2,6 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
-  ArrowLeft, 
-  Settings, 
   Maximize2, 
   Minimize2,
   BookOpen,
@@ -15,7 +13,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { useStudyMaterial } from "@/hooks/useStudyMaterials";
 import MaterialViewer from "@/components/materials/MaterialViewer";
 import TutorNotesTab from "@/components/materials/tabs/TutorNotesTab";
@@ -25,6 +22,7 @@ import PracticeQuestionsTab from "@/components/materials/tabs/PracticeQuestionsT
 import ConceptMapTab from "@/components/materials/tabs/ConceptMapTab";
 import AIChatTab from "@/components/materials/tabs/AIChatTab";
 import ProcessingStatus from "@/components/materials/ProcessingStatus";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
 export default function MaterialWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -37,26 +35,30 @@ export default function MaterialWorkspace() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-muted-foreground">Loading material...</p>
+      <DashboardLayout title="Loading...">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="w-12 h-12 rounded-full border-2 border-primary border-t-transparent animate-spin mx-auto mb-4" />
+            <p className="text-muted-foreground">Loading material...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (!material) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Material not found</h2>
-          <Button onClick={() => navigate("/materials")}>
-            Back to Materials
-          </Button>
+      <DashboardLayout title="Not Found">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Material not found</h2>
+            <Button onClick={() => navigate("/materials")}>
+              Back to Materials
+            </Button>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
@@ -66,38 +68,14 @@ export default function MaterialWorkspace() {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-border h-14 flex items-center px-4 gap-4">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => navigate("/materials")}
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        
-        <div className="flex-1 min-w-0">
-          <PageBreadcrumb 
-            items={[
-              { label: "Materials", href: "/materials" },
-              { label: material.title }
-            ]} 
-          />
-        </div>
-
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => navigate("/settings")}
-          title="Settings"
-        >
-          <Settings className="w-5 h-5" />
-        </Button>
-      </header>
-
+    <DashboardLayout 
+      title={material.title}
+      materialId={material.id}
+      activeStudyTab={activeTab}
+      onStudyTabChange={setActiveTab}
+    >
       {/* Main Content - Split View */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex h-[calc(100vh-8rem)] -m-6 mt-0 overflow-hidden">
         {/* Left Panel - Material Viewer */}
         <motion.div
           initial={false}
@@ -134,7 +112,7 @@ export default function MaterialWorkspace() {
             opacity: isViewerExpanded ? 0 : 1
           }}
           transition={{ duration: 0.3 }}
-          className="flex flex-col overflow-hidden"
+          className="flex flex-col overflow-hidden relative"
         >
           <div className="absolute top-2 left-2 z-10">
             {!isViewerExpanded && (
@@ -158,7 +136,7 @@ export default function MaterialWorkspace() {
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col"
           >
-            <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto">
+            <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto overflow-x-auto">
               <TabsTrigger 
                 value="tutor-notes" 
                 className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
@@ -226,6 +204,6 @@ export default function MaterialWorkspace() {
           </Tabs>
         </motion.div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }
