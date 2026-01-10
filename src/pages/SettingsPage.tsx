@@ -24,8 +24,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useTheme } from "next-themes";
-import { cn } from "@/lib/utils";
 import { AvatarUpload } from "@/components/settings/AvatarUpload";
+import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
@@ -173,8 +173,8 @@ export default function SettingsPage() {
         <Section title="Notifications">
           <SettingRow 
             icon={<Bell className="w-4 h-4" />}
-            label="Study Reminders" 
-            description="Get reminded to study"
+            label="In-App Notifications" 
+            description="Show notifications inside the app"
           >
             <Switch
               checked={notificationEnabled}
@@ -184,6 +184,8 @@ export default function SettingsPage() {
               }}
             />
           </SettingRow>
+          <Separator />
+          <PushNotificationSettings />
         </Section>
 
         {/* Appearance */}
