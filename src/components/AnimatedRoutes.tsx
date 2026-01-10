@@ -17,6 +17,7 @@ import ProgressPage from "@/pages/ProgressPage";
 import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
 import PricingPage from "@/pages/PricingPage";
+import InstallPage from "@/pages/InstallPage";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
@@ -146,6 +147,11 @@ export const AnimatedRoutes = () => {
               <PricingPage />
             </PageTransition>
           </ProtectedRoute>
+        } />
+        <Route path="/install" element={
+          <PageTransition>
+            <InstallPage />
+          </PageTransition>
         } />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={
