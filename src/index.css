@@ -497,6 +497,45 @@
     border: 1px solid hsl(var(--glass-border));
     box-shadow: var(--shadow-lg);
   }
+
+  .study-flashcard-face {
+    @apply rounded-3xl;
+    background: linear-gradient(
+      145deg,
+      hsl(var(--card)) 0%,
+      hsl(var(--background)) 100%
+    );
+    box-shadow: 
+      var(--shadow-xl),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(0, 0, 0, 0.05);
+  }
+
+  .dark .study-flashcard-face {
+    background: linear-gradient(
+      145deg,
+      hsl(var(--card)) 0%,
+      hsl(230 20% 14%) 100%
+    );
+  }
+
+  .flashcard-back.study-flashcard-face {
+    background: linear-gradient(
+      145deg,
+      hsl(var(--primary) / 0.08) 0%,
+      hsl(var(--card)) 50%,
+      hsl(var(--background)) 100%
+    );
+  }
+
+  .dark .flashcard-back.study-flashcard-face {
+    background: linear-gradient(
+      145deg,
+      hsl(var(--primary) / 0.15) 0%,
+      hsl(var(--card)) 50%,
+      hsl(230 20% 14%) 100%
+    );
+  }
   
   .flashcard-back {
     transform: rotateY(180deg);
