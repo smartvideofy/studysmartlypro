@@ -254,11 +254,11 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const currentCard = flashcards[currentIndex];
 
   return (
-    <div className="h-full flex flex-col p-6">
+    <div className="h-full flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
         <div>
-          <h3 className="font-semibold">Flashcards</h3>
+          <h3 className="font-semibold text-lg">Flashcards</h3>
           <p className="text-sm text-muted-foreground">
             {flashcards.length} cards generated
           </p>
@@ -312,107 +312,129 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         </div>
       </div>
 
-      {/* Flashcard Display */}
-      <div className="flex-1 flex flex-col items-center justify-center">
-        {/* Progress */}
-        <div className="flex items-center gap-4 mb-4">
-          <span className="text-sm text-muted-foreground">
-            Card {currentIndex + 1} of {flashcards.length}
-          </span>
-          {currentCard.difficulty && (
-            <span className={`text-xs px-2 py-1 rounded-full ${
-              currentCard.difficulty === 'easy' ? 'bg-green-500/10 text-green-500' :
-              currentCard.difficulty === 'hard' ? 'bg-red-500/10 text-red-500' :
-              'bg-yellow-500/10 text-yellow-500'
-            }`}>
-              {currentCard.difficulty}
+      {/* Main Flashcard Display Area - Takes all available space */}
+      <div className="flex-1 flex flex-col min-h-0 relative">
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
+        
+        {/* Flashcard Content */}
+        <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
+          {/* Progress & Difficulty Badge */}
+          <div className="flex items-center gap-3 mb-6">
+            <span className="text-sm text-muted-foreground font-medium">
+              Card {currentIndex + 1} of {flashcards.length}
             </span>
-          )}
-        </div>
+            {currentCard.difficulty && (
+              <span className={cn(
+                "text-xs px-3 py-1 rounded-full font-medium",
+                currentCard.difficulty === 'easy' && 'bg-green-500/10 text-green-600 dark:text-green-400',
+                currentCard.difficulty === 'hard' && 'bg-red-500/10 text-red-600 dark:text-red-400',
+                currentCard.difficulty === 'medium' && 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+              )}>
+                {currentCard.difficulty}
+              </span>
+            )}
+          </div>
 
-        {/* Card */}
-        <div 
-          className="flashcard-flip-container w-full max-w-md aspect-[3/2] cursor-pointer"
-          onClick={() => setIsFlipped(!isFlipped)}
-        >
-          <div className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}>
-            {/* Front */}
-            <div className="flashcard-face">
-              <p className="text-center text-lg font-medium">{currentCard.front}</p>
-              <p className="text-xs text-muted-foreground mt-4">Click to flip</p>
+          {/* Large Flashcard */}
+          <div 
+            className="flashcard-flip-container w-full max-w-2xl aspect-[16/10] cursor-pointer"
+            onClick={() => setIsFlipped(!isFlipped)}
+          >
+            <div className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}>
+              {/* Front */}
+              <div className="flashcard-face study-flashcard-face">
+                <div className="flex-1 flex items-center justify-center p-8">
+                  <p className="text-center text-xl md:text-2xl font-medium leading-relaxed">
+                    {currentCard.front}
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground pb-6">Click to flip</p>
+              </div>
+              
+              {/* Back */}
+              <div className="flashcard-face flashcard-back study-flashcard-back">
+                <div className="flex-1 flex flex-col items-center justify-center p-8">
+                  <p className="text-center text-xl md:text-2xl leading-relaxed">
+                    {currentCard.back}
+                  </p>
+                  {currentCard.hint && (
+                    <p className="text-sm text-muted-foreground mt-6 italic flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4" />
+                      {currentCard.hint}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Navigation Controls */}
+          <div className="flex items-center gap-4 mt-8">
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="h-11 w-11 rounded-full"
+              onClick={handlePrevious}
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </Button>
             
-            {/* Back */}
-            <div className="flashcard-face flashcard-back">
-              <p className="text-center text-lg">{currentCard.back}</p>
-              {currentCard.hint && (
-                <p className="text-xs text-muted-foreground mt-4 italic">
-                  💡 {currentCard.hint}
-                </p>
-              )}
-            </div>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-11 w-11 rounded-full"
+              onClick={() => setIsFlipped(false)}
+            >
+              <RotateCcw className="w-5 h-5" />
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="icon"
+              className="h-11 w-11 rounded-full"
+              onClick={handleNext}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </Button>
           </div>
         </div>
 
-        {/* Navigation */}
-        <div className="flex items-center gap-4 mt-8">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={handlePrevious}
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-          
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setIsFlipped(false)}
-          >
-            <RotateCcw className="w-5 h-5" />
-          </Button>
-          
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={handleNext}
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
+        {/* Bottom Thumbnail Strip */}
+        <div className="border-t border-border/50 bg-background/80 backdrop-blur-sm">
+          <ScrollArea className="w-full">
+            <div className="flex gap-2 p-4">
+              {flashcards.map((card, index) => (
+                <button
+                  key={card.id}
+                  onClick={() => {
+                    setCurrentIndex(index);
+                    setIsFlipped(false);
+                  }}
+                  onDoubleClick={() => {
+                    setStudyStartIndex(index);
+                    setShowStudyDrawer(true);
+                  }}
+                  className={cn(
+                    "shrink-0 w-28 h-16 rounded-lg border text-xs p-3 text-left transition-all relative group",
+                    "hover:border-primary hover:bg-primary/5 hover:shadow-md",
+                    index === currentIndex
+                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
+                      : "border-border bg-card/80"
+                  )}
+                >
+                  <span className="line-clamp-2 font-medium text-foreground/90">{card.front}</span>
+                  {selectedCards.has(card.id) && (
+                    <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-primary-foreground" />
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
         </div>
       </div>
-
-      {/* Thumbnail Navigation */}
-      <ScrollArea className="mt-6">
-        <div className="flex gap-2 pb-2">
-          {flashcards.map((card, index) => (
-            <button
-              key={card.id}
-              onClick={() => {
-                setStudyStartIndex(index);
-                setShowStudyDrawer(true);
-              }}
-              className={cn(
-                "shrink-0 w-24 h-16 rounded-xl border text-xs p-3 text-left transition-all relative group",
-                "hover:border-primary hover:bg-primary/5 hover:shadow-md",
-                index === currentIndex
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-card/50"
-              )}
-            >
-              <span className="line-clamp-2 font-medium">{card.front}</span>
-              {selectedCards.has(card.id) && (
-                <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 text-primary-foreground" />
-                </div>
-              )}
-              <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-background/80">
-                <Play className="w-4 h-4 text-primary" />
-              </div>
-            </button>
-          ))}
-        </div>
-      </ScrollArea>
 
       {/* Study Drawer */}
       <FlashcardStudyDrawer
