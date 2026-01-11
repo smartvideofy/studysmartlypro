@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
 import { 
   Lightbulb, 
   Save,
@@ -10,7 +9,8 @@ import {
   RotateCcw,
   FolderPlus,
   Check,
-  RefreshCw
+  RefreshCw,
+  Play
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FlashcardStudyDrawer } from "./FlashcardStudyDrawer";
+import { cn } from "@/lib/utils";
 
 interface FlashcardsTabProps {
   materialId: string;
@@ -63,6 +65,8 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const [isCreatingDeck, setIsCreatingDeck] = useState(false);
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
+  const [showStudyDrawer, setShowStudyDrawer] = useState(false);
+  const [studyStartIndex, setStudyStartIndex] = useState(0);
 
   // Fetch flashcards from material_flashcards table
   const { data: flashcards, isLoading, refetch } = useQuery({
@@ -261,6 +265,18 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         </div>
         <div className="flex gap-2">
           <Button 
+            variant="hero" 
+            size="sm" 
+            className="gap-2"
+            onClick={() => {
+              setStudyStartIndex(0);
+              setShowStudyDrawer(true);
+            }}
+          >
+            <Play className="w-4 h-4" />
+            Start Studying
+          </Button>
+          <Button 
             variant="outline" 
             size="sm" 
             className="gap-2"
@@ -285,7 +301,7 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
           </Button>
           {savedDeckId && (
             <Button 
-              variant="hero" 
+              variant="secondary" 
               size="sm" 
               className="gap-2"
               onClick={() => navigate(`/flashcards/${savedDeckId}`)}
@@ -373,25 +389,38 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
             <button
               key={card.id}
               onClick={() => {
-                setCurrentIndex(index);
-                setIsFlipped(false);
+                setStudyStartIndex(index);
+                setShowStudyDrawer(true);
               }}
-              className={`shrink-0 w-20 h-12 rounded-lg border text-xs p-2 text-left transition-all relative ${
+              className={cn(
+                "shrink-0 w-24 h-16 rounded-xl border text-xs p-3 text-left transition-all relative group",
+                "hover:border-primary hover:bg-primary/5 hover:shadow-md",
                 index === currentIndex
-                  ? 'border-primary bg-primary/10'
-                  : 'border-border hover:border-primary/50'
-              }`}
+                  ? "border-primary bg-primary/10"
+                  : "border-border bg-card/50"
+              )}
             >
-              <span className="line-clamp-2">{card.front}</span>
+              <span className="line-clamp-2 font-medium">{card.front}</span>
               {selectedCards.has(card.id) && (
-                <div className="absolute top-1 right-1 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
+                <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
                   <Check className="w-3 h-3 text-primary-foreground" />
                 </div>
               )}
+              <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center bg-background/80">
+                <Play className="w-4 h-4 text-primary" />
+              </div>
             </button>
           ))}
         </div>
       </ScrollArea>
+
+      {/* Study Drawer */}
+      <FlashcardStudyDrawer
+        open={showStudyDrawer}
+        onOpenChange={setShowStudyDrawer}
+        flashcards={flashcards}
+        initialIndex={studyStartIndex}
+      />
 
       {/* Save to Deck Dialog */}
       <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
