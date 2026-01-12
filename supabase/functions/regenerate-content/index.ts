@@ -116,14 +116,33 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Regeneration error:", error);
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    if (errorMessage === "RATE_LIMIT_EXCEEDED") {
+      return new Response(
+        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (errorMessage === "PAYMENT_REQUIRED") {
+      return new Response(
+        JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+        { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: errorMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
 
 async function callLovableAI(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
+  console.log("Calling Lovable AI...");
+  
   const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -131,7 +150,7 @@ async function callLovableAI(apiKey: string, prompt: string, systemPrompt: strin
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
+      model: "google/gemini-3-flash-preview",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -143,11 +162,20 @@ async function callLovableAI(apiKey: string, prompt: string, systemPrompt: strin
   if (!response.ok) {
     const errorText = await response.text();
     console.error("AI API error:", response.status, errorText);
+    
+    if (response.status === 429) {
+      throw new Error("RATE_LIMIT_EXCEEDED");
+    }
+    if (response.status === 402) {
+      throw new Error("PAYMENT_REQUIRED");
+    }
     throw new Error(`AI API error: ${response.status}`);
   }
 
   const data = await response.json();
-  return data.choices[0]?.message?.content || "";
+  const content = data.choices?.[0]?.message?.content || "";
+  console.log(`AI response received: ${content.length} characters`);
+  return content;
 }
 
 async function regenerateTutorNotes(

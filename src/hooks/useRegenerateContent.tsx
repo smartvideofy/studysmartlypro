@@ -13,7 +13,17 @@ export function useRegenerateContent(materialId: string) {
         body: { materialId, contentType },
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check for specific error messages from the edge function
+        const errorMessage = error.message || "";
+        if (errorMessage.includes("Rate limit") || error.context?.status === 429) {
+          throw new Error("Rate limit exceeded. Please wait a moment and try again.");
+        }
+        if (errorMessage.includes("credits") || error.context?.status === 402) {
+          throw new Error("AI credits exhausted. Please add credits to continue.");
+        }
+        throw error;
+      }
       return data;
     },
     onSuccess: (_, contentType) => {
@@ -27,11 +37,12 @@ export function useRegenerateContent(materialId: string) {
       };
 
       queryClient.invalidateQueries({ queryKey: [queryKeyMap[contentType], materialId] });
-      toast.success(`${contentType.replace("_", " ")} regenerated successfully!`);
+      toast.success(`${contentType.replace(/_/g, " ")} regenerated successfully!`);
     },
     onError: (error) => {
       console.error("Regeneration error:", error);
-      toast.error("Failed to regenerate content. Please try again.");
+      const message = error instanceof Error ? error.message : "Failed to regenerate content. Please try again.";
+      toast.error(message);
     },
   });
 }
