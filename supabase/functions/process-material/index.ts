@@ -111,7 +111,7 @@ async function extractContentWithVision(base64Data: string, fileType: string, ti
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         {
           role: 'user',
@@ -151,6 +151,12 @@ Be thorough and comprehensive. The extracted content will be used to generate st
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Vision API error:', response.status, errorText);
+    if (response.status === 429) {
+      throw new Error('RATE_LIMIT_EXCEEDED');
+    }
+    if (response.status === 402) {
+      throw new Error('PAYMENT_REQUIRED');
+    }
     throw new Error(`Failed to extract content from ${fileType}`);
   }
 
@@ -230,7 +236,7 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -239,7 +245,10 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
   });
 
   if (!response.ok) {
-    console.error('AI API error:', response.status);
+    const errorText = await response.text();
+    console.error('AI API error:', response.status, errorText);
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
     throw new Error('Failed to generate tutor notes');
   }
 
@@ -283,10 +292,14 @@ Format: Write 2-3 paragraphs that capture the essence of the material. A student
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [{ role: 'user', content: quickPrompt }],
     }),
   });
+
+  if (!quickResponse.ok && (quickResponse.status === 429 || quickResponse.status === 402)) {
+    throw new Error(quickResponse.status === 429 ? 'RATE_LIMIT_EXCEEDED' : 'PAYMENT_REQUIRED');
+  }
 
   if (quickResponse.ok) {
     const quickData = await quickResponse.json();
@@ -332,7 +345,7 @@ Write in clear, flowing paragraphs. Use proper headings and organize content log
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [{ role: 'user', content: detailedPrompt }],
     }),
   });
@@ -370,7 +383,7 @@ Example format:
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [{ role: 'user', content: bulletPrompt }],
     }),
   });
@@ -444,7 +457,7 @@ Generate 15 diverse, challenging practice questions that thoroughly test underst
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -453,6 +466,8 @@ Generate 15 diverse, challenging practice questions that thoroughly test underst
   });
 
   if (!response.ok) {
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
     throw new Error('Failed to generate practice questions');
   }
 
@@ -518,7 +533,7 @@ Generate flashcards covering all key concepts, definitions, and important facts.
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -527,6 +542,8 @@ Generate flashcards covering all key concepts, definitions, and important facts.
   });
 
   if (!response.ok) {
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
     throw new Error('Failed to generate flashcards');
   }
 
@@ -594,7 +611,7 @@ Generate a detailed concept map with 10-15 interconnected nodes.`;
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-flash',
+      model: 'google/gemini-3-flash-preview',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -603,6 +620,8 @@ Generate a detailed concept map with 10-15 interconnected nodes.`;
   });
 
   if (!response.ok) {
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
     throw new Error('Failed to generate concept map');
   }
 
