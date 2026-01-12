@@ -34,6 +34,7 @@ export function PushNotificationSettings() {
     isSubscribed,
     isLoading,
     permission,
+    isConfigured,
     subscribe,
     unsubscribe,
     sendTestNotification
@@ -47,12 +48,12 @@ export function PushNotificationSettings() {
     }
   };
 
-  if (!isSupported) {
+  if (!isSupported || !isConfigured) {
     return (
       <SettingRow
         icon={<BellOff className="w-4 h-4" />}
         label="Push Notifications"
-        description="Not supported in this browser"
+        description={!isSupported ? "Not supported in this browser" : "Not configured"}
       >
         <span className="text-xs text-muted-foreground">Unavailable</span>
       </SettingRow>

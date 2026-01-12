@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+// VAPID public key - stored directly since env vars don't work in Lovable
+// This is a public key so it's safe to include in client code
+const VAPID_PUBLIC_KEY = localStorage.getItem('vapid_public_key') || '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -26,10 +28,15 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
+  const [isConfigured, setIsConfigured] = useState(false);
 
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
+    
+    // Check if VAPID key is configured
+    const vapidKey = localStorage.getItem('vapid_public_key');
+    setIsConfigured(!!vapidKey && vapidKey.length > 0);
     
     if (supported) {
       setPermission(Notification.permission);
@@ -69,8 +76,9 @@ export function usePushNotifications() {
       return false;
     }
 
-    if (!VAPID_PUBLIC_KEY) {
-      toast.error('Push notifications are not configured');
+    const vapidKey = localStorage.getItem('vapid_public_key');
+    if (!vapidKey) {
+      toast.error('Push notifications are not configured. Please contact support.');
       return false;
     }
 
@@ -90,7 +98,7 @@ export function usePushNotifications() {
       const registration = await navigator.serviceWorker.ready;
       
       // Subscribe to push manager
-      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
@@ -187,6 +195,7 @@ export function usePushNotifications() {
     isSubscribed,
     isLoading,
     permission,
+    isConfigured,
     subscribe,
     unsubscribe,
     sendTestNotification,
