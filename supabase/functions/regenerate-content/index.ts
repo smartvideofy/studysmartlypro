@@ -16,9 +16,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
 
-    // Verify user authentication
+    // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -30,16 +30,19 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
     
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !user) {
-      console.error('Auth error:', authError);
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    
+    if (claimsError || !claimsData?.claims) {
+      console.error('Auth error:', claimsError);
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    console.log(`Authenticated user: ${user.id}`);
+    const userId = claimsData.claims.sub;
+    console.log(`Authenticated user: ${userId}`);
 
     const { materialId, contentType } = await req.json();
     
@@ -70,7 +73,7 @@ serve(async (req) => {
     }
 
     // Verify user owns this material
-    if (material.user_id !== user.id) {
+    if (material.user_id !== userId) {
       return new Response(
         JSON.stringify({ error: "Access denied" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -85,21 +88,21 @@ serve(async (req) => {
       );
     }
 
-    const userId = material.user_id;
+    const materialUserId = material.user_id;
     const subject = material.subject || "General";
     const topic = material.topic || material.title;
 
     // Generate content based on type
     if (contentType === "tutor_notes") {
-      await regenerateTutorNotes(supabase, lovableApiKey, materialId, userId, extractedContent, subject, topic);
+      await regenerateTutorNotes(supabase, lovableApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "summaries") {
-      await regenerateSummaries(supabase, lovableApiKey, materialId, userId, extractedContent, subject, topic);
+      await regenerateSummaries(supabase, lovableApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "flashcards") {
-      await regenerateFlashcards(supabase, lovableApiKey, materialId, userId, extractedContent, subject, topic);
+      await regenerateFlashcards(supabase, lovableApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "practice_questions") {
-      await regeneratePracticeQuestions(supabase, lovableApiKey, materialId, userId, extractedContent, subject, topic);
+      await regeneratePracticeQuestions(supabase, lovableApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "concept_map") {
-      await regenerateConceptMap(supabase, lovableApiKey, materialId, userId, extractedContent, subject, topic);
+      await regenerateConceptMap(supabase, lovableApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else {
       return new Response(
         JSON.stringify({ error: "Invalid content type" }),

@@ -649,9 +649,9 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Verify user authentication
+    // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -663,8 +663,9 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
     
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
       console.error('Auth error:', authError);
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
@@ -672,7 +673,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Authenticated user: ${user.id}`);
+    const userId = claimsData.claims.sub as string;
+    console.log(`Authenticated user: ${userId}`);
 
     const { materialId } = await req.json();
     
@@ -718,7 +720,7 @@ serve(async (req) => {
       extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
     }
 
-    const userId = material.user_id;
+    const materialUserId = material.user_id;
 
     // Generate tutor notes
     if (material.generate_tutor_notes) {
@@ -728,7 +730,7 @@ serve(async (req) => {
           .from('tutor_notes')
           .insert({
             material_id: materialId,
-            user_id: userId,
+            user_id: materialUserId,
             content: tutorNotes,
           });
         console.log('Tutor notes generated');
@@ -745,7 +747,7 @@ serve(async (req) => {
           .from('summaries')
           .insert({
             material_id: materialId,
-            user_id: userId,
+            user_id: materialUserId,
             summary_type: summary.type,
             content: summary.content,
           });
@@ -764,7 +766,7 @@ serve(async (req) => {
             .from('practice_questions')
             .insert({
               material_id: materialId,
-              user_id: userId,
+              user_id: materialUserId,
               question_type: (q as any).question_type || 'short_answer',
               question: (q as any).question,
               options: (q as any).options || null,
@@ -787,7 +789,7 @@ serve(async (req) => {
             .from('material_flashcards')
             .insert({
               material_id: materialId,
-              user_id: userId,
+              user_id: materialUserId,
               front: (card as any).front,
               back: (card as any).back,
               hint: (card as any).hint || null,
@@ -808,7 +810,7 @@ serve(async (req) => {
           .from('concept_maps')
           .insert({
             material_id: materialId,
-            user_id: userId,
+            user_id: materialUserId,
             nodes: (conceptMap as any).nodes || [],
             edges: (conceptMap as any).edges || [],
           });

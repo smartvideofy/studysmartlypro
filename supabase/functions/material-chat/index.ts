@@ -17,9 +17,9 @@ serve(async (req) => {
   }
 
   try {
-    // Verify user authentication
+    // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -31,8 +31,9 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } }
     });
     
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: claimsData, error: authError } = await supabaseAuth.auth.getClaims(token);
+    if (authError || !claimsData?.claims) {
       console.error('Auth error:', authError);
       return new Response(
         JSON.stringify({ error: 'Invalid authentication' }),
@@ -40,7 +41,8 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Authenticated user: ${user.id}`);
+    const userId = claimsData.claims.sub as string;
+    console.log(`Authenticated user: ${userId}`);
 
     const { materialId, messages, extractedContent } = await req.json();
 
@@ -61,7 +63,7 @@ serve(async (req) => {
 
     if (materialError) throw materialError;
 
-    if (material?.user_id !== user.id) {
+    if (material?.user_id !== userId) {
       return new Response(
         JSON.stringify({ error: 'Access denied' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

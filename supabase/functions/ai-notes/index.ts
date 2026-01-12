@@ -122,19 +122,19 @@ async function verifyAuth(req: Request): Promise<string> {
     },
   });
 
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const { data: claimsData, error } = await supabase.auth.getClaims(token);
   
   if (error) {
     console.error('Auth verification failed:', error.message);
     throw new Error('Unauthorized');
   }
   
-  if (!user) {
-    console.error('No user returned from auth verification');
+  if (!claimsData?.claims) {
+    console.error('No claims returned from auth verification');
     throw new Error('Unauthorized');
   }
 
-  return user.id;
+  return claimsData.claims.sub as string;
 }
 
 serve(async (req) => {
