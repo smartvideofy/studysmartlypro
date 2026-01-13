@@ -3,9 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
-// VAPID public key - stored directly since env vars don't work in Lovable
-// This is a public key so it's safe to include in client code
-const VAPID_PUBLIC_KEY = localStorage.getItem('vapid_public_key') || '';
+// VAPID public key - hardcode here when you have one
+// Generate keys at: https://web-push-codelab.glitch.me/
+// This is a PUBLIC key so it's safe to include in client code
+const VAPID_PUBLIC_KEY = '';
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -28,24 +29,22 @@ export function usePushNotifications() {
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [permission, setPermission] = useState<NotificationPermission>('default');
-  const [isConfigured, setIsConfigured] = useState(false);
+  
+  // Check if VAPID key is configured (non-empty string)
+  const isConfigured = VAPID_PUBLIC_KEY.length > 0;
 
   useEffect(() => {
     const supported = 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
     setIsSupported(supported);
     
-    // Check if VAPID key is configured
-    const vapidKey = localStorage.getItem('vapid_public_key');
-    setIsConfigured(!!vapidKey && vapidKey.length > 0);
-    
-    if (supported) {
+    if (supported && isConfigured) {
       setPermission(Notification.permission);
       checkSubscription();
     }
-  }, [user?.id]);
+  }, [user?.id, isConfigured]);
 
   const checkSubscription = useCallback(async () => {
-    if (!user?.id || !('serviceWorker' in navigator)) return;
+    if (!user?.id || !('serviceWorker' in navigator) || !isConfigured) return;
 
     try {
       const registration = await navigator.serviceWorker.ready;
@@ -68,7 +67,7 @@ export function usePushNotifications() {
       console.error('Error checking subscription:', error);
       setIsSubscribed(false);
     }
-  }, [user?.id]);
+  }, [user?.id, isConfigured]);
 
   const subscribe = useCallback(async () => {
     if (!user?.id || !isSupported) {
@@ -76,9 +75,8 @@ export function usePushNotifications() {
       return false;
     }
 
-    const vapidKey = localStorage.getItem('vapid_public_key');
-    if (!vapidKey) {
-      toast.error('Push notifications are not configured. Please contact support.');
+    if (!isConfigured) {
+      toast.error('Push notifications are not configured yet');
       return false;
     }
 
@@ -98,7 +96,7 @@ export function usePushNotifications() {
       const registration = await navigator.serviceWorker.ready;
       
       // Subscribe to push manager
-      const applicationServerKey = urlBase64ToUint8Array(vapidKey);
+      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: applicationServerKey.buffer as ArrayBuffer
@@ -134,7 +132,7 @@ export function usePushNotifications() {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.id, isSupported]);
+  }, [user?.id, isSupported, isConfigured]);
 
   const unsubscribe = useCallback(async () => {
     if (!user?.id) return false;

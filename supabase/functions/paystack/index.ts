@@ -9,6 +9,7 @@ const corsHeaders = {
 const PAYSTACK_SECRET_KEY = Deno.env.get('PAYSTACK_SECRET_KEY');
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
 // Plan configuration
 const PLANS = {
@@ -24,6 +25,41 @@ const PLANS = {
   },
 };
 
+// Verify Paystack webhook signature
+async function verifyWebhookSignature(req: Request, body: string): Promise<boolean> {
+  const signature = req.headers.get('x-paystack-signature');
+  if (!signature || !PAYSTACK_SECRET_KEY) {
+    console.error('Missing signature or secret key');
+    return false;
+  }
+
+  try {
+    const encoder = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(PAYSTACK_SECRET_KEY),
+      { name: 'HMAC', hash: 'SHA-512' },
+      false,
+      ['sign']
+    );
+
+    const signatureBuffer = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(body)
+    );
+
+    const computedSignature = Array.from(new Uint8Array(signatureBuffer))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+
+    return computedSignature === signature;
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -34,33 +70,52 @@ serve(async (req) => {
     const url = new URL(req.url);
     const path = url.pathname.split('/').pop();
 
-    // Handle webhook (no auth required)
+    // Handle webhook (no auth required, but signature verified)
     if (path === 'webhook' && req.method === 'POST') {
       return await handleWebhook(req);
     }
 
     // For other endpoints, require authentication
     const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    
-    // Get user from token
+    // Create Supabase client with user's auth header
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Verify token using getClaims
     const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
     
-    if (userError || !user) {
-      console.error('Auth error:', userError);
+    if (claimsError || !claimsData?.claims) {
+      console.error('Auth error:', claimsError);
       return new Response(JSON.stringify({ error: 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
+
+    const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email;
+    
+    if (!userId || !userEmail) {
+      return new Response(JSON.stringify({ error: 'Invalid user claims' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Create user object from claims for compatibility
+    const user = { id: userId, email: userEmail };
+
+    // Create service role client for database operations
+    const supabaseAdmin = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
     let body: any = {};
     if (req.method === 'POST') {
@@ -74,13 +129,13 @@ serve(async (req) => {
 
     switch (path) {
       case 'initialize':
-        return await initializeTransaction(user, body, supabase);
+        return await initializeTransaction(user, body, supabaseAdmin);
       case 'verify':
-        return await verifyTransaction(user, body, supabase);
+        return await verifyTransaction(user, body, supabaseAdmin);
       case 'subscription':
-        return await getSubscription(user, supabase);
+        return await getSubscription(user, supabaseAdmin);
       case 'cancel':
-        return await cancelSubscription(user, supabase);
+        return await cancelSubscription(user, supabaseAdmin);
       default:
         return new Response(JSON.stringify({ error: 'Not found' }), {
           status: 404,
@@ -97,7 +152,7 @@ serve(async (req) => {
   }
 });
 
-async function initializeTransaction(user: any, body: { plan: string; callback_url?: string }, supabase: any) {
+async function initializeTransaction(user: { id: string; email: string }, body: { plan: string; callback_url?: string }, supabase: any) {
   const { plan, callback_url } = body;
   
   if (!plan || !PLANS[plan as keyof typeof PLANS]) {
@@ -154,7 +209,7 @@ async function initializeTransaction(user: any, body: { plan: string; callback_u
   });
 }
 
-async function verifyTransaction(user: any, body: { reference: string }, supabase: any) {
+async function verifyTransaction(user: { id: string; email: string }, body: { reference: string }, supabase: any) {
   const { reference } = body;
 
   if (!reference) {
@@ -226,7 +281,7 @@ async function verifyTransaction(user: any, body: { reference: string }, supabas
   });
 }
 
-async function getSubscription(user: any, supabase: any) {
+async function getSubscription(user: { id: string; email: string }, supabase: any) {
   const { data, error } = await supabase
     .from('subscriptions')
     .select('*')
@@ -248,7 +303,7 @@ async function getSubscription(user: any, supabase: any) {
   });
 }
 
-async function cancelSubscription(user: any, supabase: any) {
+async function cancelSubscription(user: { id: string; email: string }, supabase: any) {
   const { data: sub } = await supabase
     .from('subscriptions')
     .select('*')
@@ -311,7 +366,20 @@ async function handleWebhook(req: Request) {
   const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
   
   try {
-    const body = await req.json();
+    // Read body as text for signature verification
+    const bodyText = await req.text();
+    
+    // Verify webhook signature
+    const isValid = await verifyWebhookSignature(req, bodyText);
+    if (!isValid) {
+      console.error('Invalid webhook signature');
+      return new Response(JSON.stringify({ error: 'Invalid signature' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const body = JSON.parse(bodyText);
     console.log('Paystack webhook event:', body.event, body.data);
 
     const event = body.event;
@@ -328,7 +396,7 @@ async function handleWebhook(req: Request) {
           const periodEnd = new Date();
           periodEnd.setDate(periodEnd.getDate() + 30);
 
-          await supabase
+          const { error } = await supabase
             .from('subscriptions')
             .upsert({
               user_id: userId,
@@ -346,6 +414,10 @@ async function handleWebhook(req: Request) {
             }, {
               onConflict: 'user_id',
             });
+          
+          if (error) {
+            console.error('Webhook subscription upsert error:', error);
+          }
         }
         break;
       }
@@ -355,7 +427,7 @@ async function handleWebhook(req: Request) {
         const customerCode = data.customer?.customer_code;
         
         if (customerCode) {
-          await supabase
+          const { error } = await supabase
             .from('subscriptions')
             .update({
               status: 'cancelled',
@@ -363,6 +435,10 @@ async function handleWebhook(req: Request) {
               updated_at: new Date().toISOString(),
             })
             .eq('paystack_customer_code', customerCode);
+          
+          if (error) {
+            console.error('Webhook subscription cancel error:', error);
+          }
         }
         break;
       }
