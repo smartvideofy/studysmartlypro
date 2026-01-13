@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.schedule-study-reminder]
 verify_jwt = false
+
+[functions.check-subscriptions]
+verify_jwt = false
