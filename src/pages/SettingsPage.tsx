@@ -354,14 +354,21 @@ export default function SettingsPage() {
             icon={<FileText className="w-4 h-4" />}
             label="Terms of Service" 
             external
-            href="https://studysmartlypro.lovable.app/terms"
+            href="https://getstudily.com/terms"
           />
           <Separator />
           <LinkRow 
             icon={<Shield className="w-4 h-4" />}
             label="Privacy Policy" 
             external
-            href="https://studysmartlypro.lovable.app/privacy"
+            href="https://getstudily.com/privacy"
+          />
+          <Separator />
+          <LinkRow 
+            icon={<FileText className="w-4 h-4" />}
+            label="Cookie Policy" 
+            external
+            href="https://getstudily.com/cookies"
           />
         </Section>
 
