@@ -15,11 +15,15 @@ import {
   FileText,
   ExternalLink,
   Trash2,
-  ChevronRight
+  ChevronRight,
+  Key,
+  ChevronDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChangePasswordForm } from "@/components/settings/ChangePasswordForm";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -252,6 +256,30 @@ export default function SettingsPage() {
           <SettingRow label="Email" description="Your account email">
             <span className="text-sm text-muted-foreground">{user?.email}</span>
           </SettingRow>
+          
+          {/* Only show password change for email/password users */}
+          {user?.app_metadata?.provider === 'email' && (
+            <>
+              <Separator />
+              <Collapsible>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer group">
+                    <div className="flex items-center gap-3">
+                      <Key className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-sm font-medium">Change Password</p>
+                        <p className="text-xs text-muted-foreground">Update your account password</p>
+                      </div>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <ChangePasswordForm userEmail={user?.email || ""} />
+                </CollapsibleContent>
+              </Collapsible>
+            </>
+          )}
         </Section>
 
         {/* Study Preferences */}
