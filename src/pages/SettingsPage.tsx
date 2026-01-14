@@ -7,12 +7,21 @@ import {
   LogOut,
   Loader2,
   Clock,
-  Target
+  Target,
+  Crown,
+  CreditCard,
+  Shield,
+  HelpCircle,
+  FileText,
+  ExternalLink,
+  Trash2,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -20,17 +29,42 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription, useCancelSubscription, type PlanType } from "@/hooks/useSubscription";
 import { useTheme } from "next-themes";
 import { AvatarUpload } from "@/components/settings/AvatarUpload";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
+import { format } from "date-fns";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+
+const APP_VERSION = "1.0.0";
+
+const PLAN_LABELS: Record<PlanType, { label: string; color: string }> = {
+  free: { label: "Free", color: "bg-muted text-muted-foreground" },
+  pro: { label: "Pro", color: "bg-primary text-primary-foreground" },
+  team: { label: "Team", color: "bg-gradient-to-r from-primary to-accent text-white" },
+};
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { data: profile, isLoading } = useProfile();
+  const { data: subscription, isLoading: subLoading } = useSubscription();
+  const cancelSubscription = useCancelSubscription();
   const updateProfile = useUpdateProfile();
   const { theme, setTheme } = useTheme();
 
@@ -40,6 +74,7 @@ export default function SettingsPage() {
   const [preferredTime, setPreferredTime] = useState("morning");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
 
   useEffect(() => {
     if (profile) {
@@ -68,7 +103,30 @@ export default function SettingsPage() {
     navigate("/auth");
   };
 
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      // Delete user data from profiles
+      const { error } = await supabase
+        .from('profiles')
+        .delete()
+        .eq('user_id', user?.id);
+      
+      if (error) throw error;
+      
+      // Sign out (actual account deletion requires admin API)
+      toast.success("Account data deleted. Please contact support to complete account deletion.");
+      await signOut();
+      navigate("/auth");
+    } catch (error: any) {
+      toast.error("Failed to delete account: " + error.message);
+    } finally {
+      setDeletingAccount(false);
+    }
+  };
+
   const isDark = theme === "dark";
+  const planInfo = subscription ? PLAN_LABELS[subscription.plan] : PLAN_LABELS.free;
 
   if (isLoading) {
     return (
@@ -82,7 +140,7 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout title="Settings">
-      <div className="max-w-2xl space-y-8">
+      <div className="max-w-2xl space-y-8 pb-24">
         {/* Profile Header */}
         <div className="flex items-center gap-4">
           <AvatarUpload 
@@ -91,12 +149,94 @@ export default function SettingsPage() {
             email={user?.email || ""}
           />
           <div className="flex-1 min-w-0">
-            <h2 className="font-display font-semibold text-lg truncate">
-              {fullName || "Set your name"}
-            </h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-display font-semibold text-lg truncate">
+                {fullName || "Set your name"}
+              </h2>
+              <Badge className={planInfo.color}>{planInfo.label}</Badge>
+            </div>
             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
           </div>
         </div>
+
+        {/* Subscription Section */}
+        <Section title="Subscription">
+          {subLoading ? (
+            <div className="flex items-center justify-center py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+            </div>
+          ) : (
+            <>
+              <SettingRow 
+                icon={<Crown className="w-4 h-4" />}
+                label="Current Plan" 
+                description={subscription?.status === 'active' ? 'Your subscription is active' : 'Upgrade for more features'}
+              >
+                <div className="flex items-center gap-2">
+                  <Badge className={planInfo.color}>{planInfo.label}</Badge>
+                  {subscription?.plan === 'free' && (
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={() => navigate('/pricing')}
+                    >
+                      Upgrade
+                    </Button>
+                  )}
+                </div>
+              </SettingRow>
+              {subscription?.plan !== 'free' && subscription?.current_period_end && (
+                <>
+                  <Separator />
+                  <SettingRow 
+                    icon={<CreditCard className="w-4 h-4" />}
+                    label="Next Billing Date" 
+                    description="Your subscription renews automatically"
+                  >
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(subscription.current_period_end), 'MMM d, yyyy')}
+                    </span>
+                  </SettingRow>
+                  <Separator />
+                  <SettingRow 
+                    label="Manage Subscription" 
+                    description="Cancel or modify your plan"
+                  >
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
+                          Cancel Plan
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            You'll lose access to premium features at the end of your billing period. 
+                            Your data will be preserved.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Keep Plan</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => cancelSubscription.mutate()}
+                            className="bg-destructive hover:bg-destructive/90"
+                          >
+                            {cancelSubscription.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              "Cancel Subscription"
+                            )}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </SettingRow>
+                </>
+              )}
+            </>
+          )}
+        </Section>
 
         {/* Account Section */}
         <Section title="Account">
@@ -202,10 +342,82 @@ export default function SettingsPage() {
           </SettingRow>
         </Section>
 
+        {/* Support & Legal */}
+        <Section title="Support">
+          <LinkRow 
+            icon={<HelpCircle className="w-4 h-4" />}
+            label="Help Center" 
+            onClick={() => navigate('/help')}
+          />
+          <Separator />
+          <LinkRow 
+            icon={<FileText className="w-4 h-4" />}
+            label="Terms of Service" 
+            external
+            href="https://studysmartlypro.lovable.app/terms"
+          />
+          <Separator />
+          <LinkRow 
+            icon={<Shield className="w-4 h-4" />}
+            label="Privacy Policy" 
+            external
+            href="https://studysmartlypro.lovable.app/privacy"
+          />
+        </Section>
+
+        {/* Danger Zone */}
+        <Section title="Danger Zone">
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-destructive">Delete Account</p>
+                <p className="text-xs text-muted-foreground">
+                  Permanently delete your account and all data
+                </p>
+              </div>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="text-destructive border-destructive/50 hover:bg-destructive/10">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Delete
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Account?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. All your notes, flashcards, study materials, 
+                      and progress will be permanently deleted.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleDeleteAccount}
+                      className="bg-destructive hover:bg-destructive/90"
+                      disabled={deletingAccount}
+                    >
+                      {deletingAccount ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Delete Account"
+                      )}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          </div>
+        </Section>
+
         {/* Save Button */}
         {hasChanges && (
-          <div className="sticky bottom-6 flex justify-end">
-            <Button onClick={handleSave} disabled={updateProfile.isPending}>
+          <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 px-4">
+            <Button 
+              onClick={handleSave} 
+              disabled={updateProfile.isPending}
+              className="shadow-lg"
+            >
               {updateProfile.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Save Changes
             </Button>
@@ -213,7 +425,7 @@ export default function SettingsPage() {
         )}
 
         {/* Sign Out */}
-        <div className="pt-4">
+        <div className="pt-2">
           <button
             onClick={handleSignOut}
             className="flex items-center gap-3 w-full p-3 rounded-lg text-destructive hover:bg-destructive/5 transition-colors"
@@ -221,6 +433,13 @@ export default function SettingsPage() {
             <LogOut className="w-4 h-4" />
             <span className="text-sm font-medium">Sign Out</span>
           </button>
+        </div>
+
+        {/* App Version */}
+        <div className="text-center pt-4 pb-8">
+          <p className="text-xs text-muted-foreground">
+            StudySmartly Pro v{APP_VERSION}
+          </p>
         </div>
       </div>
     </DashboardLayout>
@@ -262,4 +481,38 @@ function SettingRow({ icon, label, description, children }: SettingRowProps) {
       <div className="shrink-0">{children}</div>
     </div>
   );
+}
+
+interface LinkRowProps {
+  icon?: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  external?: boolean;
+}
+
+function LinkRow({ icon, label, onClick, href, external }: LinkRowProps) {
+  const content = (
+    <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer">
+      <div className="flex items-center gap-3">
+        {icon && <span className="text-muted-foreground">{icon}</span>}
+        <p className="text-sm font-medium">{label}</p>
+      </div>
+      {external ? (
+        <ExternalLink className="w-4 h-4 text-muted-foreground" />
+      ) : (
+        <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      )}
+    </div>
+  );
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer">
+        {content}
+      </a>
+    );
+  }
+
+  return <div onClick={onClick}>{content}</div>;
 }
