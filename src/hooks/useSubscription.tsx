@@ -86,21 +86,33 @@ export function useSubscription() {
         return { plan: 'free', status: 'active' };
       }
 
-      const { data, error } = await supabase.functions.invoke('paystack/subscription', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
+      try {
+        const { data, error } = await supabase.functions.invoke('paystack/subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
 
-      if (error) {
-        // Silently fall back to free plan on error - user can still use the app
+        if (error) {
+          console.error('Subscription fetch error:', error);
+          // Silently fall back to free plan on error - user can still use the app
+          return { plan: 'free', status: 'active' };
+        }
+
+        // Ensure we always return a valid subscription object
+        if (!data?.subscription) {
+          return { plan: 'free', status: 'active' };
+        }
+
+        return data.subscription;
+      } catch (err) {
+        console.error('Subscription query error:', err);
         return { plan: 'free', status: 'active' };
       }
-
-      return data.subscription || { plan: 'free', status: 'active' };
     },
     enabled: !!user?.id,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1, // Only retry once to avoid hammering the API
   });
 }
 
