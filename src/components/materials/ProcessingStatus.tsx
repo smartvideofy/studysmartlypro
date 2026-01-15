@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StudyMaterial, useUpdateStudyMaterial } from "@/hooks/useStudyMaterials";
 import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProcessingStatusProps {
   material: StudyMaterial;
@@ -29,6 +31,7 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const updateMaterial = useUpdateStudyMaterial();
+  const [isRetrying, setIsRetrying] = useState(false);
 
   // Calculate current step based on status
   const getProgress = () => {
@@ -71,12 +74,44 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
     }
   }, [material.processing_status, material.id, queryClient]);
 
-  const handleRetry = () => {
-    updateMaterial.mutate({
-      id: material.id,
-      processing_status: "pending",
-      processing_error: null,
-    });
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    
+    try {
+      // First, reset the status to pending
+      await updateMaterial.mutateAsync({
+        id: material.id,
+        processing_status: "pending",
+        processing_error: null,
+      });
+
+      // Get access token for invoking the edge function
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error("Please sign in to retry processing");
+        setIsRetrying(false);
+        return;
+      }
+
+      // Re-invoke the process-material edge function
+      const { error } = await supabase.functions.invoke('process-material', {
+        body: { materialId: material.id },
+      });
+
+      if (error) {
+        console.error('Retry processing error:', error);
+        toast.error("Failed to restart processing. Please try again.");
+      } else {
+        toast.success("Processing restarted successfully!");
+        // Invalidate the query to refresh the status
+        queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
+      }
+    } catch (error) {
+      console.error('Retry error:', error);
+      toast.error("An error occurred while retrying. Please try again.");
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   return (
@@ -165,9 +200,13 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
         {/* Actions */}
         <div className="flex gap-3 justify-center">
           {material.processing_status === "failed" && (
-            <Button onClick={handleRetry} className="gap-2">
-              <RefreshCw className="w-4 h-4" />
-              Retry Processing
+            <Button onClick={handleRetry} disabled={isRetrying} className="gap-2">
+              {isRetrying ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              {isRetrying ? "Retrying..." : "Retry Processing"}
             </Button>
           )}
           

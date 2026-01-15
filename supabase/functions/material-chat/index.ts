@@ -129,8 +129,21 @@ IMPORTANT RULES:
     });
   } catch (error) {
     console.error('Chat error:', error);
+    
+    // Map technical errors to user-friendly messages
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let userFriendlyError = 'Failed to get AI response. Please try again.';
+    
+    if (errorMessage.includes('Material ID')) {
+      userFriendlyError = 'Invalid request. Please refresh and try again.';
+    } else if (errorMessage.includes('Access denied')) {
+      userFriendlyError = 'You do not have access to this material.';
+    } else if (errorMessage === 'AI gateway error') {
+      userFriendlyError = 'AI service temporarily unavailable. Please try again.';
+    }
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: userFriendlyError }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
