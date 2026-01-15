@@ -838,6 +838,24 @@ serve(async (req) => {
   } catch (error) {
     console.error('Processing error:', error);
     
+    // Map technical errors to user-friendly messages
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    let userFriendlyError = errorMessage;
+    
+    if (errorMessage === 'RATE_LIMIT_EXCEEDED') {
+      userFriendlyError = 'AI service is busy. Please try again in a few moments.';
+    } else if (errorMessage === 'PAYMENT_REQUIRED') {
+      userFriendlyError = 'AI credits exhausted. Please contact support to continue.';
+    } else if (errorMessage.includes('No file path')) {
+      userFriendlyError = 'No file was uploaded. Please upload a document to process.';
+    } else if (errorMessage.includes('Failed to download')) {
+      userFriendlyError = 'Could not access the uploaded file. Please try uploading again.';
+    } else if (errorMessage.includes('extract content')) {
+      userFriendlyError = 'Unable to read content from this file format. Try a PDF, image, or text document.';
+    } else if (errorMessage.includes('Material not found')) {
+      userFriendlyError = 'Study material not found. It may have been deleted.';
+    }
+    
     // Try to update material status to failed
     try {
       const { materialId } = await req.clone().json();
@@ -846,7 +864,7 @@ serve(async (req) => {
           .from('study_materials')
           .update({ 
             processing_status: 'failed',
-            processing_error: error instanceof Error ? error.message : 'Unknown error'
+            processing_error: userFriendlyError
           })
           .eq('id', materialId);
       }
@@ -855,7 +873,7 @@ serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
+      JSON.stringify({ error: userFriendlyError }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
