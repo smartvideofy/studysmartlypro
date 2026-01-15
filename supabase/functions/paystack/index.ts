@@ -11,17 +11,17 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
-// Plan configuration
+// Plan configuration - amounts in USD (will be converted to cents for Paystack)
 const PLANS = {
   pro: {
     code: 'PLN_4e8hpv8om2lbhta',
     name: 'Studily Pro',
-    amount: 900, // $9 in cents
+    amount: 9, // $9 USD
   },
   team: {
     code: 'PLN_tmqbbw7lu7rzv5i',
     name: 'Studily Team',
-    amount: 1900, // $19 in cents
+    amount: 19, // $19 USD
   },
 };
 
@@ -165,6 +165,9 @@ async function initializeTransaction(user: { id: string; email: string }, body: 
   const selectedPlan = PLANS[plan as keyof typeof PLANS];
 
   // Initialize transaction with Paystack
+  // Paystack expects amount in the smallest currency unit (kobo for NGN, cents for USD)
+  const amountInCents = selectedPlan.amount * 100;
+  
   const response = await fetch('https://api.paystack.co/transaction/initialize', {
     method: 'POST',
     headers: {
@@ -173,7 +176,7 @@ async function initializeTransaction(user: { id: string; email: string }, body: 
     },
     body: JSON.stringify({
       email: user.email,
-      amount: selectedPlan.amount * 100, // Paystack expects amount in kobo/cents
+      amount: amountInCents, // Amount in cents
       plan: selectedPlan.code,
       callback_url: callback_url || `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/pricing?verify=true`,
       metadata: {
@@ -245,7 +248,7 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
   const periodEnd = new Date();
   periodEnd.setDate(periodEnd.getDate() + 30);
 
-  // Upsert subscription
+  // Upsert subscription - store amount in cents for consistency
   const { error: subError } = await supabase
     .from('subscriptions')
     .upsert({
@@ -255,7 +258,7 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
       paystack_customer_code: txData.customer?.customer_code,
       paystack_subscription_code: txData.authorization?.authorization_code,
       plan_code: selectedPlan.code,
-      amount: selectedPlan.amount,
+      amount: selectedPlan.amount * 100, // Store in cents
       currency: 'USD',
       current_period_start: periodStart.toISOString(),
       current_period_end: periodEnd.toISOString(),
@@ -296,8 +299,58 @@ async function getSubscription(user: { id: string; email: string }, supabase: an
     });
   }
 
+  // If no subscription found, return free plan
+  if (!data) {
+    return new Response(JSON.stringify({
+      subscription: { plan: 'free', status: 'active' },
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if subscription has expired
+  if (data.status === 'active' && data.current_period_end) {
+    const periodEnd = new Date(data.current_period_end);
+    if (periodEnd < new Date()) {
+      // Subscription has expired - update status
+      await supabase
+        .from('subscriptions')
+        .update({
+          status: 'expired',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id);
+
+      return new Response(JSON.stringify({
+        subscription: { ...data, status: 'expired', plan: 'free' },
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  // If cancelled but still in period, user keeps access
+  if (data.status === 'cancelled' && data.current_period_end) {
+    const periodEnd = new Date(data.current_period_end);
+    if (periodEnd >= new Date()) {
+      // Still in paid period, return the actual plan
+      return new Response(JSON.stringify({
+        subscription: { ...data, status: 'cancelled' },
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    } else {
+      // Cancelled and period ended - treat as free
+      return new Response(JSON.stringify({
+        subscription: { ...data, plan: 'free', status: 'expired' },
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
   return new Response(JSON.stringify({
-    subscription: data || { plan: 'free', status: 'active' },
+    subscription: data,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -396,6 +449,8 @@ async function handleWebhook(req: Request) {
           const periodEnd = new Date();
           periodEnd.setDate(periodEnd.getDate() + 30);
 
+          const planConfig = PLANS[plan as keyof typeof PLANS];
+          
           const { error } = await supabase
             .from('subscriptions')
             .upsert({
@@ -405,8 +460,8 @@ async function handleWebhook(req: Request) {
               paystack_customer_code: data.customer?.customer_code,
               paystack_subscription_code: data.subscription_code || data.authorization?.authorization_code,
               paystack_email_token: data.email_token,
-              plan_code: PLANS[plan as keyof typeof PLANS]?.code,
-              amount: PLANS[plan as keyof typeof PLANS]?.amount,
+              plan_code: planConfig?.code,
+              amount: planConfig ? planConfig.amount * 100 : null, // Store in cents
               currency: 'USD',
               current_period_start: periodStart.toISOString(),
               current_period_end: periodEnd.toISOString(),
