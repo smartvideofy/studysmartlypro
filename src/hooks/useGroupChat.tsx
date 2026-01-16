@@ -22,15 +22,33 @@ export function useGroupMessages(groupId: string) {
   const query = useQuery({
     queryKey: ["group-messages", groupId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get messages
+      const { data: messages, error: messagesError } = await supabase
         .from("group_messages")
         .select("*")
         .eq("group_id", groupId)
         .order("created_at", { ascending: true })
         .limit(100);
 
-      if (error) throw error;
-      return data as GroupMessage[];
+      if (messagesError) throw messagesError;
+
+      // Get profiles for all message senders
+      const userIds = [...new Set(messages?.map(m => m.user_id) || [])];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, full_name, avatar_url")
+        .in("user_id", userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge profiles with messages
+      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      return messages.map(msg => ({
+        ...msg,
+        profiles: profilesMap.get(msg.user_id) || null,
+      })) as GroupMessage[];
     },
     enabled: !!groupId,
   });
@@ -61,6 +79,28 @@ export function useGroupMessages(groupId: string) {
   }, [groupId, queryClient]);
 
   return query;
+}
+
+export function useDeleteMessage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ messageId, groupId }: { messageId: string; groupId: string }) => {
+      const { error } = await supabase
+        .from("group_messages")
+        .delete()
+        .eq("id", messageId);
+
+      if (error) throw error;
+      return groupId;
+    },
+    onSuccess: (groupId) => {
+      queryClient.invalidateQueries({ queryKey: ["group-messages", groupId] });
+    },
+    onError: (error) => {
+      toast.error("Failed to delete message: " + error.message);
+    },
+  });
 }
 
 export function useSendMessage() {

@@ -98,16 +98,58 @@ export function useGroupMembers(groupId: string) {
   return useQuery({
     queryKey: ['group-members', groupId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get group members
+      const { data: members, error: membersError } = await supabase
         .from('group_members')
         .select('*')
         .eq('group_id', groupId)
         .order('joined_at');
 
-      if (error) throw error;
-      return data as GroupMember[];
+      if (membersError) throw membersError;
+
+      // Get profiles for all member user_ids
+      const userIds = members?.map(m => m.user_id) || [];
+      if (userIds.length === 0) return [];
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, full_name, avatar_url')
+        .in('user_id', userIds);
+
+      if (profilesError) throw profilesError;
+
+      // Merge profiles with members
+      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      return members.map(member => ({
+        ...member,
+        profiles: profilesMap.get(member.user_id) || null,
+      })) as GroupMember[];
     },
     enabled: !!groupId,
+  });
+}
+
+export function useRemoveMember() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ groupId, userId }: { groupId: string; userId: string }) => {
+      const { error } = await supabase
+        .from('group_members')
+        .delete()
+        .eq('group_id', groupId)
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['group-members', variables.groupId] });
+      queryClient.invalidateQueries({ queryKey: ['group', variables.groupId] });
+      toast.success('Member removed from group');
+    },
+    onError: (error) => {
+      toast.error('Failed to remove member: ' + error.message);
+    },
   });
 }
 
