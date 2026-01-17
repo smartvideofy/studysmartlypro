@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { 
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
+import { useUnreadCounts } from "@/hooks/useUnreadMessages";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonGroupCard } from "@/components/ui/skeleton";
@@ -48,6 +49,9 @@ export default function GroupsPage() {
   const { data: myGroups, isLoading: groupsLoading, isError: groupsError } = useGroups();
   const { data: publicGroups, isLoading: publicLoading, isError: publicError } = usePublicGroups();
   const joinGroup = useJoinGroup();
+  
+  const groupIds = useMemo(() => myGroups?.map(g => g.id) || [], [myGroups]);
+  const { data: unreadCounts } = useUnreadCounts(groupIds);
 
   const isLoading = groupsLoading || publicLoading;
   const hasError = groupsError || publicError;
@@ -212,10 +216,15 @@ export default function GroupsPage() {
                       <span className="text-xs text-muted-foreground">
                         Updated {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
                       </span>
-                      <Button variant="outline" size="sm" asChild>
+                      <Button variant="outline" size="sm" asChild className="relative">
                         <Link to={`/groups/${group.id}`}>
                           <MessageSquare className="w-4 h-4" />
                           Open
+                          {unreadCounts?.[group.id] > 0 && (
+                            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center px-1">
+                              {unreadCounts[group.id] > 99 ? '99+' : unreadCounts[group.id]}
+                            </span>
+                          )}
                         </Link>
                       </Button>
                     </div>
