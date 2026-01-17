@@ -11,9 +11,10 @@ import {
   LogOut,
   Trash2,
   MoreHorizontal,
-  Loader2
+  Loader2,
+  Link2
 } from "lucide-react";
-import { formatDistanceToNow, format, isToday, isYesterday, isSameDay } from "date-fns";
+import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { Button } from "@/components/ui/button";
@@ -38,13 +39,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useGroup, useGroupMembers, useLeaveGroup, useDeleteGroup } from "@/hooks/useGroups";
 import { useGroupMessages, useSendMessage, useDeleteMessage, GroupMessage } from "@/hooks/useGroupChat";
 import { useSharedNotes, SharedNote } from "@/hooks/useSharedNotes";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
+import { useMarkAsRead } from "@/hooks/useUnreadMessages";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
 import { MemberManagementPanel } from "@/components/groups/MemberManagementPanel";
 import { SharedNotePreview } from "@/components/groups/SharedNotePreview";
+import { InviteLinkModal } from "@/components/groups/InviteLinkModal";
+import { TypingIndicator } from "@/components/groups/TypingIndicator";
 import { cn } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -54,6 +60,7 @@ export default function GroupDetailPage() {
   const [message, setMessage] = useState("");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<SharedNote | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -62,11 +69,22 @@ export default function GroupDetailPage() {
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId || "");
   const { data: messages, isLoading: messagesLoading } = useGroupMessages(groupId || "");
   const { data: sharedNotes, isLoading: notesLoading } = useSharedNotes(groupId || "");
+  const { data: profile } = useProfile();
   const sendMessage = useSendMessage();
   const deleteMessage = useDeleteMessage();
   const leaveGroup = useLeaveGroup();
+  const markAsRead = useMarkAsRead();
+  const { typingUsers, startTyping, stopTyping } = useTypingIndicator(groupId || "");
 
   const isOwner = group?.owner_id === user?.id;
+  const myName = profile?.full_name || user?.email?.split('@')[0] || 'User';
+
+  // Mark messages as read when viewing chat
+  useEffect(() => {
+    if (groupId && messages?.length) {
+      markAsRead.mutate(groupId);
+    }
+  }, [groupId, messages?.length]);
 
   // Auto-scroll chat to bottom
   useEffect(() => {
@@ -78,6 +96,17 @@ export default function GroupDetailPage() {
     if (!message.trim() || !groupId) return;
     sendMessage.mutate({ groupId, content: message.trim() });
     setMessage("");
+    stopTyping(myName);
+  };
+
+  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setMessage(value);
+    if (value.trim()) {
+      startTyping(myName);
+    } else {
+      stopTyping(myName);
+    }
   };
 
   const handleDeleteMessage = (messageId: string) => {
@@ -187,6 +216,12 @@ export default function GroupDetailPage() {
           )}
         </div>
         <div className="flex items-center gap-2">
+          {isOwner && group.is_private && (
+            <Button variant="outline" size="sm" onClick={() => setInviteModalOpen(true)}>
+              <Link2 className="w-4 h-4 mr-1" />
+              Invite
+            </Button>
+          )}
           {isOwner ? (
             <Button variant="outline" size="sm" onClick={() => setSettingsModalOpen(true)}>
               <Settings className="w-4 h-4 mr-1" />
@@ -348,12 +383,15 @@ export default function GroupDetailPage() {
               )}
             </ScrollArea>
 
+            {/* Typing Indicator */}
+            <TypingIndicator typingUsers={typingUsers} />
+
             {/* Message Input */}
             <form onSubmit={handleSendMessage} className="border-t border-border p-3 flex gap-2">
               <input
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleMessageChange}
                 placeholder="Type a message..."
                 className="flex-1 h-10 px-4 rounded-lg bg-secondary border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
               />
@@ -437,6 +475,15 @@ export default function GroupDetailPage() {
           onOpenChange={setSettingsModalOpen}
           group={group}
           onDelete={() => navigate("/groups")}
+        />
+      )}
+
+      {group && group.is_private && (
+        <InviteLinkModal
+          open={inviteModalOpen}
+          onOpenChange={setInviteModalOpen}
+          groupId={groupId || ""}
+          groupName={group.name}
         />
       )}
 

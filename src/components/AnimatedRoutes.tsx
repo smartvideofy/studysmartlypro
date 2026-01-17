@@ -13,6 +13,7 @@ import DeckDetailPage from "@/pages/DeckDetailPage";
 import StudySession from "@/pages/StudySession";
 import GroupsPage from "@/pages/GroupsPage";
 import GroupDetailPage from "@/pages/GroupDetailPage";
+import JoinGroupPage from "@/pages/JoinGroupPage";
 import ProgressPage from "@/pages/ProgressPage";
 import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
@@ -119,6 +120,11 @@ export const AnimatedRoutes = () => {
               <GroupDetailPage />
             </PageTransition>
           </ProtectedRoute>
+        } />
+        <Route path="/groups/join/:inviteCode" element={
+          <PageTransition>
+            <JoinGroupPage />
+          </PageTransition>
         } />
         <Route path="/progress" element={
           <ProtectedRoute>
