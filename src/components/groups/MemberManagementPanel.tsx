@@ -23,25 +23,28 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GroupMember, useRemoveMember } from "@/hooks/useGroups";
 import { useAuth } from "@/hooks/useAuth";
+import { OnlineIndicator } from "./OnlineIndicator";
 
 interface MemberManagementPanelProps {
   members: GroupMember[] | undefined;
   isLoading: boolean;
   groupId: string;
   ownerId: string;
+  isOnline?: (userId: string) => boolean;
 }
 
 export function MemberManagementPanel({ 
   members, 
   isLoading, 
   groupId,
-  ownerId 
+  ownerId,
+  isOnline 
 }: MemberManagementPanelProps) {
   const { user } = useAuth();
   const removeMember = useRemoveMember();
   const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(null);
 
-  const isOwner = user?.id === ownerId;
+  const isOwnerUser = user?.id === ownerId;
 
   const handleRemoveMember = async () => {
     if (!memberToRemove) return;
@@ -115,12 +118,21 @@ export function MemberManagementPanel({
               key={member.id}
               className="flex items-center gap-3 p-3 border border-border rounded-xl hover:bg-secondary/50 transition-colors"
             >
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={member.profiles?.avatar_url || undefined} />
-                <AvatarFallback className="bg-primary/10 text-primary">
-                  {getInitials(member.profiles?.full_name)}
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={member.profiles?.avatar_url || undefined} />
+                  <AvatarFallback className="bg-primary/10 text-primary">
+                    {getInitials(member.profiles?.full_name)}
+                  </AvatarFallback>
+                </Avatar>
+                {isOnline && (
+                  <OnlineIndicator 
+                    isOnline={isOnline(member.user_id)} 
+                    size="md"
+                    className="absolute -bottom-0.5 -right-0.5"
+                  />
+                )}
+              </div>
               
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -135,7 +147,7 @@ export function MemberManagementPanel({
               </div>
 
               {/* Actions - only show for owner managing other members */}
-              {isOwner && !isMe && !isMemberOwner && (
+              {isOwnerUser && !isMe && !isMemberOwner && (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="ghost" size="icon-sm">

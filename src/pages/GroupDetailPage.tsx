@@ -45,12 +45,16 @@ import { useGroupMessages, useSendMessage, useDeleteMessage, GroupMessage } from
 import { useSharedNotes, SharedNote } from "@/hooks/useSharedNotes";
 import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useMarkAsRead } from "@/hooks/useUnreadMessages";
+import { useMessageReactions, useToggleReaction } from "@/hooks/useMessageReactions";
+import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
 import { MemberManagementPanel } from "@/components/groups/MemberManagementPanel";
 import { SharedNotePreview } from "@/components/groups/SharedNotePreview";
 import { InviteLinkModal } from "@/components/groups/InviteLinkModal";
 import { TypingIndicator } from "@/components/groups/TypingIndicator";
+import { MessageReactions } from "@/components/groups/MessageReactions";
+import { OnlineIndicator } from "@/components/groups/OnlineIndicator";
 import { cn } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -75,6 +79,9 @@ export default function GroupDetailPage() {
   const leaveGroup = useLeaveGroup();
   const markAsRead = useMarkAsRead();
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(groupId || "");
+  const { getReactionsForMessage } = useMessageReactions(groupId || "");
+  const toggleReaction = useToggleReaction();
+  const { onlineUsers, isOnline } = useOnlinePresence(groupId || "");
 
   const isOwner = group?.owner_id === user?.id;
   const myName = profile?.full_name || user?.email?.split('@')[0] || 'User';
@@ -312,12 +319,19 @@ export default function GroupDetailPage() {
                             >
                               {/* Avatar - only show for first in sequence */}
                               {!isMe && !isContinuation ? (
-                                <Avatar className="h-8 w-8 shrink-0">
-                                  <AvatarImage src={msg.profiles?.avatar_url || undefined} />
-                                  <AvatarFallback className="text-xs bg-primary/10 text-primary">
-                                    {getInitials(msg.profiles?.full_name)}
-                                  </AvatarFallback>
-                                </Avatar>
+                                <div className="relative shrink-0">
+                                  <Avatar className="h-8 w-8">
+                                    <AvatarImage src={msg.profiles?.avatar_url || undefined} />
+                                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                      {getInitials(msg.profiles?.full_name)}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <OnlineIndicator 
+                                    isOnline={isOnline(msg.user_id)} 
+                                    size="sm"
+                                    className="absolute -bottom-0.5 -right-0.5"
+                                  />
+                                </div>
                               ) : !isMe ? (
                                 <div className="w-8 shrink-0" />
                               ) : null}
@@ -367,6 +381,16 @@ export default function GroupDetailPage() {
                                     {msg.content}
                                   </div>
                                 </div>
+                                
+                                {/* Message Reactions */}
+                                <MessageReactions
+                                  reactions={getReactionsForMessage(msg.id)}
+                                  onToggleReaction={(emoji) => 
+                                    toggleReaction.mutate({ messageId: msg.id, emoji, groupId: groupId || "" })
+                                  }
+                                  isMe={isMe}
+                                  isPending={toggleReaction.isPending}
+                                />
                                 
                                 <span className="text-[10px] text-muted-foreground mt-1">
                                   {format(new Date(msg.created_at), "h:mm a")}
@@ -453,11 +477,21 @@ export default function GroupDetailPage() {
 
         {/* Members Tab */}
         <TabsContent value="members" className="mt-0">
+          {/* Online indicator summary */}
+          {onlineUsers.length > 0 && (
+            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-green-500" />
+                {onlineUsers.length} online now
+              </span>
+            </div>
+          )}
           <MemberManagementPanel
             members={members}
             isLoading={membersLoading}
             groupId={groupId || ""}
             ownerId={group.owner_id}
+            isOnline={isOnline}
           />
         </TabsContent>
       </Tabs>
