@@ -12,7 +12,10 @@ import {
   Trash2,
   MoreHorizontal,
   Loader2,
-  Link2
+  Link2,
+  Reply,
+  Paperclip,
+  Image as ImageIcon
 } from "lucide-react";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -47,6 +50,8 @@ import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import { useMarkAsRead } from "@/hooks/useUnreadMessages";
 import { useMessageReactions, useToggleReaction } from "@/hooks/useMessageReactions";
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
+import { useUploadAttachment } from "@/hooks/useChatAttachments";
+import { useMentionNotifications } from "@/hooks/useMentionNotifications";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
 import { MemberManagementPanel } from "@/components/groups/MemberManagementPanel";
@@ -55,6 +60,9 @@ import { InviteLinkModal } from "@/components/groups/InviteLinkModal";
 import { TypingIndicator } from "@/components/groups/TypingIndicator";
 import { MessageReactions } from "@/components/groups/MessageReactions";
 import { OnlineIndicator } from "@/components/groups/OnlineIndicator";
+import { MentionInput, parseMentions, renderMessageWithMentions } from "@/components/groups/MentionInput";
+import { ReplyPreview } from "@/components/groups/ReplyPreview";
+import { MessageAttachments, AttachmentPreview } from "@/components/groups/MessageAttachments";
 import { cn } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -67,7 +75,10 @@ export default function GroupDetailPage() {
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
   const [selectedNote, setSelectedNote] = useState<SharedNote | null>(null);
+  const [replyTo, setReplyTo] = useState<{ id: string; content: string; senderName: string } | null>(null);
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: group, isLoading: groupLoading } = useGroup(groupId || "");
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId || "");
@@ -82,6 +93,8 @@ export default function GroupDetailPage() {
   const { getReactionsForMessage } = useMessageReactions(groupId || "");
   const toggleReaction = useToggleReaction();
   const { onlineUsers, isOnline } = useOnlinePresence(groupId || "");
+  const { uploadAttachment, isUploading } = useUploadAttachment();
+  const sendMentionNotifications = useMentionNotifications();
 
   const isOwner = group?.owner_id === user?.id;
   const myName = profile?.full_name || user?.email?.split('@')[0] || 'User';
@@ -98,16 +111,46 @@ export default function GroupDetailPage() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!message.trim() || !groupId) return;
-    sendMessage.mutate({ groupId, content: message.trim() });
+    if ((!message.trim() && !attachmentFile) || !groupId) return;
+    
+    const { mentions } = parseMentions(message);
+    
+    sendMessage.mutate(
+      { 
+        groupId, 
+        content: message.trim() || (attachmentFile ? `📎 ${attachmentFile.name}` : ""), 
+        replyToId: replyTo?.id 
+      },
+      {
+        onSuccess: async (newMessage) => {
+          // Upload attachment if present
+          if (attachmentFile && newMessage) {
+            await uploadAttachment(attachmentFile, newMessage.id);
+          }
+          
+          // Send mention notifications
+          if (mentions.length > 0 && group) {
+            sendMentionNotifications.mutate({
+              groupId,
+              groupName: group.name,
+              mentionedNames: mentions,
+              senderName: myName,
+              messageContent: message.trim(),
+            });
+          }
+        }
+      }
+    );
+    
     setMessage("");
+    setReplyTo(null);
+    setAttachmentFile(null);
     stopTyping(myName);
   };
 
-  const handleMessageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
+  const handleMessageChange = (value: string) => {
     setMessage(value);
     if (value.trim()) {
       startTyping(myName);
@@ -119,6 +162,26 @@ export default function GroupDetailPage() {
   const handleDeleteMessage = (messageId: string) => {
     if (!groupId) return;
     deleteMessage.mutate({ messageId, groupId });
+  };
+
+  const handleReply = (msg: GroupMessage) => {
+    setReplyTo({
+      id: msg.id,
+      content: msg.content,
+      senderName: msg.profiles?.full_name || "Unknown",
+    });
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Max 10MB
+      if (file.size > 10 * 1024 * 1024) {
+        return;
+      }
+      setAttachmentFile(file);
+    }
+    e.target.value = "";
   };
 
   const handleLeaveGroup = () => {
@@ -346,7 +409,19 @@ export default function GroupDetailPage() {
                                 )}
                                 
                                 <div className="flex items-center gap-1">
-                                  {/* Message actions - only for own messages */}
+                                  {/* Reply button for other's messages */}
+                                  {!isMe && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon-sm" 
+                                      className="opacity-0 group-hover/message:opacity-100 transition-opacity h-6 w-6"
+                                      onClick={() => handleReply(msg)}
+                                    >
+                                      <Reply className="w-3 h-3" />
+                                    </Button>
+                                  )}
+                                  
+                                  {/* Message actions - for own messages */}
                                   {isMe && (
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
@@ -370,15 +445,35 @@ export default function GroupDetailPage() {
                                     </DropdownMenu>
                                   )}
                                   
-                                  <div
-                                    className={cn(
-                                      "px-3 py-2 rounded-xl text-sm max-w-md break-words",
-                                      isMe
-                                        ? "bg-primary text-primary-foreground rounded-br-sm"
-                                        : "bg-secondary rounded-bl-sm"
+                                  <div className="flex flex-col gap-1">
+                                    {/* Reply reference */}
+                                    {msg.reply_to && (
+                                      <div className={cn(
+                                        "text-xs px-2 py-1 rounded border-l-2 border-primary/50 bg-secondary/50 max-w-[200px]",
+                                        isMe ? "ml-auto" : ""
+                                      )}>
+                                        <span className="font-medium text-primary text-[10px]">
+                                          {msg.reply_to.profiles?.full_name || "Unknown"}
+                                        </span>
+                                        <p className="truncate opacity-70">{msg.reply_to.content}</p>
+                                      </div>
                                     )}
-                                  >
-                                    {msg.content}
+                                    
+                                    <div
+                                      className={cn(
+                                        "px-3 py-2 rounded-xl text-sm max-w-md break-words",
+                                        isMe
+                                          ? "bg-primary text-primary-foreground rounded-br-sm"
+                                          : "bg-secondary rounded-bl-sm"
+                                      )}
+                                    >
+                                      {renderMessageWithMentions(msg.content, myName)}
+                                    </div>
+                                    
+                                    {/* Attachments */}
+                                    {msg.attachments && msg.attachments.length > 0 && (
+                                      <MessageAttachments attachments={msg.attachments} isMe={isMe} />
+                                    )}
                                   </div>
                                 </div>
                                 
@@ -410,17 +505,46 @@ export default function GroupDetailPage() {
             {/* Typing Indicator */}
             <TypingIndicator typingUsers={typingUsers} />
 
+            {/* Reply Preview */}
+            {replyTo && (
+              <ReplyPreview replyTo={replyTo} onCancel={() => setReplyTo(null)} className="mx-3 mt-2" />
+            )}
+
+            {/* Attachment Preview */}
+            {attachmentFile && (
+              <div className="px-3 pt-2">
+                <AttachmentPreview file={attachmentFile} onRemove={() => setAttachmentFile(null)} />
+              </div>
+            )}
+
             {/* Message Input */}
             <form onSubmit={handleSendMessage} className="border-t border-border p-3 flex gap-2">
               <input
-                type="text"
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileSelect}
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.txt"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <MentionInput
                 value={message}
                 onChange={handleMessageChange}
-                placeholder="Type a message..."
-                className="flex-1 h-10 px-4 rounded-lg bg-secondary border-0 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20"
+                onSubmit={() => handleSendMessage({ preventDefault: () => {} } as React.FormEvent)}
+                members={members || []}
+                placeholder="Type a message... Use @ to mention"
+                disabled={sendMessage.isPending || isUploading}
               />
-              <Button type="submit" size="icon" disabled={!message.trim() || sendMessage.isPending}>
-                {sendMessage.isPending ? (
+              <Button type="submit" size="icon" disabled={(!message.trim() && !attachmentFile) || sendMessage.isPending || isUploading}>
+                {sendMessage.isPending || isUploading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <Send className="w-4 h-4" />
