@@ -9,7 +9,9 @@ import {
   Lightbulb,
   MessageSquare,
   Brain,
-  Network
+  Network,
+  Settings,
+  Download
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +25,7 @@ import ConceptMapTab from "@/components/materials/tabs/ConceptMapTab";
 import AIChatTab from "@/components/materials/tabs/AIChatTab";
 import ProcessingStatus from "@/components/materials/ProcessingStatus";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ExportModal from "@/components/materials/ExportModal";
 
 export default function MaterialWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -30,6 +33,7 @@ export default function MaterialWorkspace() {
   const [activeTab, setActiveTab] = useState("tutor-notes");
   const [isViewerExpanded, setIsViewerExpanded] = useState(false);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const { data: material, isLoading } = useStudyMaterial(id || "");
 
@@ -136,18 +140,60 @@ export default function MaterialWorkspace() {
             onValueChange={setActiveTab}
             className="flex-1 flex flex-col"
           >
-            <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto overflow-x-auto">
-              <TabsTrigger 
-                value="tutor-notes" 
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
-                <BookOpen className="w-4 h-4" />
-                <span className="hidden sm:inline">Tutor Notes</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="summaries"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
+            <div className="flex items-center justify-between border-b border-border">
+              <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto overflow-x-auto flex-1">
+                <TabsTrigger 
+                  value="tutor-notes" 
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span className="hidden sm:inline">Tutor Notes</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="summaries"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <FileText className="w-4 h-4" />
+                  <span className="hidden sm:inline">Summaries</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="flashcards"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <Lightbulb className="w-4 h-4" />
+                  <span className="hidden sm:inline">Flashcards</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="questions"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <Brain className="w-4 h-4" />
+                  <span className="hidden sm:inline">Questions</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="concept-map"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <Network className="w-4 h-4" />
+                  <span className="hidden sm:inline">Map</span>
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="chat"
+                  className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  <span className="hidden sm:inline">AI Chat</span>
+                </TabsTrigger>
+              </TabsList>
+              <div className="flex gap-1 px-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setShowExportModal(true)}>
+                  <Download className="w-4 h-4" />
+                </Button>
+                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => navigate(`/materials/${material.id}/settings`)}>
+                  <Settings className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
                 <FileText className="w-4 h-4" />
                 <span className="hidden sm:inline">Summaries</span>
               </TabsTrigger>
@@ -204,6 +250,14 @@ export default function MaterialWorkspace() {
           </Tabs>
         </motion.div>
       </div>
+
+      <ExportModal
+        open={showExportModal}
+        onOpenChange={setShowExportModal}
+        materialId={material.id}
+        materialTitle={material.title}
+        filePath={material.file_path}
+      />
     </DashboardLayout>
   );
 }

@@ -9,13 +9,15 @@ import {
   XCircle,
   ChevronDown,
   ChevronUp,
-  HelpCircle
+  HelpCircle,
+  Play
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { usePracticeQuestions, PracticeQuestion } from "@/hooks/useStudyMaterials";
 import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import { cn } from "@/lib/utils";
+import QuizModeDrawer from "./QuizModeDrawer";
 
 interface PracticeQuestionsTabProps {
   materialId: string;
@@ -27,6 +29,7 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
   const [revealedAnswers, setRevealedAnswers] = useState<Set<string>>(new Set());
   const [expandedExplanations, setExpandedExplanations] = useState<Set<string>>(new Set());
+  const [showQuizMode, setShowQuizMode] = useState(false);
 
   const handleRegenerate = () => {
     regenerate.mutate("practice_questions");
@@ -101,20 +104,30 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
               {questions.length} questions generated
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2"
-            onClick={handleRegenerate}
-            disabled={regenerate.isPending}
-          >
-            {regenerate.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Regenerate
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              className="gap-2"
+              onClick={() => setShowQuizMode(true)}
+            >
+              <Play className="w-4 h-4" />
+              Quiz Mode
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={handleRegenerate}
+              disabled={regenerate.isPending}
+            >
+              {regenerate.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Regenerate
+            </Button>
+          </div>
         </div>
 
         {/* MCQ Section */}
@@ -183,6 +196,12 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
           </section>
         )}
       </div>
+
+      <QuizModeDrawer 
+        open={showQuizMode} 
+        onOpenChange={setShowQuizMode} 
+        materialId={materialId} 
+      />
     </ScrollArea>
   );
 }
