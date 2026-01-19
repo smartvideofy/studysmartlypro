@@ -8,6 +8,7 @@ import OnboardingPage from "@/pages/OnboardingPage";
 import Dashboard from "@/pages/Dashboard";
 import StudyMaterialsPage from "@/pages/StudyMaterialsPage";
 import MaterialWorkspace from "@/pages/MaterialWorkspace";
+import MaterialSettingsPage from "@/pages/MaterialSettingsPage";
 import FlashcardsPage from "@/pages/FlashcardsPage";
 import DeckDetailPage from "@/pages/DeckDetailPage";
 import StudySession from "@/pages/StudySession";
@@ -63,6 +64,13 @@ export const AnimatedRoutes = () => {
           <ProtectedRoute>
             <PageTransition>
               <MaterialWorkspace />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/materials/:id/settings" element={
+          <ProtectedRoute>
+            <PageTransition>
+              <MaterialSettingsPage />
             </PageTransition>
           </ProtectedRoute>
         } />
