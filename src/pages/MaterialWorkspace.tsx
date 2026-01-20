@@ -194,38 +194,6 @@ export default function MaterialWorkspace() {
                 </Button>
               </div>
             </div>
-                <FileText className="w-4 h-4" />
-                <span className="hidden sm:inline">Summaries</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="flashcards"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
-                <Lightbulb className="w-4 h-4" />
-                <span className="hidden sm:inline">Flashcards</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="questions"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
-                <Brain className="w-4 h-4" />
-                <span className="hidden sm:inline">Questions</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="concept-map"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
-                <Network className="w-4 h-4" />
-                <span className="hidden sm:inline">Map</span>
-              </TabsTrigger>
-              <TabsTrigger 
-                value="chat"
-                className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2"
-              >
-                <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">AI Chat</span>
-              </TabsTrigger>
-            </TabsList>
 
             <div className="flex-1 overflow-y-auto">
               <TabsContent value="tutor-notes" className="m-0 h-full">
