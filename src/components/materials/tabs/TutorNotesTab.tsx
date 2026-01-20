@@ -6,17 +6,35 @@ import {
   RefreshCw, 
   BookOpen,
   Sparkles,
-  Save,
-  Loader2
+  Loader2,
+  Maximize2,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useTutorNotes, TutorNotes } from "@/hooks/useStudyMaterials";
+import { useTutorNotes } from "@/hooks/useStudyMaterials";
 import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import { cn } from "@/lib/utils";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 interface TutorNotesTabProps {
   materialId: string;
+}
+
+interface TutorNoteSubtopic {
+  title: string;
+  content: string;
+  definitions?: { term: string; definition: string }[];
+  examples?: string[];
+  exam_tips?: string[];
+}
+
+interface TutorNoteTopic {
+  title: string;
+  subtopics: TutorNoteSubtopic[];
 }
 
 export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
@@ -24,6 +42,7 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
   const regenerate = useRegenerateContent(materialId);
   const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
   const [expandedSubtopics, setExpandedSubtopics] = useState<Set<string>>(new Set());
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const toggleTopic = (topicId: string) => {
     const newExpanded = new Set(expandedTopics);
@@ -43,6 +62,26 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
       newExpanded.add(subtopicId);
     }
     setExpandedSubtopics(newExpanded);
+  };
+
+  const expandAll = () => {
+    if (!notes?.content?.topics) return;
+    const allTopics = new Set<string>();
+    const allSubtopics = new Set<string>();
+    notes.content.topics.forEach((topic: TutorNoteTopic, topicIndex: number) => {
+      const topicId = `topic-${topicIndex}`;
+      allTopics.add(topicId);
+      topic.subtopics.forEach((_: TutorNoteSubtopic, subtopicIndex: number) => {
+        allSubtopics.add(`${topicId}-subtopic-${subtopicIndex}`);
+      });
+    });
+    setExpandedTopics(allTopics);
+    setExpandedSubtopics(allSubtopics);
+  };
+
+  const collapseAll = () => {
+    setExpandedTopics(new Set());
+    setExpandedSubtopics(new Set());
   };
 
   const handleRegenerate = () => {
@@ -81,16 +120,45 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
     );
   }
 
-  return (
-    <ScrollArea className="h-full">
+  const topicCount = notes.content.topics.length;
+  const subtopicCount = notes.content.topics.reduce(
+    (acc: number, t: TutorNoteTopic) => acc + (t.subtopics?.length || 0), 
+    0
+  );
+
+  const NotesContent = ({ inDialog = false }: { inDialog?: boolean }) => (
+    <ScrollArea className={inDialog ? "h-[80vh]" : "h-full"}>
       <div className="p-6 space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="font-semibold">Tutor Notes</h3>
-            <p className="text-sm text-muted-foreground">AI-generated study outline</p>
+            <h3 className="font-semibold flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Tutor Notes
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {topicCount} topics • {subtopicCount} subtopics
+            </p>
           </div>
           <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={expandedTopics.size > 0 ? collapseAll : expandAll}
+            >
+              {expandedTopics.size > 0 ? 'Collapse All' : 'Expand All'}
+            </Button>
+            {!inDialog && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsFullscreen(true)}
+              >
+                <Maximize2 className="w-4 h-4" />
+                Fullscreen
+              </Button>
+            )}
             <Button 
               variant="outline" 
               size="sm" 
@@ -110,7 +178,7 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
 
         {/* Topics */}
         <div className="space-y-3">
-          {notes.content.topics.map((topic, topicIndex) => {
+          {notes.content.topics.map((topic: TutorNoteTopic, topicIndex: number) => {
             const topicId = `topic-${topicIndex}`;
             const isExpanded = expandedTopics.has(topicId);
 
@@ -133,6 +201,9 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
                     <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                   )}
                   <span className="font-semibold">{topic.title}</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {topic.subtopics?.length || 0} subtopics
+                  </span>
                 </button>
 
                 {/* Topic Content */}
@@ -146,7 +217,7 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
                       className="border-t border-border"
                     >
                       <div className="p-4 space-y-4">
-                        {topic.subtopics.map((subtopic, subtopicIndex) => {
+                        {topic.subtopics?.map((subtopic: TutorNoteSubtopic, subtopicIndex: number) => {
                           const subtopicId = `${topicId}-subtopic-${subtopicIndex}`;
                           const isSubtopicExpanded = expandedSubtopics.has(subtopicId);
 
@@ -242,5 +313,33 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
         </div>
       </div>
     </ScrollArea>
+  );
+
+  return (
+    <>
+      <NotesContent />
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-5xl h-[90vh] p-0 gap-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div>
+              <h2 className="text-lg font-semibold">Tutor Notes</h2>
+              <p className="text-sm text-muted-foreground">
+                {topicCount} topics • {subtopicCount} subtopics
+              </p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsFullscreen(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <NotesContent inDialog />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
