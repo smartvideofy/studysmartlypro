@@ -7,13 +7,19 @@ import {
   Sparkles,
   Clock,
   List,
-  AlignLeft
+  AlignLeft,
+  Maximize2,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useSummaries, Summary } from "@/hooks/useStudyMaterials";
+import { useSummaries } from "@/hooks/useStudyMaterials";
 import { useRegenerateContent } from "@/hooks/useRegenerateContent";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 interface SummariesTabProps {
   materialId: string;
@@ -34,6 +40,7 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
   const { data: summaries, isLoading } = useSummaries(materialId);
   const regenerate = useRegenerateContent(materialId);
   const [activeType, setActiveType] = useState<string>("quick");
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleRegenerate = () => {
     regenerate.mutate("summaries");
@@ -132,29 +139,45 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
     return sections;
   };
 
-  return (
-    <ScrollArea className="h-full">
+  const SummaryContent = ({ inDialog = false }: { inDialog?: boolean }) => (
+    <ScrollArea className={inDialog ? "h-[80vh]" : "h-full"}>
       <div className="p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="font-semibold">Summaries</h3>
+            <h3 className="font-semibold flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Summaries
+            </h3>
             <p className="text-sm text-muted-foreground">Different summary depths</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2"
-            onClick={handleRegenerate}
-            disabled={regenerate.isPending}
-          >
-            {regenerate.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
+          <div className="flex gap-2">
+            {!inDialog && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="gap-2"
+                onClick={() => setIsFullscreen(true)}
+              >
+                <Maximize2 className="w-4 h-4" />
+                Fullscreen
+              </Button>
             )}
-            Regenerate
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="gap-2"
+              onClick={handleRegenerate}
+              disabled={regenerate.isPending}
+            >
+              {regenerate.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <RefreshCw className="w-4 h-4" />
+              )}
+              Regenerate
+            </Button>
+          </div>
         </div>
 
         {/* Summary Types */}
@@ -240,6 +263,32 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
         </Tabs>
       </div>
     </ScrollArea>
+  );
+
+  return (
+    <>
+      <SummaryContent />
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-4xl h-[90vh] p-0 gap-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div>
+              <h2 className="text-lg font-semibold">Summaries</h2>
+              <p className="text-sm text-muted-foreground">Distraction-free reading</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsFullscreen(false)}
+            >
+              <X className="w-5 h-5" />
+            </Button>
+          </div>
+          <SummaryContent inDialog />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

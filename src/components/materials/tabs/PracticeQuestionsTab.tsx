@@ -10,7 +10,8 @@ import {
   ChevronDown,
   ChevronUp,
   HelpCircle,
-  Play
+  Play,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -94,115 +95,138 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
   const caseBasedQuestions = questions.filter(q => q.question_type === 'case_based');
 
   return (
-    <ScrollArea className="h-full">
-      <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className="h-full flex flex-col">
+      {/* Header with Quiz Mode CTA */}
+      <div className="p-6 border-b border-border/50">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold">Practice Questions</h3>
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Brain className="w-5 h-5 text-primary" />
+              Practice Questions
+            </h3>
             <p className="text-sm text-muted-foreground">
-              {questions.length} questions generated
+              {questions.length} questions • {mcqQuestions.length} MCQ
             </p>
           </div>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              className="gap-2"
-              onClick={() => setShowQuizMode(true)}
-            >
-              <Play className="w-4 h-4" />
-              Quiz Mode
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2"
-              onClick={handleRegenerate}
-              disabled={regenerate.isPending}
-            >
-              {regenerate.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              Regenerate
-            </Button>
-          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="gap-2"
+            onClick={handleRegenerate}
+            disabled={regenerate.isPending}
+          >
+            {regenerate.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            Regenerate
+          </Button>
         </div>
 
-        {/* MCQ Section */}
+        {/* Primary Quiz Mode Button */}
         {mcqQuestions.length > 0 && (
-          <section className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase text-muted-foreground">
-              Multiple Choice ({mcqQuestions.length})
-            </h4>
-            {mcqQuestions.map((question, index) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                index={index}
-                selectedAnswer={selectedAnswers[question.id]}
-                onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
-                isRevealed={revealedAnswers.has(question.id)}
-                onToggleReveal={() => toggleReveal(question.id)}
-                isExplanationExpanded={expandedExplanations.has(question.id)}
-                onToggleExplanation={() => toggleExplanation(question.id)}
-              />
-            ))}
-          </section>
-        )}
-
-        {/* Short Answer Section */}
-        {shortAnswerQuestions.length > 0 && (
-          <section className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase text-muted-foreground">
-              Short Answer ({shortAnswerQuestions.length})
-            </h4>
-            {shortAnswerQuestions.map((question, index) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                index={index}
-                selectedAnswer={selectedAnswers[question.id]}
-                onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
-                isRevealed={revealedAnswers.has(question.id)}
-                onToggleReveal={() => toggleReveal(question.id)}
-                isExplanationExpanded={expandedExplanations.has(question.id)}
-                onToggleExplanation={() => toggleExplanation(question.id)}
-              />
-            ))}
-          </section>
-        )}
-
-        {/* Case-Based Section */}
-        {caseBasedQuestions.length > 0 && (
-          <section className="space-y-4">
-            <h4 className="text-sm font-semibold uppercase text-muted-foreground">
-              Case-Based ({caseBasedQuestions.length})
-            </h4>
-            {caseBasedQuestions.map((question, index) => (
-              <QuestionCard
-                key={question.id}
-                question={question}
-                index={index}
-                selectedAnswer={selectedAnswers[question.id]}
-                onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
-                isRevealed={revealedAnswers.has(question.id)}
-                onToggleReveal={() => toggleReveal(question.id)}
-                isExplanationExpanded={expandedExplanations.has(question.id)}
-                onToggleExplanation={() => toggleExplanation(question.id)}
-              />
-            ))}
-          </section>
+          <Button 
+            variant="hero"
+            size="lg"
+            className="w-full gap-3 h-14 text-base"
+            onClick={() => setShowQuizMode(true)}
+          >
+            <Trophy className="w-5 h-5" />
+            Start Quiz Mode
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full ml-2">
+              {mcqQuestions.length} questions
+            </span>
+          </Button>
         )}
       </div>
+
+      {/* Questions List */}
+      <ScrollArea className="flex-1">
+        <div className="p-6 space-y-6">
+          {/* MCQ Section */}
+          {mcqQuestions.length > 0 && (
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center">
+                  {mcqQuestions.length}
+                </span>
+                Multiple Choice
+              </h4>
+              {mcqQuestions.map((question, index) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  index={index}
+                  selectedAnswer={selectedAnswers[question.id]}
+                  onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
+                  isRevealed={revealedAnswers.has(question.id)}
+                  onToggleReveal={() => toggleReveal(question.id)}
+                  isExplanationExpanded={expandedExplanations.has(question.id)}
+                  onToggleExplanation={() => toggleExplanation(question.id)}
+                />
+              ))}
+            </section>
+          )}
+
+          {/* Short Answer Section */}
+          {shortAnswerQuestions.length > 0 && (
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-secondary text-secondary-foreground text-xs flex items-center justify-center">
+                  {shortAnswerQuestions.length}
+                </span>
+                Short Answer
+              </h4>
+              {shortAnswerQuestions.map((question, index) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  index={index}
+                  selectedAnswer={selectedAnswers[question.id]}
+                  onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
+                  isRevealed={revealedAnswers.has(question.id)}
+                  onToggleReveal={() => toggleReveal(question.id)}
+                  isExplanationExpanded={expandedExplanations.has(question.id)}
+                  onToggleExplanation={() => toggleExplanation(question.id)}
+                />
+              ))}
+            </section>
+          )}
+
+          {/* Case-Based Section */}
+          {caseBasedQuestions.length > 0 && (
+            <section className="space-y-4">
+              <h4 className="text-sm font-semibold uppercase text-muted-foreground flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-accent/10 text-accent text-xs flex items-center justify-center">
+                  {caseBasedQuestions.length}
+                </span>
+                Case-Based
+              </h4>
+              {caseBasedQuestions.map((question, index) => (
+                <QuestionCard
+                  key={question.id}
+                  question={question}
+                  index={index}
+                  selectedAnswer={selectedAnswers[question.id]}
+                  onSelectAnswer={(answer) => handleSelectAnswer(question.id, answer)}
+                  isRevealed={revealedAnswers.has(question.id)}
+                  onToggleReveal={() => toggleReveal(question.id)}
+                  isExplanationExpanded={expandedExplanations.has(question.id)}
+                  onToggleExplanation={() => toggleExplanation(question.id)}
+                />
+              ))}
+            </section>
+          )}
+        </div>
+      </ScrollArea>
 
       <QuizModeDrawer 
         open={showQuizMode} 
         onOpenChange={setShowQuizMode} 
         materialId={materialId} 
       />
-    </ScrollArea>
+    </div>
   );
 }
 
@@ -242,7 +266,7 @@ function QuestionCard({
         <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center shrink-0">
           {index + 1}
         </span>
-        <p className="font-medium">{question.question}</p>
+        <p className="font-medium text-sm">{question.question}</p>
       </div>
 
       {/* Options (for MCQ) */}

@@ -4,17 +4,15 @@ import {
   Save,
   Loader2,
   Sparkles,
-  ChevronLeft,
-  ChevronRight,
-  RotateCcw,
   FolderPlus,
   Check,
   RefreshCw,
-  Play
+  Play,
+  ExternalLink,
+  Layers
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -39,6 +37,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FlashcardStudyDrawer } from "./FlashcardStudyDrawer";
 import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface FlashcardsTabProps {
   materialId: string;
@@ -57,8 +56,6 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const regenerate = useRegenerateContent(materialId);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
   const [selectedDeckId, setSelectedDeckId] = useState<string>("");
   const [newDeckName, setNewDeckName] = useState("");
@@ -66,10 +63,9 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const [selectedCards, setSelectedCards] = useState<Set<string>>(new Set());
   const [savedDeckId, setSavedDeckId] = useState<string | null>(null);
   const [showStudyDrawer, setShowStudyDrawer] = useState(false);
-  const [studyStartIndex, setStudyStartIndex] = useState(0);
 
   // Fetch flashcards from material_flashcards table
-  const { data: flashcards, isLoading, refetch } = useQuery({
+  const { data: flashcards, isLoading } = useQuery({
     queryKey: ['material-flashcards', materialId],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -211,14 +207,13 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
     });
   };
 
-  const handlePrevious = () => {
-    setIsFlipped(false);
-    setCurrentIndex((prev) => (prev > 0 ? prev - 1 : (flashcards?.length || 1) - 1));
-  };
-
-  const handleNext = () => {
-    setIsFlipped(false);
-    setCurrentIndex((prev) => (prev < (flashcards?.length || 1) - 1 ? prev + 1 : 0));
+  const selectAllCards = () => {
+    if (!flashcards) return;
+    if (selectedCards.size === flashcards.length) {
+      setSelectedCards(new Set());
+    } else {
+      setSelectedCards(new Set(flashcards.map(c => c.id)));
+    }
   };
 
   if (isLoading) {
@@ -251,31 +246,25 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
     );
   }
 
-  const currentCard = flashcards[currentIndex];
+  // Count difficulties
+  const easyCount = flashcards.filter(c => c.difficulty === 'easy').length;
+  const mediumCount = flashcards.filter(c => c.difficulty === 'medium').length;
+  const hardCount = flashcards.filter(c => c.difficulty === 'hard').length;
 
   return (
     <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <div>
-          <h3 className="font-semibold text-lg">Flashcards</h3>
-          <p className="text-sm text-muted-foreground">
-            {flashcards.length} cards generated
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button 
-            variant="hero" 
-            size="sm" 
-            className="gap-2"
-            onClick={() => {
-              setStudyStartIndex(0);
-              setShowStudyDrawer(true);
-            }}
-          >
-            <Play className="w-4 h-4" />
-            Start Studying
-          </Button>
+      {/* Header with Stats */}
+      <div className="p-6 border-b border-border/50">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h3 className="font-semibold text-lg flex items-center gap-2">
+              <Layers className="w-5 h-5 text-primary" />
+              Flashcards
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              {flashcards.length} cards ready to study
+            </p>
+          </div>
           <Button 
             variant="outline" 
             size="sm" 
@@ -290,158 +279,131 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
             )}
             Regenerate
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="gap-2"
-            onClick={() => setShowSaveDialog(true)}
-          >
-            <FolderPlus className="w-4 h-4" />
-            Save to Deck
-          </Button>
-          {savedDeckId && (
-            <Button 
-              variant="secondary" 
-              size="sm" 
-              className="gap-2"
-              onClick={() => navigate(`/flashcards/${savedDeckId}`)}
-            >
-              View Saved Deck
-            </Button>
+        </div>
+
+        {/* Difficulty Breakdown */}
+        <div className="flex gap-4 mb-6">
+          {easyCount > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="text-sm text-muted-foreground">{easyCount} Easy</span>
+            </div>
+          )}
+          {mediumCount > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-yellow-500" />
+              <span className="text-sm text-muted-foreground">{mediumCount} Medium</span>
+            </div>
+          )}
+          {hardCount > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-red-500" />
+              <span className="text-sm text-muted-foreground">{hardCount} Hard</span>
+            </div>
           )}
         </div>
-      </div>
 
-      {/* Main Flashcard Display Area - Takes all available space */}
-      <div className="flex-1 flex flex-col min-h-0 relative">
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
-        
-        {/* Flashcard Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 relative z-10">
-          {/* Progress & Difficulty Badge */}
-          <div className="flex items-center gap-3 mb-6">
-            <span className="text-sm text-muted-foreground font-medium">
-              Card {currentIndex + 1} of {flashcards.length}
-            </span>
-            {currentCard.difficulty && (
-              <span className={cn(
-                "text-xs px-3 py-1 rounded-full font-medium",
-                currentCard.difficulty === 'easy' && 'bg-green-500/10 text-green-600 dark:text-green-400',
-                currentCard.difficulty === 'hard' && 'bg-red-500/10 text-red-600 dark:text-red-400',
-                currentCard.difficulty === 'medium' && 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
-              )}>
-                {currentCard.difficulty}
-              </span>
+        {/* Primary Actions */}
+        <div className="flex flex-col gap-3">
+          <Button 
+            variant="hero" 
+            size="lg" 
+            className="w-full gap-3 h-14 text-base"
+            onClick={() => setShowStudyDrawer(true)}
+          >
+            <Play className="w-5 h-5" />
+            Start Studying
+          </Button>
+
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              className="flex-1 gap-2"
+              onClick={() => setShowSaveDialog(true)}
+            >
+              <FolderPlus className="w-4 h-4" />
+              Save to Deck
+            </Button>
+            {savedDeckId && (
+              <Button 
+                variant="secondary" 
+                className="flex-1 gap-2"
+                onClick={() => navigate(`/flashcards/${savedDeckId}`)}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Saved Deck
+              </Button>
             )}
           </div>
-
-          {/* Large Flashcard */}
-          <div 
-            className="flashcard-flip-container w-full max-w-2xl aspect-[16/10] cursor-pointer"
-            onClick={() => setIsFlipped(!isFlipped)}
-          >
-            <div className={`flashcard-inner ${isFlipped ? 'flipped' : ''}`}>
-              {/* Front */}
-              <div className="flashcard-face study-flashcard-face">
-                <div className="flex-1 flex items-center justify-center p-8">
-                  <p className="text-center text-xl md:text-2xl font-medium leading-relaxed">
-                    {currentCard.front}
-                  </p>
-                </div>
-                <p className="text-sm text-muted-foreground pb-6">Click to flip</p>
-              </div>
-              
-              {/* Back */}
-              <div className="flashcard-face flashcard-back study-flashcard-back">
-                <div className="flex-1 flex flex-col items-center justify-center p-8">
-                  <p className="text-center text-xl md:text-2xl leading-relaxed">
-                    {currentCard.back}
-                  </p>
-                  {currentCard.hint && (
-                    <p className="text-sm text-muted-foreground mt-6 italic flex items-center gap-2">
-                      <Lightbulb className="w-4 h-4" />
-                      {currentCard.hint}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Navigation Controls */}
-          <div className="flex items-center gap-4 mt-8">
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="h-11 w-11 rounded-full"
-              onClick={handlePrevious}
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-            
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-11 w-11 rounded-full"
-              onClick={() => setIsFlipped(false)}
-            >
-              <RotateCcw className="w-5 h-5" />
-            </Button>
-            
-            <Button 
-              variant="outline" 
-              size="icon"
-              className="h-11 w-11 rounded-full"
-              onClick={handleNext}
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Bottom Thumbnail Strip */}
-        <div className="border-t border-border/50 bg-background/80 backdrop-blur-sm">
-          <ScrollArea className="w-full">
-            <div className="flex gap-2 p-4">
-              {flashcards.map((card, index) => (
-                <button
-                  key={card.id}
-                  onClick={() => {
-                    setCurrentIndex(index);
-                    setIsFlipped(false);
-                  }}
-                  onDoubleClick={() => {
-                    setStudyStartIndex(index);
-                    setShowStudyDrawer(true);
-                  }}
-                  className={cn(
-                    "shrink-0 w-28 h-16 rounded-lg border text-xs p-3 text-left transition-all relative group",
-                    "hover:border-primary hover:bg-primary/5 hover:shadow-md",
-                    index === currentIndex
-                      ? "border-primary bg-primary/10 ring-2 ring-primary/20"
-                      : "border-border bg-card/80"
-                  )}
-                >
-                  <span className="line-clamp-2 font-medium text-foreground/90">{card.front}</span>
-                  {selectedCards.has(card.id) && (
-                    <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-primary rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-primary-foreground" />
-                    </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </ScrollArea>
         </div>
       </div>
 
-      {/* Study Drawer */}
+      {/* Card Preview List */}
+      <ScrollArea className="flex-1">
+        <div className="p-4 space-y-2">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+              Card Preview
+            </p>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="text-xs h-7"
+              onClick={selectAllCards}
+            >
+              {selectedCards.size === flashcards.length ? 'Deselect All' : 'Select All'}
+            </Button>
+          </div>
+          
+          {flashcards.map((card, index) => (
+            <button
+              key={card.id}
+              onClick={() => toggleCardSelection(card.id)}
+              className={cn(
+                "w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-all",
+                "hover:border-primary/50 hover:bg-primary/5",
+                selectedCards.has(card.id)
+                  ? "border-primary bg-primary/10 ring-1 ring-primary/20"
+                  : "border-border bg-card/50"
+              )}
+            >
+              <div className={cn(
+                "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                selectedCards.has(card.id) 
+                  ? "bg-primary text-primary-foreground" 
+                  : "bg-secondary text-muted-foreground"
+              )}>
+                {selectedCards.has(card.id) ? (
+                  <Check className="w-3 h-3" />
+                ) : (
+                  <span className="text-xs">{index + 1}</span>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium line-clamp-1">{card.front}</p>
+                <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{card.back}</p>
+              </div>
+              {card.difficulty && (
+                <span className={cn(
+                  "text-[10px] px-2 py-0.5 rounded-full font-medium shrink-0",
+                  card.difficulty === 'easy' && 'bg-green-500/10 text-green-600 dark:text-green-400',
+                  card.difficulty === 'hard' && 'bg-red-500/10 text-red-600 dark:text-red-400',
+                  card.difficulty === 'medium' && 'bg-yellow-500/10 text-yellow-600 dark:text-yellow-400'
+                )}>
+                  {card.difficulty}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Study Drawer - Full Screen Experience */}
       <FlashcardStudyDrawer
         open={showStudyDrawer}
         onOpenChange={setShowStudyDrawer}
         flashcards={flashcards}
-        initialIndex={studyStartIndex}
+        initialIndex={0}
       />
 
       {/* Save to Deck Dialog */}

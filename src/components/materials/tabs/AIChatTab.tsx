@@ -6,13 +6,19 @@ import {
   Loader2,
   Bot,
   User,
-  Sparkles
+  Sparkles,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+} from "@/components/ui/dialog";
 
 interface AIChatTabProps {
   materialId: string;
@@ -32,6 +38,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -166,7 +173,6 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
     } catch (error) {
       console.error("Chat error:", error);
       toast.error("Failed to get response. Please try again.");
-      // Remove the loading state but keep user message
     } finally {
       setIsLoading(false);
     }
@@ -186,8 +192,26 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
     "Create a study checklist",
   ];
 
-  return (
-    <div className="h-full flex flex-col">
+  const ChatContent = ({ inDialog = false }: { inDialog?: boolean }) => (
+    <div className={`flex flex-col ${inDialog ? 'h-[80vh]' : 'h-full'}`}>
+      {/* Chat Header */}
+      <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-5 h-5 text-primary" />
+          <h3 className="font-semibold">AI Chat</h3>
+        </div>
+        {!inDialog && (
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => setIsFullscreen(true)}
+          >
+            <Maximize2 className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+
       {/* Chat Messages */}
       <ScrollArea className="flex-1 p-4" ref={scrollRef}>
         {messages.length === 0 ? (
@@ -196,8 +220,8 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
               <MessageSquare className="w-8 h-8 text-primary" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Ask about your material</h3>
-            <p className="text-muted-foreground max-w-sm mb-6">
-              I can answer questions based only on the content you uploaded. Try one of these:
+            <p className="text-muted-foreground max-w-sm mb-6 text-sm">
+              I can answer questions based only on the content you uploaded.
             </p>
             <div className="flex flex-wrap gap-2 justify-center">
               {suggestedQuestions.map((question, index) => (
@@ -232,7 +256,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
                     </div>
                   )}
                   <div
-                    className={`max-w-[80%] rounded-lg p-3 ${
+                    className={`max-w-[85%] rounded-lg p-3 ${
                       message.role === "user"
                         ? "bg-primary text-primary-foreground"
                         : "bg-secondary"
@@ -283,8 +307,8 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask a question about your material..."
-            className="min-h-[44px] max-h-32 resize-none"
+            placeholder="Ask a question..."
+            className="min-h-[44px] max-h-32 resize-none text-sm"
             rows={1}
           />
           <Button 
@@ -302,9 +326,35 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
         </div>
         <p className="text-xs text-muted-foreground mt-2 text-center">
           <Sparkles className="w-3 h-3 inline mr-1" />
-          AI responses are based only on your uploaded material
+          AI responses are based only on your material
         </p>
       </div>
     </div>
+  );
+
+  return (
+    <>
+      <ChatContent />
+
+      {/* Fullscreen Dialog */}
+      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
+        <DialogContent className="max-w-3xl h-[90vh] p-0 gap-0">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 text-primary" />
+              <h2 className="text-lg font-semibold">AI Chat</h2>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setIsFullscreen(false)}
+            >
+              <Minimize2 className="w-5 h-5" />
+            </Button>
+          </div>
+          <ChatContent inDialog />
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
