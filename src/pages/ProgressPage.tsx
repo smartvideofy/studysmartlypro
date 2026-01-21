@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useStudyStats } from "@/hooks/useStudySessions";
-import { useDecks } from "@/hooks/useFlashcards";
+import { useDecks, useDeckMasteryStats } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
@@ -63,6 +63,39 @@ const getAchievements = (stats: any, deckCount: number) => [
   },
 ];
 
+// Component to render individual deck progress with real mastery data
+function DeckProgressRow({ deck }: { deck: { id: string; name: string; total: number; color: string } }) {
+  const { data: masteryStats } = useDeckMasteryStats(deck.id);
+  const percentage = masteryStats?.percentage || 0;
+  
+  return (
+    <Link 
+      to={`/study/${deck.id}`}
+      className="block hover:bg-secondary/50 rounded-lg p-2 -m-2 transition-colors"
+    >
+      <div className="flex items-center justify-between text-sm mb-2">
+        <span className="font-medium truncate max-w-[50%]">{deck.name}</span>
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground">
+            {masteryStats?.mastered || 0}/{deck.total} mastered
+          </span>
+          <Button variant="ghost" size="icon-sm" className="h-6 w-6">
+            <Play className="w-3 h-3" />
+          </Button>
+        </div>
+      </div>
+      <div className="h-2 bg-secondary rounded-full overflow-hidden">
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: `${percentage}%` }}
+          transition={{ duration: 0.5 }}
+          className={`h-full rounded-full ${deck.color}`}
+        />
+      </div>
+    </Link>
+  );
+}
+
 export default function ProgressPage() {
   const queryClient = useQueryClient();
   const { data: stats, isLoading: statsLoading, isError: statsError } = useStudyStats();
@@ -76,14 +109,13 @@ export default function ProgressPage() {
     queryClient.invalidateQueries({ queryKey: ['decks'] });
   };
 
-  // Calculate subject/deck progress
+  // Calculate subject/deck progress - now using placeholders that will be replaced with real data in the component
   const deckProgress = decks?.map((deck, i) => {
     const colors = ["bg-primary", "bg-success", "bg-accent", "bg-warning"];
     return {
       id: deck.id,
       name: deck.name,
       total: deck.card_count || 0,
-      mastered: Math.floor((deck.card_count || 0) * 0.7), // Placeholder - would need actual mastery data
       color: colors[i % colors.length],
     };
   }) || [];
@@ -313,37 +345,9 @@ export default function ProgressPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {deckProgress.length > 0 ? (
-                  deckProgress.slice(0, 5).map((deck) => {
-                    const percentage = deck.total > 0 ? Math.round((deck.mastered / deck.total) * 100) : 0;
-                    
-                    return (
-                      <Link 
-                        key={deck.id} 
-                        to={`/study/${deck.id}`}
-                        className="block hover:bg-secondary/50 rounded-lg p-2 -m-2 transition-colors"
-                      >
-                        <div className="flex items-center justify-between text-sm mb-2">
-                          <span className="font-medium truncate max-w-[50%]">{deck.name}</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-muted-foreground">
-                              {deck.total} cards
-                            </span>
-                            <Button variant="ghost" size="icon-sm" className="h-6 w-6">
-                              <Play className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </div>
-                        <div className="h-2 bg-secondary rounded-full overflow-hidden">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${percentage}%` }}
-                            transition={{ duration: 0.5 }}
-                            className={`h-full rounded-full ${deck.color}`}
-                          />
-                        </div>
-                      </Link>
-                    );
-                  })
+                  deckProgress.slice(0, 5).map((deck) => (
+                    <DeckProgressRow key={deck.id} deck={deck} />
+                  ))
                 ) : (
                   <div className="py-8 text-center text-muted-foreground">
                     <Layers className="w-12 h-12 mx-auto mb-2 opacity-50" />

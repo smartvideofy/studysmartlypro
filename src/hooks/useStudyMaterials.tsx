@@ -346,3 +346,35 @@ function getFileType(mimeType: string, fileName: string): string {
   if (mimeType.startsWith('image/')) return 'image';
   return 'other';
 }
+
+// Fetch material flashcards for a material
+export interface MaterialFlashcard {
+  id: string;
+  material_id: string;
+  user_id: string;
+  front: string;
+  back: string;
+  hint: string | null;
+  difficulty: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export function useMaterialFlashcards(materialId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['material-flashcards', materialId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('material_flashcards')
+        .select('*')
+        .eq('material_id', materialId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as MaterialFlashcard[];
+    },
+    enabled: !!user && !!materialId,
+  });
+}

@@ -27,9 +27,11 @@ import {
   useTutorNotes, 
   useSummaries, 
   usePracticeQuestions,
+  useMaterialFlashcards,
   TutorNotes,
   Summary,
-  PracticeQuestion
+  PracticeQuestion,
+  MaterialFlashcard
 } from "@/hooks/useStudyMaterials";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -58,7 +60,8 @@ export default function ExportModal({
 
   const { data: tutorNotes } = useTutorNotes(materialId);
   const { data: summaries } = useSummaries(materialId);
-  const { data: flashcards } = usePracticeQuestions(materialId); // Placeholder - will use material_flashcards
+  const { data: flashcards } = useMaterialFlashcards(materialId);
+  const { data: questions } = usePracticeQuestions(materialId);
 
   const toggleContent = (content: ExportContent) => {
     const newSelected = new Set(selectedContent);
@@ -181,6 +184,43 @@ export default function ExportModal({
     return output;
   };
 
+  const formatFlashcards = (cards: MaterialFlashcard[], format: ExportFormat): string => {
+    if (!cards.length) return "";
+    
+    let output = "";
+    
+    if (format === "csv") {
+      output = "Front,Back,Hint,Difficulty\n";
+      cards.forEach((c) => {
+        output += `"${c.front}","${c.back}","${c.hint || ""}","${c.difficulty}"\n`;
+      });
+    } else if (format === "markdown") {
+      output = "# Flashcards\n\n";
+      cards.forEach((c, i) => {
+        output += `## Card ${i + 1}\n\n`;
+        output += `**Front:** ${c.front}\n\n`;
+        output += `**Back:** ${c.back}\n\n`;
+        if (c.hint) {
+          output += `*Hint: ${c.hint}*\n\n`;
+        }
+        output += `---\n\n`;
+      });
+    } else {
+      output = "FLASHCARDS\n" + "=".repeat(50) + "\n\n";
+      cards.forEach((c, i) => {
+        output += `Card ${i + 1}\n`;
+        output += `Front: ${c.front}\n`;
+        output += `Back: ${c.back}\n`;
+        if (c.hint) {
+          output += `Hint: ${c.hint}\n`;
+        }
+        output += `\n`;
+      });
+    }
+    
+    return output;
+  };
+
   const handleExport = async () => {
     if (selectedContent.size === 0) {
       toast.error("Please select content to export");
@@ -201,8 +241,12 @@ export default function ExportModal({
         content += formatSummaries(summaries, format);
       }
       
-      if (selectedContent.has("questions") && flashcards) {
-        content += formatQuestions(flashcards, format);
+      if (selectedContent.has("flashcards") && flashcards) {
+        content += formatFlashcards(flashcards, format);
+      }
+      
+      if (selectedContent.has("questions") && questions) {
+        content += formatQuestions(questions, format);
       }
 
       // Create and download file
@@ -262,7 +306,8 @@ export default function ExportModal({
   const contentOptions: { id: ExportContent; label: string; icon: React.ReactNode; available: boolean }[] = [
     { id: "tutor_notes", label: "Tutor Notes", icon: <BookOpen className="w-4 h-4" />, available: !!tutorNotes?.length },
     { id: "summaries", label: "Summaries", icon: <FileText className="w-4 h-4" />, available: !!summaries?.length },
-    { id: "questions", label: "Practice Questions", icon: <Brain className="w-4 h-4" />, available: !!flashcards?.length },
+    { id: "flashcards", label: "Flashcards", icon: <Lightbulb className="w-4 h-4" />, available: !!flashcards?.length },
+    { id: "questions", label: "Practice Questions", icon: <Brain className="w-4 h-4" />, available: !!questions?.length },
   ];
 
   return (

@@ -11,7 +11,9 @@ const updateSW = registerSW({
     window.dispatchEvent(new CustomEvent('sw-update-available'));
   },
   onOfflineReady() {
-    console.log('App is ready for offline use');
+    if (import.meta.env.DEV) {
+      console.log('App is ready for offline use');
+    }
   },
 });
 
