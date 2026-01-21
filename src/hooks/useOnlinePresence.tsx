@@ -44,10 +44,16 @@ export function useOnlinePresence(groupId: string) {
         setOnlineUsers(users);
       })
       .on("presence", { event: "join" }, ({ key, newPresences }) => {
-        console.log("User joined:", key, newPresences);
+        // User joined presence
+        if (import.meta.env.DEV) {
+          console.log("User joined:", key, newPresences);
+        }
       })
       .on("presence", { event: "leave" }, ({ key, leftPresences }) => {
-        console.log("User left:", key, leftPresences);
+        // User left presence
+        if (import.meta.env.DEV) {
+          console.log("User left:", key, leftPresences);
+        }
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {

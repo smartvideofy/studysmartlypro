@@ -21,7 +21,7 @@ import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
 import { FlashcardDeckCard } from "@/components/flashcards/FlashcardDeckCard";
-import { useDecks, useDueCards, useDeleteDeck, FlashcardDeck } from "@/hooks/useFlashcards";
+import { useDecks, useDueCards, useDeleteDeck, useMasteredCards, FlashcardDeck } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonDeckCard, SkeletonFlashcardStat } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
@@ -81,14 +81,16 @@ export default function FlashcardsPage() {
   const queryClient = useQueryClient();
   const { data: decks, isLoading: decksLoading, isError: decksError } = useDecks();
   const { data: dueCards, isError: dueCardsError } = useDueCards();
+  const { data: masteredCount, isError: masteredError } = useMasteredCards();
   const deleteDeck = useDeleteDeck();
 
   const isLoading = decksLoading;
-  const hasError = decksError || dueCardsError;
+  const hasError = decksError || dueCardsError || masteredError;
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: ['decks'] });
     queryClient.invalidateQueries({ queryKey: ['due-cards'] });
+    queryClient.invalidateQueries({ queryKey: ['mastered-cards'] });
   };
 
   // Filter decks based on search
@@ -99,7 +101,7 @@ export default function FlashcardsPage() {
 
   const totalCards = decks?.reduce((sum, deck) => sum + (deck.card_count || 0), 0) || 0;
   const totalDue = dueCards?.length || 0;
-  const totalMastered = 0; // TODO: Calculate from flashcard data
+  const totalMastered = masteredCount || 0;
 
   const handleDeleteDeck = async () => {
     if (!deletingDeck) return;

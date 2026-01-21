@@ -95,6 +95,7 @@ export const InstallPrompt = () => {
             <button
               onClick={handleDismiss}
               className="text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Dismiss install prompt"
             >
               <X className="w-5 h-5" />
             </button>

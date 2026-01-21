@@ -345,6 +345,60 @@ export function useDueCards() {
   });
 }
 
+// Get mastered cards count (cards with interval >= 21 days)
+export function useMasteredCards() {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['mastered-cards', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      
+      // First get all user's decks
+      const { data: decks, error: decksError } = await supabase
+        .from('flashcard_decks')
+        .select('id')
+        .eq('user_id', user.id);
+
+      if (decksError) throw decksError;
+      if (!decks || decks.length === 0) return 0;
+
+      const deckIds = decks.map(d => d.id);
+      
+      const { data, error, count } = await supabase
+        .from('flashcards')
+        .select('*', { count: 'exact', head: true })
+        .in('deck_id', deckIds)
+        .gte('interval_days', 21);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id,
+  });
+}
+
+// Get mastered cards count per deck
+export function useDeckMasteryStats(deckId: string) {
+  return useQuery({
+    queryKey: ['deck-mastery', deckId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('interval_days')
+        .eq('deck_id', deckId);
+
+      if (error) throw error;
+      
+      const total = data?.length || 0;
+      const mastered = data?.filter(c => c.interval_days >= 21).length || 0;
+      
+      return { total, mastered, percentage: total > 0 ? Math.round((mastered / total) * 100) : 0 };
+    },
+    enabled: !!deckId,
+  });
+}
+
 // Review flashcard (update spaced repetition)
 export function useReviewFlashcard() {
   const queryClient = useQueryClient();
@@ -383,6 +437,8 @@ export function useReviewFlashcard() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['flashcards', data.deckId] });
       queryClient.invalidateQueries({ queryKey: ['due-flashcards', data.deckId] });
+      queryClient.invalidateQueries({ queryKey: ['mastered-cards'] });
+      queryClient.invalidateQueries({ queryKey: ['deck-mastery', data.deckId] });
     },
   });
 }

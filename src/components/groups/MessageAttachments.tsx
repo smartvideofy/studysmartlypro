@@ -57,7 +57,7 @@ export function MessageAttachments({ attachments, isMe }: MessageAttachmentsProp
             <div key={attachment.id} className="relative group/attachment">
               <img
                 src={url}
-                alt={attachment.file_name}
+                alt={`Shared image: ${attachment.file_name}`}
                 className="max-w-[200px] max-h-[200px] rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
                 onClick={() => window.open(url, "_blank")}
               />
@@ -66,6 +66,7 @@ export function MessageAttachments({ attachments, isMe }: MessageAttachmentsProp
                 size="icon-sm"
                 className="absolute top-1 right-1 opacity-0 group-hover/attachment:opacity-100 transition-opacity h-6 w-6"
                 onClick={() => handleDownload(attachment)}
+                aria-label={`Download ${attachment.file_name}`}
               >
                 <Download className="w-3 h-3" />
               </Button>
@@ -110,7 +111,7 @@ export function AttachmentPreview({ file, onRemove }: AttachmentPreviewProps) {
       {isImage ? (
         <img
           src={URL.createObjectURL(file)}
-          alt={file.name}
+          alt={`Preview of ${file.name}`}
           className="w-10 h-10 rounded object-cover"
         />
       ) : (
@@ -125,6 +126,7 @@ export function AttachmentPreview({ file, onRemove }: AttachmentPreviewProps) {
         variant="ghost"
         size="icon-sm"
         onClick={onRemove}
+        aria-label={`Remove ${file.name}`}
         className="h-5 w-5 absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full hover:bg-destructive/90"
       >
         <X className="w-3 h-3" />

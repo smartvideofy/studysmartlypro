@@ -706,6 +706,47 @@ export type Database = {
         }
         Relationships: []
       }
+      quiz_attempts: {
+        Row: {
+          answers: Json | null
+          created_at: string | null
+          id: string
+          material_id: string
+          score: number
+          time_spent_seconds: number | null
+          total_questions: number
+          user_id: string
+        }
+        Insert: {
+          answers?: Json | null
+          created_at?: string | null
+          id?: string
+          material_id: string
+          score: number
+          time_spent_seconds?: number | null
+          total_questions: number
+          user_id: string
+        }
+        Update: {
+          answers?: Json | null
+          created_at?: string | null
+          id?: string
+          material_id?: string
+          score?: number
+          time_spent_seconds?: number | null
+          total_questions?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_notes: {
         Row: {
           group_id: string
