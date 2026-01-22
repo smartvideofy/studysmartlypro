@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { 
   HelpCircle,
@@ -22,6 +22,7 @@ import { useHelpCategories, useFAQs, useSearchHelpArticles } from "@/hooks/useHe
 import { HelpCategoryCard } from "@/components/help/HelpCategoryCard";
 import { HelpSearchResults } from "@/components/help/HelpSearchResults";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SEOHead, createFAQPageJsonLd, createHelpCenterJsonLd } from "@/components/seo";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -112,8 +113,24 @@ export default function HelpPage() {
 
   const showSearchResults = searchQuery.length >= 2;
 
+  // Generate FAQ JSON-LD for structured data
+  const faqJsonLd = faqs && faqs.length > 0
+    ? createFAQPageJsonLd(faqs.map(f => ({ 
+        question: f.title, 
+        answer: f.summary || f.content.slice(0, 300) 
+      })))
+    : null;
+
+  const jsonLdData = [createHelpCenterJsonLd(), ...(faqJsonLd ? [faqJsonLd] : [])];
+
   return (
     <DashboardLayout title="Help & Support">
+      <SEOHead
+        title="Help Center"
+        description="Get help with Studily - search our knowledge base, browse FAQs, or contact support. Find answers to common questions about flashcards, notes, and study tools."
+        url="/help"
+        jsonLd={jsonLdData}
+      />
       <motion.div
         variants={containerVariants}
         initial="hidden"

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -30,20 +31,22 @@ const App = () => {
 
   return (
     <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Sonner />
-            <OfflineIndicator />
-            <InstallPrompt />
-            {needsRefresh && <UpdatePrompt onUpdate={handleUpdate} />}
-            <BrowserRouter>
-              <AnimatedRoutes />
-            </BrowserRouter>
-          </TooltipProvider>
-        </AuthProvider>
-      </QueryClientProvider>
+      <HelmetProvider>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <OfflineIndicator />
+              <InstallPrompt />
+              {needsRefresh && <UpdatePrompt onUpdate={handleUpdate} />}
+              <BrowserRouter>
+                <AnimatedRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </AuthProvider>
+        </QueryClientProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 };

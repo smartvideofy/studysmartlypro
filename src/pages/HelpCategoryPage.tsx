@@ -1,6 +1,6 @@
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { 
   Rocket, FileText, Layers, Sparkles, Users, Settings, 
   Book, HelpCircle, Zap, Shield
@@ -17,6 +17,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { SEOHead, createBreadcrumbJsonLd } from "@/components/seo";
 
 const iconMap: Record<string, React.ComponentType<any>> = {
   rocket: Rocket,
@@ -52,8 +53,22 @@ const HelpCategoryPage = () => {
 
   const Icon = category?.icon ? iconMap[category.icon] || Book : Book;
 
+  // SEO structured data
+  const breadcrumbJsonLd = category ? createBreadcrumbJsonLd([
+    { name: "Help Center", url: "/help" },
+    { name: category.title, url: `/help/category/${category.slug}` },
+  ]) : null;
+
   return (
     <DashboardLayout>
+      {category && (
+        <SEOHead
+          title={`${category.title} - Help Center`}
+          description={category.description || `Browse all help articles in the ${category.title} category.`}
+          url={`/help/category/${category.slug}`}
+          jsonLd={breadcrumbJsonLd ? [breadcrumbJsonLd] : undefined}
+        />
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
