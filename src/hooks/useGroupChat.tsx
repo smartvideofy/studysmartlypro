@@ -57,16 +57,40 @@ export function useGroupMessages(groupId: string) {
       if (messagesError) throw messagesError;
       if (!messages?.length) return [];
 
-      // Get profiles for all message senders
+      // Get unique user IDs from messages
       const userIds = [...new Set(messages.map(m => m.user_id))];
       const replyIds = messages.filter(m => m.reply_to_id).map(m => m.reply_to_id);
 
-      const { data: profiles, error: profilesError } = await supabase
-        .from("profiles")
-        .select("user_id, full_name, avatar_url")
-        .in("user_id", userIds);
+      // Fetch profiles for all message senders - use individual queries if needed
+      let profilesMap = new Map<string, { user_id: string; full_name: string | null; avatar_url: string | null }>();
+      
+      if (userIds.length > 0) {
+        // Try batch query first
+        const { data: profiles, error: profilesError } = await supabase
+          .from("profiles")
+          .select("user_id, full_name, avatar_url")
+          .in("user_id", userIds);
 
-      if (profilesError) throw profilesError;
+        if (!profilesError && profiles) {
+          profiles.forEach(p => profilesMap.set(p.user_id, p));
+        }
+
+        // Check for any missing profiles and fetch them individually
+        const missingUserIds = userIds.filter(id => !profilesMap.has(id));
+        if (missingUserIds.length > 0) {
+          for (const userId of missingUserIds) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("user_id, full_name, avatar_url")
+              .eq("user_id", userId)
+              .maybeSingle();
+            
+            if (profile) {
+              profilesMap.set(profile.user_id, profile);
+            }
+          }
+        }
+      }
 
       // Get reply-to messages if any
       let replyMessages: any[] = [];
@@ -90,8 +114,7 @@ export function useGroupMessages(groupId: string) {
 
       if (attachmentsError) console.error("Attachments error:", attachmentsError);
 
-      // Merge everything
-      const profilesMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+      // Create maps for merging
       const repliesMap = new Map(replyMessages.map(r => [r.id, r]));
       const attachmentsMap = new Map<string, MessageAttachment[]>();
       
@@ -104,18 +127,26 @@ export function useGroupMessages(groupId: string) {
 
       return messages.map(msg => {
         const replyTo = msg.reply_to_id ? repliesMap.get(msg.reply_to_id) : null;
+        const profile = profilesMap.get(msg.user_id);
+        
         return {
           ...msg,
-          profiles: profilesMap.get(msg.user_id) || null,
+          profiles: profile ? { 
+            full_name: profile.full_name, 
+            avatar_url: profile.avatar_url 
+          } : null,
           reply_to: replyTo ? {
             ...replyTo,
-            profiles: profilesMap.get(replyTo.user_id) || null,
+            profiles: profilesMap.get(replyTo.user_id) ? {
+              full_name: profilesMap.get(replyTo.user_id)!.full_name
+            } : null,
           } : null,
           attachments: attachmentsMap.get(msg.id) || [],
         };
       }) as GroupMessage[];
     },
     enabled: !!groupId,
+    staleTime: 0, // Always refetch to get fresh profile data
   });
 
   // Real-time subscription
