@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/breadcrumb";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { SEOHead, createArticleJsonLd, createBreadcrumbJsonLd } from "@/components/seo";
 
 // Article link pattern: [[article-slug|Display Text]] or [[article-slug]]
 const parseArticleLinks = (text: string, articles: HelpArticle[]): string => {
@@ -199,8 +200,37 @@ const HelpArticlePage = () => {
   // Other categories for exploration
   const otherCategories = categories?.filter(c => c.id !== article?.category_id).slice(0, 3) || [];
 
+  // SEO structured data
+  const articleJsonLd = article ? createArticleJsonLd({
+    title: article.title,
+    description: article.summary || article.content.slice(0, 160),
+    url: `/help/article/${article.slug}`,
+    datePublished: article.created_at,
+    dateModified: article.updated_at,
+  }) : null;
+
+  const breadcrumbJsonLd = article && category ? createBreadcrumbJsonLd([
+    { name: "Help Center", url: "/help" },
+    { name: category.title, url: `/help/category/${category.slug}` },
+    { name: article.title, url: `/help/article/${article.slug}` },
+  ]) : null;
+
+  const jsonLdData = [articleJsonLd, breadcrumbJsonLd].filter(Boolean) as Record<string, any>[];
+
   return (
     <DashboardLayout>
+      {article && (
+        <SEOHead
+          title={article.title}
+          description={article.summary || article.content.slice(0, 160)}
+          url={`/help/article/${article.slug}`}
+          type="article"
+          publishedTime={article.created_at}
+          modifiedTime={article.updated_at}
+          section={category?.title}
+          jsonLd={jsonLdData}
+        />
+      )}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
