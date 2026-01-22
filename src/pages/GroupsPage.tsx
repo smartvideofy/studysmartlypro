@@ -11,12 +11,22 @@ import {
   UserPlus,
   Globe,
   Lock,
-  Loader2
+  Loader2,
+  BookOpen,
+  GraduationCap,
+  FlaskConical,
+  Calculator,
+  Languages,
+  Palette,
+  Code,
+  TrendingUp,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
@@ -26,6 +36,18 @@ import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonGroupCard } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+
+// Subject categories for discovery
+const subjectCategories = [
+  { id: "all", label: "All", icon: Sparkles },
+  { id: "science", label: "Science", icon: FlaskConical },
+  { id: "math", label: "Mathematics", icon: Calculator },
+  { id: "languages", label: "Languages", icon: Languages },
+  { id: "humanities", label: "Humanities", icon: BookOpen },
+  { id: "tech", label: "Technology", icon: Code },
+  { id: "arts", label: "Arts", icon: Palette },
+  { id: "business", label: "Business", icon: TrendingUp },
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -44,6 +66,7 @@ export default function GroupsPage() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState("all");
   
   const queryClient = useQueryClient();
   const { data: myGroups, isLoading: groupsLoading, isError: groupsError } = useGroups();
@@ -68,13 +91,41 @@ export default function GroupsPage() {
 
   // Filter public groups to exclude ones user is already in
   const myGroupIds = new Set(myGroups?.map(g => g.id) || []);
-  const availablePublicGroups = publicGroups?.filter(g => 
-    !myGroupIds.has(g.id) && 
-    g.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
+  const availablePublicGroups = publicGroups?.filter(g => {
+    const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (g.description?.toLowerCase().includes(searchQuery.toLowerCase()));
+    const notJoined = !myGroupIds.has(g.id);
+    return matchesSearch && notJoined;
+  }) || [];
 
   const handleJoinGroup = async (groupId: string) => {
     await joinGroup.mutateAsync(groupId);
+  };
+
+  // Get icon for group based on name/description keywords
+  const getGroupIcon = (name: string, description?: string | null) => {
+    const text = `${name} ${description || ''}`.toLowerCase();
+    if (text.includes('science') || text.includes('biology') || text.includes('chemistry') || text.includes('physics')) return FlaskConical;
+    if (text.includes('math') || text.includes('calculus') || text.includes('algebra')) return Calculator;
+    if (text.includes('language') || text.includes('english') || text.includes('spanish') || text.includes('french')) return Languages;
+    if (text.includes('art') || text.includes('design') || text.includes('music')) return Palette;
+    if (text.includes('code') || text.includes('programming') || text.includes('computer') || text.includes('tech')) return Code;
+    if (text.includes('business') || text.includes('economics') || text.includes('finance')) return TrendingUp;
+    if (text.includes('history') || text.includes('literature') || text.includes('philosophy')) return BookOpen;
+    return GraduationCap;
+  };
+
+  // Get gradient colors for group cards
+  const getGroupGradient = (index: number) => {
+    const gradients = [
+      'from-violet-500/20 to-purple-500/20',
+      'from-blue-500/20 to-cyan-500/20',
+      'from-emerald-500/20 to-teal-500/20',
+      'from-orange-500/20 to-amber-500/20',
+      'from-pink-500/20 to-rose-500/20',
+      'from-indigo-500/20 to-blue-500/20',
+    ];
+    return gradients[index % gradients.length];
   };
 
   if (isLoading) {
@@ -249,58 +300,122 @@ export default function GroupsPage() {
 
         {/* Discover Public Groups */}
         <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Globe className="w-5 h-5 text-primary" />
-                Discover Study Groups
-              </CardTitle>
-              <CardDescription>Join public study communities</CardDescription>
+          <Card variant="elevated" className="overflow-hidden">
+            <CardHeader className="pb-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-xl">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                      <Globe className="w-5 h-5 text-primary" />
+                    </div>
+                    Discover Study Groups
+                  </CardTitle>
+                  <CardDescription className="mt-2">
+                    Join public study communities and learn together
+                  </CardDescription>
+                </div>
+                {availablePublicGroups.length > 0 && (
+                  <Badge variant="secondary" className="text-xs">
+                    {availablePublicGroups.length} available
+                  </Badge>
+                )}
+              </div>
+              
+              {/* Category Filter */}
+              <ScrollArea className="w-full mt-4">
+                <div className="flex gap-2 pb-2">
+                  {subjectCategories.map((category) => {
+                    const Icon = category.icon;
+                    const isActive = selectedCategory === category.id;
+                    return (
+                      <Button
+                        key={category.id}
+                        variant={isActive ? "default" : "outline"}
+                        size="sm"
+                        className={`shrink-0 gap-1.5 ${isActive ? '' : 'bg-secondary/50 hover:bg-secondary'}`}
+                        onClick={() => setSelectedCategory(category.id)}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {category.label}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <ScrollBar orientation="horizontal" />
+              </ScrollArea>
             </CardHeader>
+            
             <CardContent>
               {availablePublicGroups.length > 0 ? (
-                <div className="space-y-4">
-                  {availablePublicGroups.map((group) => (
-                    <div
-                      key={group.id}
-                      className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 hover:bg-secondary transition-colors"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <Users className="w-6 h-6 text-primary" />
-                        </div>
-                        <div>
-                          <h4 className="font-medium mb-1">{group.name}</h4>
-                          <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                            <span>{group.member_count || 1} members</span>
-                            {group.description && (
-                              <span className="line-clamp-1 max-w-xs">{group.description}</span>
-                            )}
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {availablePublicGroups.map((group, index) => {
+                    const GroupIcon = getGroupIcon(group.name, group.description);
+                    return (
+                      <motion.div
+                        key={group.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        className={`group relative p-4 rounded-xl bg-gradient-to-br ${getGroupGradient(index)} border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300`}
+                      >
+                        <div className="flex items-start gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                            <GroupIcon className="w-6 h-6 text-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-semibold text-sm mb-0.5 truncate group-hover:text-primary transition-colors">
+                              {group.name}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Users className="w-3 h-3" />
+                              <span>{group.member_count || 1} members</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleJoinGroup(group.id)}
-                        disabled={joinGroup.isPending}
-                      >
-                        {joinGroup.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <>
-                            <UserPlus className="w-4 h-4" />
-                            Join
-                          </>
+                        
+                        {group.description && (
+                          <p className="text-xs text-muted-foreground mb-4 line-clamp-2 min-h-[2.5rem]">
+                            {group.description}
+                          </p>
                         )}
-                      </Button>
-                    </div>
-                  ))}
+                        
+                        {!group.description && (
+                          <div className="mb-4 min-h-[2.5rem]" />
+                        )}
+                        
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="w-full bg-background/80 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground transition-all"
+                          onClick={() => handleJoinGroup(group.id)}
+                          disabled={joinGroup.isPending}
+                        >
+                          {joinGroup.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <>
+                              <UserPlus className="w-4 h-4 mr-1.5" />
+                              Join Group
+                            </>
+                          )}
+                        </Button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="py-8 text-center text-muted-foreground">
-                  <Globe className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>No public groups available to join</p>
+                <div className="py-12 text-center">
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
+                    <Globe className="w-10 h-10 text-primary/50" />
+                  </div>
+                  <h4 className="font-semibold mb-2">No public groups yet</h4>
+                  <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                    Be the first to create a public study group and help others learn together!
+                  </p>
+                  <Button variant="hero" onClick={() => setShowCreateModal(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Public Group
+                  </Button>
                 </div>
               )}
             </CardContent>
