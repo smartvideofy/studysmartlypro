@@ -20,6 +20,7 @@ import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
 import PricingPage from "@/pages/PricingPage";
 import InstallPage from "@/pages/InstallPage";
+import AchievementsPage from "@/pages/AchievementsPage";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
@@ -166,6 +167,13 @@ export const AnimatedRoutes = () => {
           <PageTransition>
             <InstallPage />
           </PageTransition>
+        } />
+        <Route path="/achievements" element={
+          <ProtectedRoute>
+            <PageTransition>
+              <AchievementsPage />
+            </PageTransition>
+          </ProtectedRoute>
         } />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={
