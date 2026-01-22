@@ -37,6 +37,8 @@ import {
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 import { XPProgress } from "@/components/gamification/XPProgress";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { createDashboardJsonLd } from "@/components/seo/jsonld";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -182,6 +184,13 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout title="Dashboard">
+      <SEOHead
+        title="Dashboard"
+        description="Your personalized study dashboard. Track your progress, manage study materials, review flashcards, and start study sessions."
+        url="/dashboard"
+        noindex={true}
+        jsonLd={createDashboardJsonLd()}
+      />
       <motion.div
         variants={containerVariants}
         initial="hidden"

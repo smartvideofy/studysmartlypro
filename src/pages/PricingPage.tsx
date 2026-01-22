@@ -9,6 +9,8 @@ import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription, useInitializePayment, useVerifyPayment, PlanType } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
+import { SEOHead } from '@/components/seo/SEOHead';
+import { createSoftwareApplicationJsonLd } from '@/components/seo/jsonld';
 
 interface PlanConfig {
   name: string;
@@ -137,8 +139,21 @@ export default function PricingPage() {
 
   const currentPlan = subscription?.plan || 'free';
 
+  const pricingOffers = plans.map(plan => ({
+    name: plan.name,
+    price: plan.price,
+    description: plan.description,
+    features: plan.features,
+  }));
+
   return (
     <DashboardLayout>
+      <SEOHead
+        title="Pricing"
+        description="Choose the perfect Studily plan for your learning needs. Start free, upgrade to Pro for unlimited features. Simple, transparent pricing with no hidden fees."
+        url="/pricing"
+        jsonLd={createSoftwareApplicationJsonLd(pricingOffers)}
+      />
       <div className="container mx-auto px-4 py-12 max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
