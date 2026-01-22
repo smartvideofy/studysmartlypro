@@ -18,6 +18,8 @@ import JoinGroupPage from "@/pages/JoinGroupPage";
 import ProgressPage from "@/pages/ProgressPage";
 import SettingsPage from "@/pages/SettingsPage";
 import HelpPage from "@/pages/HelpPage";
+import HelpCategoryPage from "@/pages/HelpCategoryPage";
+import HelpArticlePage from "@/pages/HelpArticlePage";
 import PricingPage from "@/pages/PricingPage";
 import InstallPage from "@/pages/InstallPage";
 import AchievementsPage from "@/pages/AchievementsPage";
@@ -153,6 +155,20 @@ export const AnimatedRoutes = () => {
           <ProtectedRoute>
             <PageTransition>
               <HelpPage />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/help/category/:categorySlug" element={
+          <ProtectedRoute>
+            <PageTransition>
+              <HelpCategoryPage />
+            </PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/help/article/:articleSlug" element={
+          <ProtectedRoute>
+            <PageTransition>
+              <HelpArticlePage />
             </PageTransition>
           </ProtectedRoute>
         } />

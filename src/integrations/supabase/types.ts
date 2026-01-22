@@ -566,6 +566,98 @@ export type Database = {
           },
         ]
       }
+      help_articles: {
+        Row: {
+          category_id: string | null
+          content: string
+          created_at: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          is_faq: boolean | null
+          is_featured: boolean | null
+          slug: string
+          summary: string | null
+          title: string
+          updated_at: string | null
+          views: number | null
+        }
+        Insert: {
+          category_id?: string | null
+          content: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_faq?: boolean | null
+          is_featured?: boolean | null
+          slug: string
+          summary?: string | null
+          title: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Update: {
+          category_id?: string | null
+          content?: string
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          is_faq?: boolean | null
+          is_featured?: boolean | null
+          slug?: string
+          summary?: string | null
+          title?: string
+          updated_at?: string | null
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_articles_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "help_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      help_categories: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          slug: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          slug: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          slug?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       material_flashcards: {
         Row: {
           back: string

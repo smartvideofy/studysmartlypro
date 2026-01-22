@@ -3,26 +3,25 @@ import { motion } from "framer-motion";
 import { 
   HelpCircle,
   Search,
-  Book,
-  MessageCircle,
-  Send,
-  ChevronRight,
   Mail,
-  FileText,
   Lightbulb,
   Loader2,
-  CheckCircle
+  CheckCircle,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { useHelpCategories, useFAQs, useSearchHelpArticles } from "@/hooks/useHelpCenter";
+import { HelpCategoryCard } from "@/components/help/HelpCategoryCard";
+import { HelpSearchResults } from "@/components/help/HelpSearchResults";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -37,50 +36,34 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const faqs = [
-  {
-    question: "How do I create flashcards from my notes?",
-    answer: "Open any note and click the 'Generate Flashcards' button in the toolbar. Our AI will automatically create flashcards based on your note content. You can also manually create flashcards by going to the Flashcards section.",
-    category: "Study Features"
-  },
-  {
-    question: "What is spaced repetition?",
-    answer: "Spaced repetition is a learning technique that involves reviewing information at increasing intervals. When you study flashcards, our algorithm schedules reviews based on how well you know each card, helping you retain information more efficiently.",
-    category: "Study Features"
-  },
-  {
-    question: "How do I share notes with study groups?",
-    answer: "Go to the Groups section, select or create a group, and click 'Share Notes'. You can choose specific notes to share with group members. They'll be able to view and comment on shared content.",
-    category: "Collaboration"
-  },
-  {
-    question: "Can I import notes from other apps?",
-    answer: "Yes! We support importing from PDF and Word documents. Go to Notes, click 'Import', and select your file. We'll extract the text and create a new note for you.",
-    category: "Notes & Editor"
-  },
-  {
-    question: "How does the AI summarizer work?",
-    answer: "The AI summarizer analyzes your note content and creates concise bullet points highlighting the key concepts. Open any note and click 'AI Summarize' in the toolbar to generate a summary.",
-    category: "Study Features"
-  },
-  {
-    question: "How do I get started with Studyly?",
-    answer: "Start by uploading your study materials in the Materials section. Our AI will automatically process them and generate flashcards, summaries, and practice questions. Then head to the Flashcards section to start studying!",
-    category: "Getting Started"
-  },
-  {
-    question: "How do I track my study progress?",
-    answer: "Visit the Progress page to see detailed analytics about your study sessions, including time studied, cards reviewed, and accuracy rates. You can view daily, weekly, and monthly statistics.",
-    category: "Getting Started"
-  },
-];
+const SkeletonCategories = () => (
+  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {[...Array(6)].map((_, i) => (
+      <Card key={i} className="bg-card/50">
+        <CardContent className="p-6">
+          <div className="flex items-start gap-4">
+            <Skeleton className="w-12 h-12 rounded-xl" />
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-5 w-32" />
+              <Skeleton className="h-4 w-40" />
+              <Skeleton className="h-3 w-20" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+);
 
-const helpCategories = [
-  { icon: Book, title: "Getting Started", description: "Learn the basics", articles: 12 },
-  { icon: FileText, title: "Notes & Editor", description: "Creating and organizing notes", articles: 8 },
-  { icon: Lightbulb, title: "Study Features", description: "Flashcards and spaced repetition", articles: 15 },
-  { icon: MessageCircle, title: "Collaboration", description: "Groups and sharing", articles: 6 },
-];
+const SkeletonFAQs = () => (
+  <div className="space-y-3">
+    {[...Array(5)].map((_, i) => (
+      <div key={i} className="border border-border rounded-lg p-4">
+        <Skeleton className="h-5 w-3/4" />
+      </div>
+    ))}
+  </div>
+);
 
 export default function HelpPage() {
   const { user } = useAuth();
@@ -88,31 +71,11 @@ export default function HelpPage() {
   const [feedbackMessage, setFeedbackMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
 
-  // Filter FAQs based on search query and selected category
-  const filteredFaqs = useMemo(() => {
-    return faqs.filter(faq => {
-      const matchesSearch = searchQuery === "" || 
-        faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        faq.answer.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = selectedCategory === null || faq.category === selectedCategory;
-      
-      return matchesSearch && matchesCategory;
-    });
-  }, [searchQuery, selectedCategory]);
-
-  const handleCategoryClick = (categoryTitle: string) => {
-    setSelectedCategory(categoryTitle);
-    setSearchQuery("");
-  };
-
-  const clearFilters = () => {
-    setSelectedCategory(null);
-    setSearchQuery("");
-  };
+  // Fetch data from database
+  const { data: categories, isLoading: categoriesLoading } = useHelpCategories();
+  const { data: faqs, isLoading: faqsLoading } = useFAQs();
+  const { data: searchResults, isLoading: searchLoading } = useSearchHelpArticles(searchQuery);
 
   const handleSubmitFeedback = async () => {
     if (!feedbackMessage.trim() || !user) return;
@@ -144,8 +107,10 @@ export default function HelpPage() {
   };
 
   const handleEmailSupport = () => {
-    window.location.href = "mailto:support@studily.app?subject=Support Request";
+    window.location.href = "mailto:support@studysmart.app?subject=Support Request";
   };
+
+  const showSearchResults = searchQuery.length >= 2;
 
   return (
     <DashboardLayout title="Help & Support">
@@ -153,9 +118,9 @@ export default function HelpPage() {
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="max-w-4xl space-y-6"
+        className="max-w-5xl space-y-8"
       >
-        {/* Search */}
+        {/* Search Header */}
         <motion.div variants={itemVariants}>
           <Card variant="gradient" className="overflow-hidden">
             <CardContent className="p-8 text-center">
@@ -171,95 +136,83 @@ export default function HelpPage() {
                   className="pl-10"
                 />
               </div>
-              {(searchQuery || selectedCategory) && (
+              {searchQuery && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   className="mt-3"
-                  onClick={clearFilters}
+                  onClick={() => setSearchQuery("")}
                 >
-                  Clear filters
+                  Clear search
                 </Button>
               )}
             </CardContent>
           </Card>
         </motion.div>
 
-        {/* Help Categories */}
-        <motion.div variants={itemVariants}>
-          <h3 className="font-display text-lg font-semibold mb-4">Browse Topics</h3>
-          <div className="grid sm:grid-cols-2 gap-4">
-            {helpCategories.map((category) => {
-              const Icon = category.icon;
-              const isSelected = selectedCategory === category.title;
-              return (
-                <Card 
-                  key={category.title} 
-                  variant="interactive" 
-                  className={`group cursor-pointer transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}
-                  onClick={() => handleCategoryClick(category.title)}
-                >
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-                      isSelected ? 'bg-primary text-primary-foreground' : 'bg-primary/10 group-hover:bg-primary/20'
-                    }`}>
-                      <Icon className={`w-6 h-6 ${isSelected ? '' : 'text-primary'}`} />
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-medium">{category.title}</h4>
-                      <p className="text-sm text-muted-foreground">{category.description}</p>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <span className="text-sm">{category.articles} articles</span>
-                      <ChevronRight className="w-4 h-4" />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </motion.div>
+        {/* Search Results */}
+        {showSearchResults && (
+          <HelpSearchResults 
+            query={searchQuery} 
+            results={searchResults || []} 
+            isLoading={searchLoading} 
+          />
+        )}
 
-        {/* FAQ */}
-        <motion.div variants={itemVariants}>
-          <Card variant="elevated">
-            <CardHeader>
-              <CardTitle>
-                {selectedCategory ? `${selectedCategory} - FAQ` : "Frequently Asked Questions"}
-              </CardTitle>
-              <CardDescription>
-                {filteredFaqs.length === 0 
-                  ? "No results found. Try a different search term."
-                  : `${filteredFaqs.length} question${filteredFaqs.length === 1 ? '' : 's'} found`
-                }
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {filteredFaqs.length > 0 ? (
-                <Accordion type="single" collapsible className="w-full">
-                  {filteredFaqs.map((faq, index) => (
-                    <AccordionItem key={index} value={`item-${index}`}>
-                      <AccordionTrigger className="text-left">
-                        {faq.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-muted-foreground">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              ) : (
-                <div className="text-center py-8 text-muted-foreground">
-                  <HelpCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                  <p>No matching questions found.</p>
-                  <Button variant="link" onClick={clearFilters}>
-                    View all FAQs
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </motion.div>
+        {/* Help Categories */}
+        {!showSearchResults && (
+          <motion.div variants={itemVariants}>
+            <h3 className="font-display text-lg font-semibold mb-4">Browse Topics</h3>
+            {categoriesLoading ? (
+              <SkeletonCategories />
+            ) : categories && categories.length > 0 ? (
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {categories.map((category, index) => (
+                  <HelpCategoryCard key={category.id} category={category} index={index} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-muted-foreground py-8">No categories available.</p>
+            )}
+          </motion.div>
+        )}
+
+        {/* FAQ Section */}
+        {!showSearchResults && (
+          <motion.div variants={itemVariants}>
+            <Card variant="elevated">
+              <CardHeader>
+                <CardTitle>Frequently Asked Questions</CardTitle>
+                <CardDescription>
+                  Quick answers to common questions
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {faqsLoading ? (
+                  <SkeletonFAQs />
+                ) : faqs && faqs.length > 0 ? (
+                  <Accordion type="single" collapsible className="w-full">
+                    {faqs.map((faq, index) => (
+                      <AccordionItem key={faq.id} value={`item-${index}`}>
+                        <AccordionTrigger className="text-left">
+                          {faq.title}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-muted-foreground whitespace-pre-line">
+                          {faq.summary || faq.content.slice(0, 300)}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <HelpCircle className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p>No FAQs available yet.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Contact & Feedback */}
         <div className="grid md:grid-cols-2 gap-6">
@@ -291,12 +244,12 @@ export default function HelpPage() {
                   <Lightbulb className="w-5 h-5" />
                   Send Feedback
                 </CardTitle>
-                <CardDescription>Help us improve Studyly</CardDescription>
+                <CardDescription>Help us improve StudySmart</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {feedbackSubmitted ? (
                   <div className="flex flex-col items-center justify-center py-4 text-center">
-                    <CheckCircle className="w-12 h-12 text-green-500 mb-2" />
+                    <CheckCircle className="w-12 h-12 text-emerald-500 dark:text-emerald-400 mb-2" />
                     <p className="font-medium">Thank you for your feedback!</p>
                     <p className="text-sm text-muted-foreground">We appreciate you taking the time to help us improve.</p>
                   </div>
@@ -329,18 +282,6 @@ export default function HelpPage() {
           </motion.div>
         </div>
       </motion.div>
-
-      {/* Category Modal for coming soon articles */}
-      <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Coming Soon</DialogTitle>
-            <DialogDescription>
-              Detailed help articles for this category are coming soon. For now, check the FAQ section or contact support.
-            </DialogDescription>
-          </DialogHeader>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
   );
 }
