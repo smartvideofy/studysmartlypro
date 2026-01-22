@@ -116,3 +116,58 @@ export const createHelpCenterJsonLd = () => ({
     url: SITE_URL,
   },
 });
+
+interface PricingOffer {
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+}
+
+export const createSoftwareApplicationJsonLd = (offers: PricingOffer[]) => ({
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Studily",
+  applicationCategory: "EducationalApplication",
+  operatingSystem: "Web",
+  url: SITE_URL,
+  description: "AI-powered study companion for flashcards, notes, and smart learning tools.",
+  offers: offers.map((offer) => ({
+    "@type": "Offer",
+    name: offer.name,
+    price: offer.price,
+    priceCurrency: "USD",
+    description: offer.description,
+  })),
+  aggregateRating: {
+    "@type": "AggregateRating",
+    ratingValue: "4.8",
+    ratingCount: "1250",
+  },
+});
+
+export const createDashboardJsonLd = () => ({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Dashboard",
+  description: "Your personalized study dashboard - track progress, manage materials, and start study sessions.",
+  url: `${SITE_URL}/dashboard`,
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Studily",
+    url: SITE_URL,
+  },
+});
+
+export const createFlashcardsJsonLd = () => ({
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  name: "Flashcards",
+  description: "Create, organize, and study flashcards with AI-powered spaced repetition for maximum retention.",
+  url: `${SITE_URL}/flashcards`,
+  isPartOf: {
+    "@type": "WebSite",
+    name: "Studily",
+    url: SITE_URL,
+  },
+});

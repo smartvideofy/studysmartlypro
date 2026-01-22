@@ -23,6 +23,7 @@ import HelpArticlePage from "@/pages/HelpArticlePage";
 import PricingPage from "@/pages/PricingPage";
 import InstallPage from "@/pages/InstallPage";
 import AchievementsPage from "@/pages/AchievementsPage";
+import SitemapRedirect from "@/pages/SitemapRedirect";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
@@ -191,6 +192,8 @@ export const AnimatedRoutes = () => {
             </PageTransition>
           </ProtectedRoute>
         } />
+        {/* Sitemap redirect for SEO */}
+        <Route path="/sitemap.xml" element={<SitemapRedirect />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={
           <PageTransition>

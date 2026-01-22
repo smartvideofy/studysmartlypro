@@ -25,6 +25,8 @@ import { useDecks, useDueCards, useDeleteDeck, useMasteredCards, FlashcardDeck }
 import { Skeleton, SkeletonDeckCard, SkeletonFlashcardStat } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+import { SEOHead } from "@/components/seo/SEOHead";
+import { createFlashcardsJsonLd } from "@/components/seo/jsonld";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -135,6 +137,12 @@ export default function FlashcardsPage() {
 
   return (
     <DashboardLayout title="Flashcards">
+      <SEOHead
+        title="Flashcards"
+        description="Create and study flashcards with AI-powered spaced repetition. Master any subject with smart review scheduling and track your progress."
+        url="/flashcards"
+        jsonLd={createFlashcardsJsonLd()}
+      />
       <motion.div
         variants={containerVariants}
         initial="hidden"
