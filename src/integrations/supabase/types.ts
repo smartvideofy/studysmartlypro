@@ -450,24 +450,39 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          edited_at: string | null
           group_id: string
           id: string
+          is_edited: boolean | null
+          is_pinned: boolean | null
+          pinned_at: string | null
+          pinned_by: string | null
           reply_to_id: string | null
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          edited_at?: string | null
           group_id: string
           id?: string
+          is_edited?: boolean | null
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          edited_at?: string | null
           group_id?: string
           id?: string
+          is_edited?: boolean | null
+          is_pinned?: boolean | null
+          pinned_at?: string | null
+          pinned_by?: string | null
           reply_to_id?: string | null
           user_id?: string
         }
@@ -484,6 +499,53 @@ export type Database = {
             columns: ["reply_to_id"]
             isOneToOne: false
             referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_study_sessions: {
+        Row: {
+          created_at: string | null
+          created_by: string
+          description: string | null
+          duration_minutes: number | null
+          group_id: string
+          id: string
+          meeting_link: string | null
+          scheduled_at: string
+          title: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          created_by: string
+          description?: string | null
+          duration_minutes?: number | null
+          group_id: string
+          id?: string
+          meeting_link?: string | null
+          scheduled_at: string
+          title: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          created_by?: string
+          description?: string | null
+          duration_minutes?: number | null
+          group_id?: string
+          id?: string
+          meeting_link?: string | null
+          scheduled_at?: string
+          title?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_study_sessions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
             referencedColumns: ["id"]
           },
         ]
@@ -1027,6 +1089,38 @@ export type Database = {
           },
         ]
       }
+      study_session_rsvps: {
+        Row: {
+          created_at: string | null
+          id: string
+          session_id: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          session_id: string
+          status: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          session_id?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_session_rsvps_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "group_study_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_sessions: {
         Row: {
           cards_studied: number | null
@@ -1289,6 +1383,19 @@ export type Database = {
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
+      }
+      search_group_messages: {
+        Args: { p_group_id: string; p_limit?: number; p_search_term: string }
+        Returns: {
+          content: string
+          created_at: string
+          group_id: string
+          id: string
+          is_pinned: boolean
+          rank: number
+          reply_to_id: string
+          user_id: string
+        }[]
       }
     }
     Enums: {

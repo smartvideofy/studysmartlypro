@@ -15,7 +15,10 @@ import {
   Link2,
   Reply,
   Paperclip,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Pin,
+  CalendarPlus,
+  Calendar
 } from "lucide-react";
 import { formatDistanceToNow, format, isToday, isYesterday } from "date-fns";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -52,6 +55,9 @@ import { useMessageReactions, useToggleReaction } from "@/hooks/useMessageReacti
 import { useOnlinePresence } from "@/hooks/useOnlinePresence";
 import { useUploadAttachment } from "@/hooks/useChatAttachments";
 import { useMentionNotifications } from "@/hooks/useMentionNotifications";
+import { useMessageSearch } from "@/hooks/useMessageSearch";
+import { usePinnedMessages, useTogglePin } from "@/hooks/useMessagePinning";
+import { useGroupStudySessions } from "@/hooks/useGroupStudySessions";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
 import { MemberManagementPanel } from "@/components/groups/MemberManagementPanel";
@@ -63,6 +69,11 @@ import { OnlineIndicator } from "@/components/groups/OnlineIndicator";
 import { MentionInput, parseMentions, renderMessageWithMentions } from "@/components/groups/MentionInput";
 import { ReplyPreview } from "@/components/groups/ReplyPreview";
 import { MessageAttachments, AttachmentPreview } from "@/components/groups/MessageAttachments";
+import { MessageSearchBar } from "@/components/groups/MessageSearchBar";
+import { PinnedMessagesPanel } from "@/components/groups/PinnedMessagesPanel";
+import { UpcomingSessionsBanner } from "@/components/groups/UpcomingSessionsBanner";
+import { ScheduleSessionModal } from "@/components/groups/ScheduleSessionModal";
+import { StudySessionCard } from "@/components/groups/StudySessionCard";
 import { cn } from "@/lib/utils";
 
 export default function GroupDetailPage() {
@@ -80,11 +91,16 @@ export default function GroupDetailPage() {
   const chatEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("chat");
+
   const { data: group, isLoading: groupLoading } = useGroup(groupId || "");
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId || "");
   const { data: messages, isLoading: messagesLoading } = useGroupMessages(groupId || "");
   const { data: sharedNotes, isLoading: notesLoading } = useSharedNotes(groupId || "");
   const { data: profile } = useProfile();
+  const { data: pinnedMessages } = usePinnedMessages(groupId || "");
+  const { data: studySessions } = useGroupStudySessions(groupId || "");
   const sendMessage = useSendMessage();
   const deleteMessage = useDeleteMessage();
   const leaveGroup = useLeaveGroup();
@@ -92,11 +108,14 @@ export default function GroupDetailPage() {
   const { typingUsers, startTyping, stopTyping } = useTypingIndicator(groupId || "");
   const { getReactionsForMessage } = useMessageReactions(groupId || "");
   const toggleReaction = useToggleReaction();
+  const togglePin = useTogglePin();
   const { onlineUsers, isOnline } = useOnlinePresence(groupId || "");
   const { uploadAttachment, isUploading } = useUploadAttachment();
   const sendMentionNotifications = useMentionNotifications();
+  const { searchTerm, setSearchTerm, results: searchResults, isLoading: searchLoading, isSearching, setIsSearching } = useMessageSearch(groupId || "");
 
   const isOwner = group?.owner_id === user?.id;
+  const isAdmin = members?.find(m => m.user_id === user?.id)?.role === 'admin' || isOwner;
   const myName = profile?.full_name || user?.email?.split('@')[0] || 'User';
 
   // Mark messages as read when viewing chat
