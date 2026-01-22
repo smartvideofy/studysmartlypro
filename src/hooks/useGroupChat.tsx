@@ -20,6 +20,11 @@ export interface GroupMessage {
   content: string;
   created_at: string;
   reply_to_id: string | null;
+  is_pinned?: boolean;
+  pinned_at?: string | null;
+  pinned_by?: string | null;
+  is_edited?: boolean;
+  edited_at?: string | null;
   profiles?: {
     full_name: string | null;
     avatar_url: string | null;

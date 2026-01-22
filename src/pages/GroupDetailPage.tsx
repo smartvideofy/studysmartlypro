@@ -330,8 +330,16 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
+      {/* Upcoming Sessions Banner */}
+      {studySessions && studySessions.length > 0 && (
+        <UpcomingSessionsBanner 
+          sessions={studySessions} 
+          onViewAll={() => setActiveTab("sessions")} 
+        />
+      )}
+
       {/* Tabs */}
-      <Tabs defaultValue="chat" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="chat" className="gap-2">
             <MessageSquare className="w-4 h-4" />
@@ -341,6 +349,10 @@ export default function GroupDetailPage() {
             <FileText className="w-4 h-4" />
             Shared Notes
           </TabsTrigger>
+          <TabsTrigger value="sessions" className="gap-2">
+            <Calendar className="w-4 h-4" />
+            Sessions
+          </TabsTrigger>
           <TabsTrigger value="members" className="gap-2">
             <Users className="w-4 h-4" />
             Members ({members?.length || 0})
@@ -349,7 +361,34 @@ export default function GroupDetailPage() {
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="mt-0">
+          {/* Search Bar */}
+          <div className="mb-2 flex justify-end">
+            <MessageSearchBar
+              searchTerm={searchTerm}
+              onSearchChange={setSearchTerm}
+              results={searchResults}
+              isLoading={searchLoading}
+              isOpen={isSearching}
+              onOpenChange={setIsSearching}
+              onResultClick={(messageId) => {
+                // TODO: Scroll to message
+                console.log("Jump to message:", messageId);
+              }}
+            />
+          </div>
+
           <div className="border border-border rounded-xl bg-card overflow-hidden">
+            {/* Pinned Messages Panel */}
+            <PinnedMessagesPanel
+              pinnedMessages={pinnedMessages || []}
+              groupId={groupId || ""}
+              canUnpin={isAdmin}
+              onJumpToMessage={(messageId) => {
+                // TODO: Scroll to message
+                console.log("Jump to message:", messageId);
+              }}
+            />
+
             <ScrollArea className="h-[400px] p-4">
               {messagesLoading ? (
                 <div className="space-y-3">
@@ -440,8 +479,8 @@ export default function GroupDetailPage() {
                                     </Button>
                                   )}
                                   
-                                  {/* Message actions - for own messages */}
-                                  {isMe && (
+                                  {/* Message actions - for own messages or admins */}
+                                  {(isMe || isAdmin) && (
                                     <DropdownMenu>
                                       <DropdownMenuTrigger asChild>
                                         <Button 
@@ -453,13 +492,27 @@ export default function GroupDetailPage() {
                                         </Button>
                                       </DropdownMenuTrigger>
                                       <DropdownMenuContent align="end">
-                                        <DropdownMenuItem 
-                                          className="text-destructive focus:text-destructive"
-                                          onClick={() => handleDeleteMessage(msg.id)}
-                                        >
-                                          <Trash2 className="w-4 h-4 mr-2" />
-                                          Delete Message
-                                        </DropdownMenuItem>
+                                        {isAdmin && (
+                                          <DropdownMenuItem 
+                                            onClick={() => togglePin.mutate({ 
+                                              messageId: msg.id, 
+                                              groupId: groupId || "",
+                                              isPinned: !!msg.is_pinned
+                                            })}
+                                          >
+                                            <Pin className="w-4 h-4 mr-2" />
+                                            {msg.is_pinned ? "Unpin Message" : "Pin Message"}
+                                          </DropdownMenuItem>
+                                        )}
+                                        {isMe && (
+                                          <DropdownMenuItem 
+                                            className="text-destructive focus:text-destructive"
+                                            onClick={() => handleDeleteMessage(msg.id)}
+                                          >
+                                            <Trash2 className="w-4 h-4 mr-2" />
+                                            Delete Message
+                                          </DropdownMenuItem>
+                                        )}
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   )}
@@ -618,13 +671,46 @@ export default function GroupDetailPage() {
           )}
         </TabsContent>
 
+        {/* Sessions Tab */}
+        <TabsContent value="sessions" className="mt-0">
+          <div className="flex justify-between items-center mb-4">
+            <p className="text-sm text-muted-foreground">
+              {studySessions?.length || 0} scheduled sessions
+            </p>
+            <Button size="sm" onClick={() => setScheduleModalOpen(true)}>
+              <CalendarPlus className="w-4 h-4 mr-1" />
+              Schedule Session
+            </Button>
+          </div>
+
+          {!studySessions?.length ? (
+            <div className="text-center py-12 border border-dashed border-border rounded-xl">
+              <Calendar className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+              <p className="text-muted-foreground">No sessions scheduled yet</p>
+              <Button variant="outline" size="sm" className="mt-3" onClick={() => setScheduleModalOpen(true)}>
+                Schedule your first session
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {studySessions.map((session) => (
+                <StudySessionCard 
+                  key={session.id} 
+                  session={session}
+                  groupId={groupId || ""}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         {/* Members Tab */}
         <TabsContent value="members" className="mt-0">
           {/* Online indicator summary */}
           {onlineUsers.length > 0 && (
             <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
               <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 {onlineUsers.length} online now
               </span>
             </div>
@@ -668,6 +754,12 @@ export default function GroupDetailPage() {
         sharedNote={selectedNote}
         open={!!selectedNote}
         onOpenChange={(open) => !open && setSelectedNote(null)}
+        groupId={groupId || ""}
+      />
+
+      <ScheduleSessionModal
+        open={scheduleModalOpen}
+        onOpenChange={setScheduleModalOpen}
         groupId={groupId || ""}
       />
 
