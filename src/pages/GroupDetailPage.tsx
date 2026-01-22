@@ -59,6 +59,7 @@ import { useMessageSearch } from "@/hooks/useMessageSearch";
 import { usePinnedMessages, useTogglePin } from "@/hooks/useMessagePinning";
 import { useGroupStudySessions } from "@/hooks/useGroupStudySessions";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
+import UploadNoteModal from "@/components/groups/UploadNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
 import { MemberManagementPanel } from "@/components/groups/MemberManagementPanel";
 import { SharedNotePreview } from "@/components/groups/SharedNotePreview";
@@ -82,6 +83,7 @@ export default function GroupDetailPage() {
   const { user } = useAuth();
   const [message, setMessage] = useState("");
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [uploadNoteModalOpen, setUploadNoteModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [inviteModalOpen, setInviteModalOpen] = useState(false);
   const [leaveDialogOpen, setLeaveDialogOpen] = useState(false);
@@ -632,10 +634,16 @@ export default function GroupDetailPage() {
             <p className="text-sm text-muted-foreground">
               {sharedNotes?.length || 0} shared notes
             </p>
-            <Button size="sm" onClick={() => setShareModalOpen(true)}>
-              <Share2 className="w-4 h-4 mr-1" />
-              Share Note
-            </Button>
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => setShareModalOpen(true)}>
+                <Share2 className="w-4 h-4 mr-1" />
+                Share Existing
+              </Button>
+              <Button size="sm" onClick={() => setUploadNoteModalOpen(true)}>
+                <FileText className="w-4 h-4 mr-1" />
+                Create New
+              </Button>
+            </div>
           </div>
 
           {notesLoading ? (
@@ -646,9 +654,17 @@ export default function GroupDetailPage() {
             <div className="text-center py-12 border border-dashed border-border rounded-xl">
               <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
               <p className="text-muted-foreground">No notes shared yet</p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={() => setShareModalOpen(true)}>
-                Share your first note
-              </Button>
+              <p className="text-xs text-muted-foreground mt-1">
+                Share an existing note or create a new one
+              </p>
+              <div className="flex justify-center gap-2 mt-4">
+                <Button variant="outline" size="sm" onClick={() => setShareModalOpen(true)}>
+                  Share Existing
+                </Button>
+                <Button size="sm" onClick={() => setUploadNoteModalOpen(true)}>
+                  Create New
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="grid gap-3">
@@ -760,6 +776,12 @@ export default function GroupDetailPage() {
       <ScheduleSessionModal
         open={scheduleModalOpen}
         onOpenChange={setScheduleModalOpen}
+        groupId={groupId || ""}
+      />
+
+      <UploadNoteModal
+        open={uploadNoteModalOpen}
+        onOpenChange={setUploadNoteModalOpen}
         groupId={groupId || ""}
       />
 
