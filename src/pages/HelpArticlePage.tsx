@@ -1,13 +1,14 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Eye } from "lucide-react";
+import { ArrowLeft, Clock, Eye, BookOpen, ArrowRight } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useHelpArticle, useHelpArticles } from "@/hooks/useHelpCenter";
+import { useHelpArticle, useHelpArticles, useHelpCategories, HelpArticle } from "@/hooks/useHelpCenter";
 import { HelpArticleItem } from "@/components/help/HelpArticleItem";
 import { ArticleFeedback } from "@/components/help/ArticleFeedback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -19,8 +20,20 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 
-// Simple markdown-like renderer
-const renderContent = (content: string) => {
+// Article link pattern: [[article-slug|Display Text]] or [[article-slug]]
+const parseArticleLinks = (text: string, articles: HelpArticle[]): string => {
+  return text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_, slug, displayText) => {
+    const linkedArticle = articles.find(a => a.slug === slug.trim());
+    if (linkedArticle) {
+      const text = displayText || linkedArticle.title;
+      return `<a href="/help/article/${slug.trim()}" class="text-primary hover:underline font-medium inline-flex items-center gap-1">${text}</a>`;
+    }
+    return displayText || slug;
+  });
+};
+
+// Simple markdown-like renderer with article linking
+const renderContent = (content: string, allArticles: HelpArticle[] = []) => {
   const lines = content.split("\n");
   const elements: React.ReactNode[] = [];
   let inList = false;
@@ -41,10 +54,15 @@ const renderContent = (content: string) => {
   };
 
   const parseInline = (text: string) => {
-    return text
+    let parsed = text
       .replace(/\*\*(.*?)\*\*/g, "<strong class='text-foreground font-semibold'>$1</strong>")
       .replace(/\*(.*?)\*/g, "<em>$1</em>")
       .replace(/`(.*?)`/g, "<code class='bg-muted px-1.5 py-0.5 rounded text-sm font-mono'>$1</code>");
+    
+    // Parse article links
+    parsed = parseArticleLinks(parsed, allArticles);
+    
+    return parsed;
   };
 
   lines.forEach((line, index) => {
@@ -128,11 +146,36 @@ const SkeletonArticle = () => (
   </div>
 );
 
+// Suggested articles based on content keywords
+const getSuggestedArticles = (currentArticle: HelpArticle, allArticles: HelpArticle[]): HelpArticle[] => {
+  const keywords = [
+    'flashcard', 'note', 'study', 'export', 'import', 'account', 'password', 
+    'ai', 'keyboard', 'shortcut', 'subscription', 'billing', 'sync', 'upload'
+  ];
+  
+  const currentContent = (currentArticle.title + ' ' + currentArticle.content).toLowerCase();
+  const matchedKeywords = keywords.filter(k => currentContent.includes(k));
+  
+  return allArticles
+    .filter(a => a.id !== currentArticle.id)
+    .map(article => {
+      const articleContent = (article.title + ' ' + article.content).toLowerCase();
+      const score = matchedKeywords.filter(k => articleContent.includes(k)).length;
+      return { article, score };
+    })
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(({ article }) => article);
+};
+
 const HelpArticlePage = () => {
   const { articleSlug } = useParams<{ articleSlug: string }>();
   const { data: article, isLoading } = useHelpArticle(articleSlug || "");
+  const { data: allArticles } = useHelpArticles();
+  const { data: categories } = useHelpCategories();
   const category = article?.category as any;
-  const { data: relatedArticles } = useHelpArticles(category?.slug);
+  const { data: categoryArticles } = useHelpArticles(category?.slug);
 
   // Increment view count on mount
   useEffect(() => {
@@ -145,7 +188,16 @@ const HelpArticlePage = () => {
     }
   }, [article?.id]);
 
-  const filteredRelated = relatedArticles?.filter((a) => a.id !== article?.id).slice(0, 3);
+  // Related articles from same category
+  const sameCategory = categoryArticles?.filter((a) => a.id !== article?.id).slice(0, 3) || [];
+  
+  // AI-suggested articles from other categories
+  const suggestedArticles = article && allArticles 
+    ? getSuggestedArticles(article, allArticles).filter(a => a.category_id !== article.category_id)
+    : [];
+
+  // Other categories for exploration
+  const otherCategories = categories?.filter(c => c.id !== article?.category_id).slice(0, 3) || [];
 
   return (
     <DashboardLayout>
@@ -200,6 +252,19 @@ const HelpArticlePage = () => {
         ) : article ? (
           <Card className="bg-card/50 backdrop-blur-sm">
             <CardContent className="p-8">
+              <div className="flex items-center gap-2 mb-4">
+                {category && (
+                  <Link to={`/help/category/${category.slug}`}>
+                    <Badge variant="secondary" className="hover:bg-secondary/80">
+                      {category.title}
+                    </Badge>
+                  </Link>
+                )}
+                {article.is_featured && (
+                  <Badge variant="default">Featured</Badge>
+                )}
+              </div>
+
               <h1 className="text-2xl font-bold text-foreground mb-4">
                 {article.title}
               </h1>
@@ -216,7 +281,7 @@ const HelpArticlePage = () => {
               </div>
 
               <div className="prose prose-sm max-w-none">
-                {renderContent(article.content)}
+                {renderContent(article.content, allArticles || [])}
               </div>
 
               <ArticleFeedback
@@ -235,13 +300,56 @@ const HelpArticlePage = () => {
           </div>
         )}
 
-        {/* Related Articles */}
-        {filteredRelated && filteredRelated.length > 0 && (
+        {/* More in This Category */}
+        {sameCategory.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-lg font-semibold mb-4">Related Articles</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                More in {category?.title}
+              </h2>
+              <Link 
+                to={`/help/category/${category?.slug}`}
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
+                View all <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
             <div className="space-y-3">
-              {filteredRelated.map((relatedArticle, index) => (
+              {sameCategory.map((relatedArticle, index) => (
                 <HelpArticleItem key={relatedArticle.id} article={relatedArticle} index={index} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* You Might Also Like */}
+        {suggestedArticles.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold mb-4">You Might Also Like</h2>
+            <div className="space-y-3">
+              {suggestedArticles.map((suggestedArticle, index) => (
+                <HelpArticleItem key={suggestedArticle.id} article={suggestedArticle} index={index} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Explore Other Topics */}
+        {otherCategories.length > 0 && (
+          <div className="mt-10">
+            <h2 className="text-lg font-semibold mb-4">Explore Other Topics</h2>
+            <div className="flex flex-wrap gap-2">
+              {otherCategories.map((cat) => (
+                <Link key={cat.id} to={`/help/category/${cat.slug}`}>
+                  <Badge 
+                    variant="outline" 
+                    className="px-4 py-2 hover:bg-primary/10 hover:border-primary transition-colors cursor-pointer"
+                  >
+                    {cat.title}
+                    <span className="ml-2 text-muted-foreground">({cat.article_count})</span>
+                  </Badge>
+                </Link>
               ))}
             </div>
           </div>
