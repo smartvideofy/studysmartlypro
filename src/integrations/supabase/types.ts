@@ -450,11 +450,14 @@ export type Database = {
         Row: {
           content: string
           created_at: string
+          delivered_at: string | null
           edited_at: string | null
+          forwarded_from: string | null
           group_id: string
           id: string
           is_edited: boolean | null
           is_pinned: boolean | null
+          link_preview: Json | null
           pinned_at: string | null
           pinned_by: string | null
           reply_to_id: string | null
@@ -463,11 +466,14 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string
+          delivered_at?: string | null
           edited_at?: string | null
+          forwarded_from?: string | null
           group_id: string
           id?: string
           is_edited?: boolean | null
           is_pinned?: boolean | null
+          link_preview?: Json | null
           pinned_at?: string | null
           pinned_by?: string | null
           reply_to_id?: string | null
@@ -476,17 +482,27 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string
+          delivered_at?: string | null
           edited_at?: string | null
+          forwarded_from?: string | null
           group_id?: string
           id?: string
           is_edited?: boolean | null
           is_pinned?: boolean | null
+          link_preview?: Json | null
           pinned_at?: string | null
           pinned_by?: string | null
           reply_to_id?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "group_messages_forwarded_from_fkey"
+            columns: ["forwarded_from"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "group_messages_group_id_fkey"
             columns: ["group_id"]
@@ -619,6 +635,35 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_read_receipts: {
+        Row: {
+          id: string
+          message_id: string
+          read_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          read_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          read_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_read_receipts_message_id_fkey"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "group_messages"
@@ -975,6 +1020,35 @@ export type Database = {
             columns: ["note_id"]
             isOneToOne: false
             referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      starred_messages: {
+        Row: {
+          id: string
+          message_id: string
+          starred_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          message_id: string
+          starred_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          message_id?: string
+          starred_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "starred_messages_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
             referencedColumns: ["id"]
           },
         ]
