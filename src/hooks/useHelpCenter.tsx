@@ -25,6 +25,8 @@ export interface HelpArticle {
   is_featured: boolean;
   display_order: number;
   views: number;
+  helpful_count: number;
+  not_helpful_count: number;
   is_active: boolean;
   created_at: string;
   updated_at: string;

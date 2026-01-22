@@ -1,10 +1,11 @@
 import { useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowLeft, Clock, Eye, ChevronRight } from "lucide-react";
+import { ArrowLeft, Clock, Eye } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useHelpArticle, useHelpArticles } from "@/hooks/useHelpCenter";
 import { HelpArticleItem } from "@/components/help/HelpArticleItem";
+import { ArticleFeedback } from "@/components/help/ArticleFeedback";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -217,6 +218,12 @@ const HelpArticlePage = () => {
               <div className="prose prose-sm max-w-none">
                 {renderContent(article.content)}
               </div>
+
+              <ArticleFeedback
+                articleId={article.id}
+                helpfulCount={article.helpful_count || 0}
+                notHelpfulCount={article.not_helpful_count || 0}
+              />
             </CardContent>
           </Card>
         ) : (

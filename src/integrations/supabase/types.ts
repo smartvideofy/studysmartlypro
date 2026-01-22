@@ -566,16 +566,50 @@ export type Database = {
           },
         ]
       }
+      help_article_feedback: {
+        Row: {
+          article_id: string
+          created_at: string | null
+          id: string
+          is_helpful: boolean
+          user_id: string | null
+        }
+        Insert: {
+          article_id: string
+          created_at?: string | null
+          id?: string
+          is_helpful: boolean
+          user_id?: string | null
+        }
+        Update: {
+          article_id?: string
+          created_at?: string | null
+          id?: string
+          is_helpful?: boolean
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "help_article_feedback_article_id_fkey"
+            columns: ["article_id"]
+            isOneToOne: false
+            referencedRelation: "help_articles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       help_articles: {
         Row: {
           category_id: string | null
           content: string
           created_at: string | null
           display_order: number | null
+          helpful_count: number | null
           id: string
           is_active: boolean | null
           is_faq: boolean | null
           is_featured: boolean | null
+          not_helpful_count: number | null
           slug: string
           summary: string | null
           title: string
@@ -587,10 +621,12 @@ export type Database = {
           content: string
           created_at?: string | null
           display_order?: number | null
+          helpful_count?: number | null
           id?: string
           is_active?: boolean | null
           is_faq?: boolean | null
           is_featured?: boolean | null
+          not_helpful_count?: number | null
           slug: string
           summary?: string | null
           title: string
@@ -602,10 +638,12 @@ export type Database = {
           content?: string
           created_at?: string | null
           display_order?: number | null
+          helpful_count?: number | null
           id?: string
           is_active?: boolean | null
           is_faq?: boolean | null
           is_featured?: boolean | null
+          not_helpful_count?: number | null
           slug?: string
           summary?: string | null
           title?: string
