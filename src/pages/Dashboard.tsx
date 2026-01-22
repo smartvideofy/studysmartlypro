@@ -12,7 +12,8 @@ import {
   ArrowRight,
   Sparkles,
   BookOpen,
-  Upload
+  Upload,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -35,6 +36,7 @@ import {
 } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+import { XPProgress } from "@/components/gamification/XPProgress";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -232,6 +234,20 @@ export default function Dashboard() {
               </div>
             </div>
           </Card>
+        </motion.div>
+
+        {/* XP Progress & Gamification */}
+        <motion.div variants={itemVariants}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display text-lg font-semibold">Your Progress</h3>
+            <Button variant="ghost" size="sm" asChild>
+              <Link to="/achievements">
+                <Trophy className="w-4 h-4 mr-1" />
+                All Achievements
+              </Link>
+            </Button>
+          </div>
+          <XPProgress />
         </motion.div>
 
         {/* Stats Cards */}
