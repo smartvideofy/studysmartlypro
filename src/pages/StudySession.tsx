@@ -11,8 +11,6 @@ import {
   Loader2,
   Layers,
   CheckCircle2,
-  ThumbsUp,
-  ThumbsDown,
   RotateCcw
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -33,6 +31,8 @@ import {
   useCreateStudySession, 
   useUpdateStudySession 
 } from "@/hooks/useStudySessions";
+import { SRSButtons, calculateNextReviewExtended } from "@/components/flashcards/SRSButtons";
+import { useAwardXP, useUpdateDailyChallenge } from "@/hooks/useGamification";
 
 export default function StudySession() {
   const { deckId } = useParams();
@@ -54,6 +54,8 @@ export default function StudySession() {
   const reviewFlashcard = useReviewFlashcard();
   const createSession = useCreateStudySession();
   const updateSession = useUpdateStudySession();
+  const awardXP = useAwardXP();
+  const updateDailyChallenge = useUpdateDailyChallenge();
 
   // Use due cards if available, otherwise use all cards
   const cards = (dueCards && dueCards.length > 0) ? dueCards : (allCards || []);
@@ -86,11 +88,17 @@ export default function StudySession() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleAnswer = async (correct: boolean) => {
+  const handleAnswer = async (quality: number) => {
     if (!currentCard) return;
 
-    // Update spaced repetition
-    const quality = correct ? 4 : 1; // 4 = good, 1 = fail
+    // Update spaced repetition with extended algorithm
+    const updates = calculateNextReviewExtended(
+      quality,
+      currentCard.ease_factor,
+      currentCard.interval_days,
+      currentCard.repetitions
+    );
+
     await reviewFlashcard.mutateAsync({
       id: currentCard.id,
       deckId: deckId || "",
@@ -100,9 +108,14 @@ export default function StudySession() {
       currentRepetitions: currentCard.repetitions,
     });
 
+    const correct = quality >= 3;
     setResults([...results, { id: currentCard.id, correct }]);
     setIsFlipped(false);
     setShowHint(false);
+
+    // Award XP for studying
+    awardXP.mutate({ amount: correct ? 15 : 5, reason: "Flashcard study" });
+    updateDailyChallenge.mutate({ progress: 1 });
     
     if (currentIndex < cards.length - 1) {
       setTimeout(() => {
@@ -358,29 +371,13 @@ export default function StudySession() {
                 </Button>
               </>
             ) : (
-              <>
-                <Button 
-                  variant="outline" 
-                  size="lg"
-                  className="gap-2 border-destructive/30 text-destructive hover:bg-destructive/10 min-w-[140px]"
-                  onClick={() => handleAnswer(false)}
-                  disabled={reviewFlashcard.isPending}
-                >
-                  <ThumbsDown className="w-5 h-5" />
-                  {reviewFlashcard.isPending ? "..." : "Didn't Know"}
-                </Button>
-                
-                <Button 
-                  variant="default" 
-                  size="lg"
-                  className="gap-2 bg-success hover:bg-success/90 text-success-foreground min-w-[140px]"
-                  onClick={() => handleAnswer(true)}
-                  disabled={reviewFlashcard.isPending}
-                >
-                  <ThumbsUp className="w-5 h-5" />
-                  {reviewFlashcard.isPending ? "..." : "Got It!"}
-                </Button>
-              </>
+              <SRSButtons
+                onAnswer={handleAnswer}
+                isLoading={reviewFlashcard.isPending}
+                currentEaseFactor={currentCard?.ease_factor || 2.5}
+                currentInterval={currentCard?.interval_days || 0}
+                currentRepetitions={currentCard?.repetitions || 0}
+              />
             )}
           </div>
 

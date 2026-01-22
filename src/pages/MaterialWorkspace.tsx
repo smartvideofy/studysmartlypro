@@ -11,7 +11,8 @@ import {
   Brain,
   Network,
   Settings,
-  Download
+  Download,
+  Headphones
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,6 +24,7 @@ import FlashcardsTab from "@/components/materials/tabs/FlashcardsTab";
 import PracticeQuestionsTab from "@/components/materials/tabs/PracticeQuestionsTab";
 import ConceptMapTab from "@/components/materials/tabs/ConceptMapTab";
 import AIChatTab from "@/components/materials/tabs/AIChatTab";
+import AudioOverviewTab from "@/components/materials/tabs/AudioOverviewTab";
 import ProcessingStatus from "@/components/materials/ProcessingStatus";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ExportModal from "@/components/materials/ExportModal";

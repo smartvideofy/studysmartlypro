@@ -14,6 +14,89 @@ export type Database = {
   }
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          category: string
+          created_at: string | null
+          description: string
+          icon: string
+          id: string
+          name: string
+          requirement_value: number
+          tier: string
+          xp_reward: number
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          description: string
+          icon: string
+          id?: string
+          name: string
+          requirement_value: number
+          tier?: string
+          xp_reward?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          description?: string
+          icon?: string
+          id?: string
+          name?: string
+          requirement_value?: number
+          tier?: string
+          xp_reward?: number
+        }
+        Relationships: []
+      }
+      audio_overviews: {
+        Row: {
+          audio_path: string | null
+          audio_url: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          id: string
+          material_id: string
+          script: string | null
+          style: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          audio_path?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          material_id: string
+          script?: string | null
+          style?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          audio_path?: string | null
+          audio_url?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          id?: string
+          material_id?: string
+          script?: string | null
+          style?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_overviews_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       concept_maps: {
         Row: {
           created_at: string | null
@@ -51,6 +134,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      daily_challenges: {
+        Row: {
+          challenge_date: string
+          challenge_type: string
+          completed: boolean | null
+          created_at: string | null
+          current_value: number | null
+          id: string
+          target_value: number
+          user_id: string
+          xp_reward: number
+        }
+        Insert: {
+          challenge_date?: string
+          challenge_type: string
+          completed?: boolean | null
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          target_value: number
+          user_id: string
+          xp_reward?: number
+        }
+        Update: {
+          challenge_date?: string
+          challenge_type?: string
+          completed?: boolean | null
+          created_at?: string | null
+          current_value?: number | null
+          id?: string
+          target_value?: number
+          user_id?: string
+          xp_reward?: number
+        }
+        Relationships: []
       }
       flashcard_decks: {
         Row: {
@@ -644,11 +763,15 @@ export type Database = {
           daily_study_minutes: number | null
           full_name: string | null
           id: string
+          last_study_date: string | null
+          level: number | null
           notification_enabled: boolean | null
           preferred_study_time: string | null
+          streak_days: number | null
           study_goal: string | null
           updated_at: string
           user_id: string
+          xp: number | null
         }
         Insert: {
           avatar_url?: string | null
@@ -656,11 +779,15 @@ export type Database = {
           daily_study_minutes?: number | null
           full_name?: string | null
           id?: string
+          last_study_date?: string | null
+          level?: number | null
           notification_enabled?: boolean | null
           preferred_study_time?: string | null
+          streak_days?: number | null
           study_goal?: string | null
           updated_at?: string
           user_id: string
+          xp?: number | null
         }
         Update: {
           avatar_url?: string | null
@@ -668,11 +795,15 @@ export type Database = {
           daily_study_minutes?: number | null
           full_name?: string | null
           id?: string
+          last_study_date?: string | null
+          level?: number | null
           notification_enabled?: boolean | null
           preferred_study_time?: string | null
+          streak_days?: number | null
           study_goal?: string | null
           updated_at?: string
           user_id?: string
+          xp?: number | null
         }
         Relationships: []
       }
@@ -1084,6 +1215,35 @@ export type Database = {
             columns: ["material_id"]
             isOneToOne: false
             referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_achievements: {
+        Row: {
+          achievement_id: string
+          earned_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          achievement_id: string
+          earned_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          achievement_id?: string
+          earned_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_achievements_achievement_id_fkey"
+            columns: ["achievement_id"]
+            isOneToOne: false
+            referencedRelation: "achievements"
             referencedColumns: ["id"]
           },
         ]
