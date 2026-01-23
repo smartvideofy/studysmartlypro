@@ -209,7 +209,7 @@ async function initializeTransaction(user: { id: string; email: string }, body: 
       email: user.email,
       amount: amountInCents, // Amount in cents
       plan: selectedPlan.code,
-      callback_url: callback_url || `${Deno.env.get('SUPABASE_URL')?.replace('.supabase.co', '.lovable.app')}/pricing?verify=true`,
+      callback_url: callback_url || `${Deno.env.get('APP_URL') || 'https://getstudily.com'}/pricing?verify=true`,
       metadata: {
         user_id: user.id,
         plan: plan,
@@ -406,23 +406,27 @@ async function cancelSubscription(user: { id: string; email: string }, supabase:
     });
   }
 
-  // If there's a Paystack subscription, cancel it
-  if (sub.paystack_subscription_code && sub.paystack_email_token) {
+  // If there's a Paystack subscription, try to cancel it
+  if (sub.paystack_subscription_code) {
     try {
+      const cancelBody: any = { code: sub.paystack_subscription_code };
+      // Include token if available, but attempt cancellation even without it
+      if (sub.paystack_email_token) {
+        cancelBody.token = sub.paystack_email_token;
+      }
+      
       const response = await fetch(`https://api.paystack.co/subscription/disable`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          code: sub.paystack_subscription_code,
-          token: sub.paystack_email_token,
-        }),
+        body: JSON.stringify(cancelBody),
       });
       console.log('Paystack cancel response:', await response.json());
     } catch (e) {
       console.error('Paystack cancel error:', e);
+      // Continue with local cancellation even if Paystack fails
     }
   }
 

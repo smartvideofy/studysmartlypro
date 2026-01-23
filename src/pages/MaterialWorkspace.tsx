@@ -12,7 +12,8 @@ import {
   Network,
   Settings,
   Download,
-  Headphones
+  Headphones,
+  Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -28,6 +29,8 @@ import AudioOverviewTab from "@/components/materials/tabs/AudioOverviewTab";
 import ProcessingStatus from "@/components/materials/ProcessingStatus";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ExportModal from "@/components/materials/ExportModal";
+import { PremiumGate, PremiumBadge } from "@/components/subscription/PremiumGate";
+import { useCanAccessFeature } from "@/hooks/useSubscription";
 
 export default function MaterialWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -171,6 +174,7 @@ export default function MaterialWorkspace() {
                 >
                   <Brain className="w-4 h-4" />
                   <span className="hidden sm:inline">Questions</span>
+                  <PremiumBadge className="hidden sm:inline-flex" />
                 </TabsTrigger>
                 <TabsTrigger 
                   value="concept-map"
@@ -178,6 +182,7 @@ export default function MaterialWorkspace() {
                 >
                   <Network className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
+                  <PremiumBadge className="hidden sm:inline-flex" />
                 </TabsTrigger>
                 <TabsTrigger 
                   value="chat"
@@ -208,10 +213,14 @@ export default function MaterialWorkspace() {
                 <FlashcardsTab materialId={material.id} />
               </TabsContent>
               <TabsContent value="questions" className="m-0 h-full">
-                <PracticeQuestionsTab materialId={material.id} />
+                <PremiumGate feature="practiceQuestions">
+                  <PracticeQuestionsTab materialId={material.id} />
+                </PremiumGate>
               </TabsContent>
               <TabsContent value="concept-map" className="m-0 h-full">
-                <ConceptMapTab materialId={material.id} />
+                <PremiumGate feature="conceptMaps">
+                  <ConceptMapTab materialId={material.id} />
+                </PremiumGate>
               </TabsContent>
               <TabsContent value="chat" className="m-0 h-full">
                 <AIChatTab materialId={material.id} extractedContent={material.extracted_content} />

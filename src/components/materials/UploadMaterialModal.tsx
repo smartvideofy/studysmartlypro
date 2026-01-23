@@ -10,7 +10,9 @@ import {
   Loader2,
   CheckCircle,
   Youtube,
-  Link as LinkIcon
+  Link as LinkIcon,
+  Lock,
+  Crown
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,10 +23,12 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
-import { useCreateStudyMaterial, useUploadMaterialFile } from '@/hooks/useStudyMaterials';
+import { useCreateStudyMaterial, useUploadMaterialFile, useStudyMaterials } from '@/hooks/useStudyMaterials';
 import { useFolders } from '@/hooks/useNotes';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { usePlanFeatures } from '@/hooks/useSubscription';
+import { useNavigate } from 'react-router-dom';
 
 interface UploadMaterialModalProps {
   open: boolean;
@@ -53,6 +57,7 @@ function isValidYouTubeUrl(url: string): boolean {
 }
 
 export default function UploadMaterialModal({ open, onOpenChange }: UploadMaterialModalProps) {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'file' | 'youtube'>('file');
   
   // File upload state
@@ -70,13 +75,22 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   const [language, setLanguage] = useState('en');
   const [generateTutorNotes, setGenerateTutorNotes] = useState(true);
   const [generateFlashcards, setGenerateFlashcards] = useState(true);
-  const [generateQuestions, setGenerateQuestions] = useState(true);
+  const [generateQuestions, setGenerateQuestions] = useState(false); // Disabled by default - requires Pro
   const [generateConceptMap, setGenerateConceptMap] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   const { data: folders } = useFolders();
+  const { data: materials } = useStudyMaterials();
+  const planFeatures = usePlanFeatures();
   const uploadFile = useUploadMaterialFile();
   const createMaterial = useCreateStudyMaterial();
+
+  // Check document limit
+  const materialCount = materials?.length || 0;
+  const maxDocuments = planFeatures.maxDocuments;
+  const isAtLimit = maxDocuments !== 'unlimited' && materialCount >= maxDocuments;
+  const canGenerateQuestions = planFeatures.practiceQuestions;
+  const canGenerateConceptMap = planFeatures.conceptMaps;
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
@@ -215,8 +229,46 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   const FileIcon = getFileIcon();
 
   const canSubmit = activeTab === 'file' 
-    ? file && title.trim()
-    : videoUrl && isValidUrl && title.trim();
+    ? file && title.trim() && !isAtLimit
+    : videoUrl && isValidUrl && title.trim() && !isAtLimit;
+
+  // If at document limit, show upgrade prompt
+  if (isAtLimit) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Lock className="w-5 h-5 text-amber-500" />
+              Document Limit Reached
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="text-center space-y-3">
+              <div className="w-16 h-16 rounded-full bg-amber-500/10 flex items-center justify-center mx-auto">
+                <Crown className="w-8 h-8 text-amber-500" />
+              </div>
+              <p className="text-muted-foreground">
+                You've reached your limit of <span className="font-semibold text-foreground">{maxDocuments} documents</span> on the free plan.
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Upgrade to Pro for unlimited document uploads and premium AI features.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1">
+                Cancel
+              </Button>
+              <Button onClick={() => { onOpenChange(false); navigate('/pricing'); }} className="flex-1">
+                <Crown className="w-4 h-4 mr-2" />
+                Upgrade to Pro
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -225,6 +277,11 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
           <DialogTitle className="flex items-center gap-2">
             <Upload className="w-5 h-5 text-primary" />
             Upload Study Material
+            {maxDocuments !== 'unlimited' && (
+              <span className="text-xs text-muted-foreground ml-auto">
+                {materialCount}/{maxDocuments} documents
+              </span>
+            )}
           </DialogTitle>
         </DialogHeader>
 
@@ -453,20 +510,48 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
                 <Switch checked={generateFlashcards} onCheckedChange={setGenerateFlashcards} />
               </div>
               <div className="flex items-center justify-between">
-                <div>
+                <div className="flex items-center gap-2">
                   <p className="text-sm font-medium">Practice Questions</p>
-                  <p className="text-xs text-muted-foreground">MCQs & short answer questions</p>
+                  {!canGenerateQuestions && (
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600">
+                      <Crown className="w-3 h-3" />
+                      PRO
+                    </span>
+                  )}
                 </div>
-                <Switch checked={generateQuestions} onCheckedChange={setGenerateQuestions} />
+                <Switch 
+                  checked={generateQuestions} 
+                  onCheckedChange={setGenerateQuestions}
+                  disabled={!canGenerateQuestions}
+                />
               </div>
+              {!canGenerateQuestions && (
+                <p className="text-xs text-muted-foreground -mt-2 pl-0">
+                  Upgrade to Pro for AI-generated practice questions
+                </p>
+              )}
               {activeTab === 'file' && (
                 <div className="flex items-center justify-between">
-                  <div>
+                  <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">Concept Map</p>
-                    <p className="text-xs text-muted-foreground">Visual concept relationships</p>
+                    {!canGenerateConceptMap && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-600">
+                        <Crown className="w-3 h-3" />
+                        PRO
+                      </span>
+                    )}
                   </div>
-                  <Switch checked={generateConceptMap} onCheckedChange={setGenerateConceptMap} />
+                  <Switch 
+                    checked={generateConceptMap} 
+                    onCheckedChange={setGenerateConceptMap}
+                    disabled={!canGenerateConceptMap}
+                  />
                 </div>
+              )}
+              {activeTab === 'file' && !canGenerateConceptMap && (
+                <p className="text-xs text-muted-foreground -mt-2 pl-0">
+                  Upgrade to Pro for visual concept mapping
+                </p>
               )}
             </div>
           </div>
