@@ -9,6 +9,36 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
+// Helper function to send subscription lifecycle emails
+async function sendSubscriptionEmail(
+  userId: string,
+  template: 'subscription_welcome' | 'subscription_expiring' | 'subscription_expired',
+  data: Record<string, any> = {}
+) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        template,
+        data,
+        force: true, // Subscription emails are transactional
+      }),
+    });
+    
+    const result = await response.json();
+    console.log(`Subscription email (${template}) sent to user ${userId}:`, result);
+    return result;
+  } catch (error) {
+    console.error(`Failed to send subscription email (${template}):`, error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -38,17 +68,66 @@ serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
-    const now = new Date().toISOString();
+    const now = new Date();
+    const nowISO = now.toISOString();
 
-    console.log(`Running subscription expiry check at ${now}`);
+    console.log(`Running subscription check at ${nowISO}`);
 
-    // Find all active subscriptions that have expired
+    // 1. Find subscriptions expiring in 3 days (for reminder emails)
+    const threeDaysFromNow = new Date(now);
+    threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+    const threeDaysStart = new Date(threeDaysFromNow);
+    threeDaysStart.setHours(0, 0, 0, 0);
+    const threeDaysEnd = new Date(threeDaysFromNow);
+    threeDaysEnd.setHours(23, 59, 59, 999);
+
+    const { data: expiringSubscriptions, error: expiringError } = await supabase
+      .from('subscriptions')
+      .select('id, user_id, plan, current_period_end')
+      .eq('status', 'active')
+      .neq('plan', 'free')
+      .gte('current_period_end', threeDaysStart.toISOString())
+      .lte('current_period_end', threeDaysEnd.toISOString());
+
+    if (expiringError) {
+      console.error('Error fetching expiring subscriptions:', expiringError);
+    } else if (expiringSubscriptions && expiringSubscriptions.length > 0) {
+      console.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 3 days`);
+      
+      // Check if we already sent an expiry reminder (using email_logs)
+      for (const subscription of expiringSubscriptions) {
+        const { data: existingLog } = await supabase
+          .from('email_logs')
+          .select('id')
+          .eq('user_id', subscription.user_id)
+          .eq('email_type', 'subscription_expiring')
+          .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+          .single();
+
+        if (!existingLog) {
+          // Send expiry reminder
+          await sendSubscriptionEmail(subscription.user_id, 'subscription_expiring', {
+            planName: subscription.plan === 'pro' ? 'Studily Pro' : 'Studily Team',
+            expiryDate: new Date(subscription.current_period_end).toLocaleDateString('en-US', {
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }),
+          });
+        } else {
+          console.log(`Expiry reminder already sent to user ${subscription.user_id}`);
+        }
+      }
+    }
+
+    // 2. Find all active subscriptions that have expired
     const { data: expiredSubscriptions, error: fetchError } = await supabase
       .from('subscriptions')
       .select('id, user_id, plan, current_period_end')
       .eq('status', 'active')
       .neq('plan', 'free')
-      .lt('current_period_end', now);
+      .lt('current_period_end', nowISO);
 
     if (fetchError) {
       console.error('Error fetching expired subscriptions:', fetchError);
@@ -61,8 +140,9 @@ serve(async (req) => {
     if (!expiredSubscriptions || expiredSubscriptions.length === 0) {
       console.log('No expired subscriptions found');
       return new Response(JSON.stringify({ 
-        message: 'No expired subscriptions found',
-        checked_at: now,
+        message: 'Subscription check complete',
+        checked_at: nowISO,
+        expiring_soon: expiringSubscriptions?.length || 0,
         expired_count: 0,
       }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -74,12 +154,14 @@ serve(async (req) => {
     // Downgrade each expired subscription
     const results = await Promise.allSettled(
       expiredSubscriptions.map(async (subscription) => {
+        const previousPlan = subscription.plan;
+        
         const { error: updateError } = await supabase
           .from('subscriptions')
           .update({
             plan: 'free',
             status: 'expired',
-            updated_at: now,
+            updated_at: nowISO,
           })
           .eq('id', subscription.id);
 
@@ -88,16 +170,22 @@ serve(async (req) => {
           throw updateError;
         }
 
-        console.log(`Expired subscription for user ${subscription.user_id} (was ${subscription.plan})`);
+        console.log(`Expired subscription for user ${subscription.user_id} (was ${previousPlan})`);
 
-        // Optionally send a notification to the user
+        // Send expiration email
+        await sendSubscriptionEmail(subscription.user_id, 'subscription_expired', {
+          planName: previousPlan === 'pro' ? 'Studily Pro' : 'Studily Team',
+          previousPlan,
+        });
+
+        // Also send in-app notification
         try {
           await supabase.from('notifications').insert({
             user_id: subscription.user_id,
             type: 'subscription_expired',
             title: 'Subscription Expired',
-            message: `Your ${subscription.plan} subscription has expired. Renew now to continue accessing premium features.`,
-            data: { previous_plan: subscription.plan },
+            message: `Your ${previousPlan} subscription has expired. Renew now to continue accessing premium features.`,
+            data: { previous_plan: previousPlan },
           });
         } catch (notifError) {
           console.error('Failed to send expiry notification:', notifError);
@@ -110,11 +198,12 @@ serve(async (req) => {
     const succeeded = results.filter(r => r.status === 'fulfilled').length;
     const failed = results.filter(r => r.status === 'rejected').length;
 
-    console.log(`Subscription expiry check complete: ${succeeded} succeeded, ${failed} failed`);
+    console.log(`Subscription check complete: ${succeeded} expired, ${failed} failed`);
 
     return new Response(JSON.stringify({
-      message: 'Subscription expiry check complete',
-      checked_at: now,
+      message: 'Subscription check complete',
+      checked_at: nowISO,
+      expiring_soon: expiringSubscriptions?.length || 0,
       expired_count: expiredSubscriptions.length,
       succeeded,
       failed,
