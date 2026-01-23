@@ -695,6 +695,27 @@ serve(async (req) => {
       throw new Error('Material not found');
     }
 
+    const materialUserId = material.user_id;
+
+    // Check user's plan for feature gating
+    const { data: userPlan } = await supabase.rpc('get_user_plan', { p_user_id: materialUserId });
+    const plan = userPlan || 'free';
+    const isPremium = plan !== 'free';
+    
+    console.log(`User ${materialUserId} has plan: ${plan}, isPremium: ${isPremium}`);
+
+    // Check document limit for free users
+    if (!isPremium) {
+      const { count, error: countError } = await supabase
+        .from('study_materials')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', materialUserId);
+
+      if (!countError && count !== null && count > 5) {
+        throw new Error('Document limit reached. Please upgrade to Pro for unlimited uploads.');
+      }
+    }
+
     // Update status to processing
     await supabase
       .from('study_materials')
@@ -719,8 +740,6 @@ serve(async (req) => {
       // Continue with metadata-based generation
       extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
     }
-
-    const materialUserId = material.user_id;
 
     // Generate tutor notes
     if (material.generate_tutor_notes) {
@@ -757,8 +776,8 @@ serve(async (req) => {
       console.error('Error generating summaries:', e);
     }
 
-    // Generate practice questions
-    if (material.generate_questions) {
+    // Generate practice questions (Pro feature only)
+    if (material.generate_questions && isPremium) {
       try {
         const questions = await generatePracticeQuestions(extractedContent, material);
         for (const q of questions) {
@@ -778,6 +797,8 @@ serve(async (req) => {
       } catch (e) {
         console.error('Error generating questions:', e);
       }
+    } else if (material.generate_questions && !isPremium) {
+      console.log('Skipping practice questions - requires Pro plan');
     }
 
     // Generate flashcards
@@ -802,8 +823,8 @@ serve(async (req) => {
       }
     }
 
-    // Generate concept map
-    if (material.generate_concept_map) {
+    // Generate concept map (Pro feature only)
+    if (material.generate_concept_map && isPremium) {
       try {
         const conceptMap = await generateConceptMap(extractedContent, material);
         await supabase
@@ -818,6 +839,8 @@ serve(async (req) => {
       } catch (e) {
         console.error('Error generating concept map:', e);
       }
+    } else if (material.generate_concept_map && !isPremium) {
+      console.log('Skipping concept map - requires Pro plan');
     }
 
     // Update status to completed
