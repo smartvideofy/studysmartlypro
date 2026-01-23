@@ -171,6 +171,84 @@ export type Database = {
         }
         Relationships: []
       }
+      email_logs: {
+        Row: {
+          email_type: string
+          id: string
+          metadata: Json | null
+          recipient_email: string
+          resend_id: string | null
+          sent_at: string
+          status: string
+          subject: string
+          template_name: string
+          user_id: string | null
+        }
+        Insert: {
+          email_type: string
+          id?: string
+          metadata?: Json | null
+          recipient_email: string
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+          subject: string
+          template_name: string
+          user_id?: string | null
+        }
+        Update: {
+          email_type?: string
+          id?: string
+          metadata?: Json | null
+          recipient_email?: string
+          resend_id?: string | null
+          sent_at?: string
+          status?: string
+          subject?: string
+          template_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      email_preferences: {
+        Row: {
+          achievement_alerts: boolean
+          created_at: string
+          id: string
+          product_updates: boolean
+          streak_reminders: boolean
+          unsubscribe_token: string
+          updated_at: string
+          user_id: string
+          weekly_progress: boolean
+          welcome_emails: boolean
+        }
+        Insert: {
+          achievement_alerts?: boolean
+          created_at?: string
+          id?: string
+          product_updates?: boolean
+          streak_reminders?: boolean
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id: string
+          weekly_progress?: boolean
+          welcome_emails?: boolean
+        }
+        Update: {
+          achievement_alerts?: boolean
+          created_at?: string
+          id?: string
+          product_updates?: boolean
+          streak_reminders?: boolean
+          unsubscribe_token?: string
+          updated_at?: string
+          user_id?: string
+          weekly_progress?: boolean
+          welcome_emails?: boolean
+        }
+        Relationships: []
+      }
       flashcard_decks: {
         Row: {
           card_count: number | null
