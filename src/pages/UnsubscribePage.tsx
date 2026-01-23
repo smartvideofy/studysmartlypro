@@ -35,27 +35,39 @@ export default function UnsubscribePage() {
       return;
     }
 
-    // Fetch current preferences
+    // Fetch current preferences via edge function (bypasses RLS)
     const fetchPreferences = async () => {
-      const { data, error } = await supabase
-        .from("email_preferences")
-        .select("*")
-        .eq("unsubscribe_token", token)
-        .single();
+      try {
+        const { data, error } = await supabase.functions.invoke("unsubscribe", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          body: null,
+        });
 
-      if (error || !data) {
+        // Use query params for GET request
+        const response = await fetch(
+          `https://ngcmmvyebvekyutbixee.supabase.co/functions/v1/unsubscribe?token=${token}`,
+          {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+            },
+          }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          setStatus("error");
+          return;
+        }
+
+        setPreferences(result.preferences);
+        setStatus("ready");
+      } catch (error) {
+        console.error("Fetch error:", error);
         setStatus("error");
-        return;
       }
-
-      setPreferences({
-        weekly_progress: data.weekly_progress,
-        streak_reminders: data.streak_reminders,
-        achievement_alerts: data.achievement_alerts,
-        product_updates: data.product_updates,
-        welcome_emails: data.welcome_emails,
-      });
-      setStatus("ready");
     };
 
     fetchPreferences();
@@ -66,18 +78,20 @@ export default function UnsubscribePage() {
     setUpdating(true);
 
     try {
-      const { error } = await supabase
-        .from("email_preferences")
-        .update({
-          weekly_progress: false,
-          streak_reminders: false,
-          achievement_alerts: false,
-          product_updates: false,
-          welcome_emails: false,
-        })
-        .eq("unsubscribe_token", token);
+      const response = await fetch(
+        "https://ngcmmvyebvekyutbixee.supabase.co/functions/v1/unsubscribe",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, unsubscribe_all: true }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to unsubscribe");
+      }
 
       setStatus("success");
       toast.success("Successfully unsubscribed from all emails");
@@ -94,12 +108,20 @@ export default function UnsubscribePage() {
     setUpdating(true);
 
     try {
-      const { error } = await supabase
-        .from("email_preferences")
-        .update(preferences)
-        .eq("unsubscribe_token", token);
+      const response = await fetch(
+        "https://ngcmmvyebvekyutbixee.supabase.co/functions/v1/unsubscribe",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token, preferences }),
+        }
+      );
 
-      if (error) throw error;
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || "Failed to update preferences");
+      }
 
       toast.success("Email preferences updated");
     } catch (error) {
