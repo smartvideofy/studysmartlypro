@@ -17,7 +17,8 @@ import {
   Trash2,
   ChevronRight,
   Key,
-  ChevronDown
+  ChevronDown,
+  Mail
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,7 @@ import { useSubscription, useCancelSubscription, type PlanType } from "@/hooks/u
 import { useTheme } from "next-themes";
 import { AvatarUpload } from "@/components/settings/AvatarUpload";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
+import { EmailPreferencesSection } from "@/components/settings/EmailPreferencesSection";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -354,6 +356,11 @@ export default function SettingsPage() {
           </SettingRow>
           <Separator />
           <PushNotificationSettings />
+        </Section>
+
+        {/* Email Preferences */}
+        <Section title="Email Notifications">
+          <EmailPreferencesSection />
         </Section>
 
         {/* Appearance */}
