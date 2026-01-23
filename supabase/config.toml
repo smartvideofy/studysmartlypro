@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.email-engagement]
 verify_jwt = false
+
+[functions.unsubscribe]
+verify_jwt = false
