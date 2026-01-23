@@ -58,11 +58,14 @@ function generateEmailContent(
   unsubscribeUrl: string
 ): { subject: string; html: string } {
   const userName = data.name || "there";
-  const appUrl = "https://studysmartlypro.lovable.app";
+  const appUrl = Deno.env.get("APP_URL") || "https://getstudily.com";
   
   const footer = `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-      <p>StudySmartly - Learn smarter, not harder</p>
+      <p>Studily - Learn smarter, not harder</p>
+      <p style="margin-top: 4px;">
+        Questions? Contact us at <a href="mailto:support@getstudily.com" style="color: #8b5cf6;">support@getstudily.com</a>
+      </p>
       <p style="margin-top: 8px;">
         <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a> · 
         <a href="${appUrl}/settings" style="color: #6b7280; text-decoration: underline;">Email Preferences</a>
@@ -91,12 +94,12 @@ function generateEmailContent(
   switch (template) {
     case "welcome":
       return {
-        subject: "Welcome to StudySmartly! 🎉",
+        subject: "Welcome to Studily! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Welcome to StudySmartly, ${userName}! 🎓</h1>
+            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Welcome to Studily, ${userName}! 🎓</h1>
             <p>We're thrilled to have you join our community of smart learners!</p>
-            <p>StudySmartly uses AI-powered tools to help you study more effectively:</p>
+            <p>Studily uses AI-powered tools to help you study more effectively:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
               <li><strong>📚 Smart Notes</strong> - Upload any study material and get AI summaries</li>
               <li><strong>🎴 AI Flashcards</strong> - Auto-generate flashcards from your content</li>
@@ -105,7 +108,7 @@ function generateEmailContent(
             </ul>
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Learning Now</a>
             <p style="margin-top: 24px;">Happy studying! 📖</p>
-            <p style="color: #6b7280;">- The StudySmartly Team</p>
+            <p style="color: #6b7280;">- The Studily Team</p>
             ${footer}
           </div>
         `,
@@ -162,7 +165,7 @@ function generateEmailContent(
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">You're doing great, ${userName}! 🌟</h1>
-            <p>After a week with StudySmartly, you've experienced what smart studying feels like.</p>
+            <p>After a week with Studily, you've experienced what smart studying feels like.</p>
             <p>Want to unlock even more?</p>
             <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 20px; border-radius: 12px; margin: 20px 0;">
               <h3 style="margin: 0 0 12px 0; color: #7c3aed;">Pro Features Include:</h3>
@@ -361,12 +364,12 @@ function generateEmailContent(
 
     default:
       return {
-        subject: "Update from StudySmartly",
+        subject: "Update from Studily",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <p>Hello ${userName},</p>
-            <p>This is an update from StudySmartly.</p>
-            <a href="${appUrl}" style="${buttonStyle}">Visit StudySmartly</a>
+            <p>This is an update from Studily.</p>
+            <a href="${appUrl}" style="${buttonStyle}">Visit Studily</a>
             ${footer}
           </div>
         `,
@@ -449,7 +452,8 @@ serve(async (req) => {
     }
 
     const unsubscribeToken = prefs?.unsubscribe_token;
-    const unsubscribeUrl = `https://studysmartlypro.lovable.app/unsubscribe/${unsubscribeToken}`;
+    const appUrl = Deno.env.get("APP_URL") || "https://getstudily.com";
+    const unsubscribeUrl = `${appUrl}/unsubscribe/${unsubscribeToken}`;
 
     // Generate email content
     const emailData = {
@@ -460,7 +464,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "StudySmartly <noreply@studysmartlypro.lovable.app>",
+      from: "Studily <noreply@getstudily.com>",
       to: [userEmail],
       subject,
       html,
