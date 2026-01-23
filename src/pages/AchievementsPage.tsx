@@ -1,8 +1,10 @@
 import { motion } from "framer-motion";
-import { Trophy, Star, Flame, Clock, Layers, Target, Lock, Sparkles } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Trophy, Star, Flame, Clock, Layers, Target, Lock, Sparkles, Play } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { XPProgress, AchievementBadge } from "@/components/gamification/XPProgress";
 import { 
@@ -290,9 +292,15 @@ export default function AchievementsPage() {
                 <Trophy className="w-8 h-8 text-muted-foreground" />
               </div>
               <h3 className="font-display text-xl font-semibold mb-2">No Achievements Yet</h3>
-              <p className="text-muted-foreground max-w-md mx-auto">
+              <p className="text-muted-foreground max-w-md mx-auto mb-6">
                 Start studying to unlock achievements and earn XP rewards!
               </p>
+              <Button variant="hero" asChild>
+                <Link to="/flashcards">
+                  <Play className="w-4 h-4" />
+                  Start a Study Session
+                </Link>
+              </Button>
             </Card>
           </motion.div>
         )}

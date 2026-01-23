@@ -78,7 +78,7 @@ export function SharedNotePreview({
 
         <div className="flex items-center justify-between pt-2">
           <Button variant="outline" size="sm" asChild>
-            <Link to={`/notes/${sharedNote.note_id}`}>
+            <Link to={`/materials/${sharedNote.note_id}`}>
               <ExternalLink className="w-4 h-4 mr-2" />
               View Full Note
             </Link>

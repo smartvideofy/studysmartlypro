@@ -283,10 +283,18 @@ export default function FlashcardsPage() {
               <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
                 Create your first flashcard deck to start learning with spaced repetition
               </p>
-              <Button variant="hero" size="lg" onClick={() => setCreateDeckOpen(true)}>
-                <Plus className="w-5 h-5" />
-                Create Your First Deck
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button variant="hero" size="lg" onClick={() => setCreateDeckOpen(true)}>
+                  <Plus className="w-5 h-5" />
+                  Create Your First Deck
+                </Button>
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/materials">
+                    <Sparkles className="w-5 h-5" />
+                    Generate from Materials
+                  </Link>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="text-center py-16">

@@ -290,10 +290,15 @@ export default function GroupsPage() {
               <p className="text-sm text-muted-foreground mb-4">
                 Create a study group or join a public one to get started.
               </p>
-              <Button variant="outline" onClick={() => setShowCreateModal(true)}>
-                <Plus className="w-4 h-4 mr-2" />
-                Create Your First Group
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Group
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Tip: <Link to="/materials" className="text-primary hover:underline">Upload study materials</Link> first, then share them with your group
+              </p>
             </Card>
           )}
         </motion.div>

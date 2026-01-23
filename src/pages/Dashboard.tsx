@@ -228,7 +228,7 @@ export default function Dashboard() {
                 </p>
                 <div className="flex flex-wrap gap-3">
                   <Button variant="hero" asChild className="shadow-glow-sm">
-                    <Link to="/study">
+                    <Link to="/flashcards">
                       Start Studying
                       <ArrowRight className="w-4 h-4" />
                     </Link>
