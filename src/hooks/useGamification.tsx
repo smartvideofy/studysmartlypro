@@ -285,6 +285,26 @@ export function useCheckAchievements() {
               amount: ach.xp_reward,
               reason: `Achievement: ${ach.name}`,
             });
+
+            // Send achievement celebration email
+            try {
+              await supabase.functions.invoke("send-email", {
+                body: {
+                  user_id: user.id,
+                  template: "achievement_earned",
+                  data: {
+                    achievementName: ach.name,
+                    achievementDescription: ach.description,
+                    achievementIcon: ach.icon,
+                    xpAwarded: ach.xp_reward,
+                    tier: ach.tier,
+                  },
+                },
+              });
+              console.log(`Achievement email sent for: ${ach.name}`);
+            } catch (emailError) {
+              console.error("Failed to send achievement email:", emailError);
+            }
           }
         }
       }

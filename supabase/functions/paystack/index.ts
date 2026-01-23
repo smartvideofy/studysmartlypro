@@ -25,6 +25,37 @@ const PLANS = {
   },
 };
 
+// Helper function to send subscription lifecycle emails
+async function sendSubscriptionEmail(
+  supabase: any,
+  userId: string,
+  template: 'subscription_welcome' | 'subscription_expiring' | 'subscription_expired',
+  data: Record<string, any> = {}
+) {
+  try {
+    const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        user_id: userId,
+        template,
+        data,
+        force: true, // Subscription emails are transactional
+      }),
+    });
+    
+    const result = await response.json();
+    console.log(`Subscription email (${template}) sent to user ${userId}:`, result);
+    return result;
+  } catch (error) {
+    console.error(`Failed to send subscription email (${template}):`, error);
+    return null;
+  }
+}
+
 // Verify Paystack webhook signature
 async function verifyWebhookSignature(req: Request, body: string): Promise<boolean> {
   const signature = req.headers.get('x-paystack-signature');
@@ -275,6 +306,11 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
     });
   }
 
+  // Send welcome email for new subscription
+  await sendSubscriptionEmail(supabase, user.id, 'subscription_welcome', {
+    planName: selectedPlan.name,
+  });
+
   return new Response(JSON.stringify({
     success: true,
     plan: plan,
@@ -472,6 +508,11 @@ async function handleWebhook(req: Request) {
           
           if (error) {
             console.error('Webhook subscription upsert error:', error);
+          } else {
+            // Send welcome email for new/renewed subscription
+            await sendSubscriptionEmail(supabase, userId, 'subscription_welcome', {
+              planName: planConfig?.name || 'Pro',
+            });
           }
         }
         break;
