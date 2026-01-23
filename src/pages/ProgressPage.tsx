@@ -325,7 +325,13 @@ export default function ProgressPage() {
                   <div className="h-48 flex items-center justify-center text-muted-foreground">
                     <div className="text-center">
                       <BarChart3 className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                      <p>No study activity yet this week</p>
+                      <p className="mb-3">No study activity yet this week</p>
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/flashcards">
+                          <Play className="w-4 h-4 mr-1" />
+                          Start Studying
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 )}

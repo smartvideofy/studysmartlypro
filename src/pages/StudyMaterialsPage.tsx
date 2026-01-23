@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -12,7 +12,8 @@ import {
   FileText,
   FileAudio,
   FileImage,
-  X
+  X,
+  Layers
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -320,10 +321,18 @@ export default function StudyMaterialsPage() {
               <p className="text-muted-foreground max-w-sm mb-6">
                 Upload your first study material to get started with AI-powered learning.
               </p>
-              <Button onClick={() => setUploadModalOpen(true)} className="gap-2">
-                <Upload className="w-4 h-4" />
-                Upload Material
-              </Button>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <Button onClick={() => setUploadModalOpen(true)} className="gap-2">
+                  <Upload className="w-4 h-4" />
+                  Upload Material
+                </Button>
+                <Button variant="outline" asChild className="gap-2">
+                  <Link to="/flashcards">
+                    <Layers className="w-4 h-4" />
+                    Create Flashcards Manually
+                  </Link>
+                </Button>
+              </div>
             </motion.div>
           ) : (
             <motion.div

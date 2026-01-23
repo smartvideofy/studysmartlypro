@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Bell, Check, Trash2, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Bell, Check, Trash2, X, Settings } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,8 +26,16 @@ const typeIcons: Record<string, string> = {
   default: "🔔",
 };
 
+const typeRoutes: Record<string, string> = {
+  study_reminder: "/flashcards",
+  achievement: "/achievements",
+  group_invite: "/groups",
+  system: "/settings",
+};
+
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const navigate = useNavigate();
   const { data: notifications, isLoading } = useNotifications();
   const unreadCount = useUnreadCount();
   const markAsRead = useMarkAsRead();
@@ -43,6 +52,17 @@ export default function NotificationBell() {
 
   const handleDelete = (id: string) => {
     deleteNotification.mutate(id);
+  };
+
+  const handleNotificationClick = (notification: { id: string; type: string; read: boolean | null }) => {
+    if (!notification.read) {
+      markAsRead.mutate(notification.id);
+    }
+    const route = typeRoutes[notification.type];
+    if (route) {
+      setOpen(false);
+      navigate(route);
+    }
   };
 
   return (
@@ -81,15 +101,28 @@ export default function NotificationBell() {
           ) : !notifications?.length ? (
             <div className="p-8 text-center">
               <Bell className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
-              <p className="text-muted-foreground text-sm">No notifications yet</p>
+              <p className="text-muted-foreground text-sm mb-3">No notifications yet</p>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => {
+                  setOpen(false);
+                  navigate("/settings");
+                }}
+              >
+                <Settings className="w-3 h-3 mr-1" />
+                Manage preferences
+              </Button>
             </div>
           ) : (
             <div className="divide-y divide-border">
               {notifications.map((notification) => (
                 <div
                   key={notification.id}
+                  onClick={() => handleNotificationClick(notification)}
                   className={cn(
-                    "p-3 hover:bg-secondary/50 transition-colors relative group",
+                    "p-3 hover:bg-secondary/50 transition-colors relative group cursor-pointer",
                     !notification.read && "bg-primary/5"
                   )}
                 >
