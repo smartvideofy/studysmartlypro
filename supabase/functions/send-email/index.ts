@@ -489,6 +489,28 @@ serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Error sending email:", error);
+    
+    // Log failed email attempt
+    try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const body = await req.clone().json().catch(() => ({}));
+      await supabase.from("email_logs").insert({
+        user_id: body.user_id || null,
+        email_type: body.template || "unknown",
+        template_name: body.template || "unknown",
+        subject: "Failed to send",
+        recipient_email: "unknown",
+        status: "failed",
+        metadata: { 
+          error: error.message,
+          errorCode: error.code,
+          stack: error.stack,
+        },
+      });
+    } catch (logError) {
+      console.error("Failed to log email error:", logError);
+    }
+    
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

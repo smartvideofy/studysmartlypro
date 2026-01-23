@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -25,7 +25,7 @@ serve(async (req) => {
 
     console.log(`Running engagement email job: action=${action} at ${now.toISOString()}`);
 
-    // Helper to send email
+    // Helper to send email with duplicate protection
     async function sendEmail(userId: string, template: string, data: Record<string, any> = {}) {
       try {
         const response = await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
@@ -43,42 +43,44 @@ serve(async (req) => {
       }
     }
 
+    // Helper to check if email was recently sent
+    async function wasRecentlySent(userId: string, template: string, withinHours: number = 24): Promise<boolean> {
+      const since = new Date(now.getTime() - withinHours * 60 * 60 * 1000);
+      const { data } = await supabase
+        .from("email_logs")
+        .select("id")
+        .eq("user_id", userId)
+        .eq("template_name", template)
+        .gte("sent_at", since.toISOString())
+        .limit(1);
+      return !!data?.length;
+    }
+
     // 1. STREAK AT RISK - Users with active streak who haven't studied in 20+ hours
     if (action === "all" || action === "streak_at_risk") {
       console.log("Processing streak at risk emails...");
 
       const twentyHoursAgo = new Date(now.getTime() - 20 * 60 * 60 * 1000);
       
-      // Get users with active streaks
-      const { data: gamificationProfiles } = await supabase
-        .from("gamification_profiles")
-        .select("user_id, current_streak, last_activity_date")
-        .gt("current_streak", 0)
-        .lt("last_activity_date", twentyHoursAgo.toISOString());
+      // Query profiles table (correct table with streak data)
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, streak_days, last_study_date")
+        .gt("streak_days", 0)
+        .lt("last_study_date", twentyHoursAgo.toISOString());
 
-      if (gamificationProfiles && gamificationProfiles.length > 0) {
-        console.log(`Found ${gamificationProfiles.length} users with at-risk streaks`);
+      if (profiles && profiles.length > 0) {
+        console.log(`Found ${profiles.length} users with at-risk streaks`);
 
-        for (const profile of gamificationProfiles) {
+        for (const profile of profiles) {
           // Check if we already sent this email today
-          const todayStart = new Date(now);
-          todayStart.setHours(0, 0, 0, 0);
-
-          const { data: recentEmail } = await supabase
-            .from("email_logs")
-            .select("id")
-            .eq("user_id", profile.user_id)
-            .eq("template_name", "streak_at_risk")
-            .gte("sent_at", todayStart.toISOString())
-            .single();
-
-          if (recentEmail) {
+          if (await wasRecentlySent(profile.user_id, "streak_at_risk", 24)) {
             console.log(`Already sent streak_at_risk to ${profile.user_id} today`);
             continue;
           }
 
           const result = await sendEmail(profile.user_id, "streak_at_risk", {
-            streak: profile.current_streak,
+            streak: profile.streak_days,
           });
 
           results.push({
@@ -97,26 +99,17 @@ serve(async (req) => {
       if (dayOfWeek === 0 || action === "weekly_progress") {
         console.log("Processing weekly progress emails...");
 
-        // Get all users with gamification profiles
+        // Get all users from profiles table
         const { data: users } = await supabase
-          .from("gamification_profiles")
-          .select("user_id, total_xp, current_streak");
+          .from("profiles")
+          .select("user_id, xp, streak_days");
 
         if (users && users.length > 0) {
-          // Get weekly stats for each user
           const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
           for (const user of users) {
             // Check if already sent this week
-            const { data: recentEmail } = await supabase
-              .from("email_logs")
-              .select("id")
-              .eq("user_id", user.user_id)
-              .eq("template_name", "weekly_progress")
-              .gte("sent_at", oneWeekAgo.toISOString())
-              .single();
-
-            if (recentEmail) {
+            if (await wasRecentlySent(user.user_id, "weekly_progress", 7 * 24)) {
               continue;
             }
 
@@ -140,7 +133,7 @@ serve(async (req) => {
             if (weeklyStats.xpGained > 0 || weeklyStats.cardsReviewed > 0) {
               const result = await sendEmail(user.user_id, "weekly_progress", {
                 ...weeklyStats,
-                streak: user.current_streak,
+                streak: user.streak_days,
               });
 
               results.push({
@@ -161,27 +154,19 @@ serve(async (req) => {
       const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
       const twentyOneDaysAgo = new Date(now.getTime() - 21 * 24 * 60 * 60 * 1000);
 
-      // Get users inactive for 14-21 days (don't spam users who've been gone longer)
+      // Get users inactive for 14-21 days from profiles table
       const { data: inactiveUsers } = await supabase
-        .from("gamification_profiles")
-        .select("user_id, last_activity_date")
-        .lt("last_activity_date", fourteenDaysAgo.toISOString())
-        .gt("last_activity_date", twentyOneDaysAgo.toISOString());
+        .from("profiles")
+        .select("user_id, last_study_date")
+        .lt("last_study_date", fourteenDaysAgo.toISOString())
+        .gt("last_study_date", twentyOneDaysAgo.toISOString());
 
       if (inactiveUsers && inactiveUsers.length > 0) {
         console.log(`Found ${inactiveUsers.length} inactive users`);
 
         for (const user of inactiveUsers) {
-          // Check if we already sent a reactivation email
-          const { data: recentEmail } = await supabase
-            .from("email_logs")
-            .select("id")
-            .eq("user_id", user.user_id)
-            .eq("template_name", "reactivation")
-            .gte("sent_at", twentyOneDaysAgo.toISOString())
-            .single();
-
-          if (recentEmail) {
+          // Check if we already sent a reactivation email within 21 days
+          if (await wasRecentlySent(user.user_id, "reactivation", 21 * 24)) {
             continue;
           }
 

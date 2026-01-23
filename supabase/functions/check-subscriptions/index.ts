@@ -107,7 +107,7 @@ serve(async (req) => {
         if (!existingLog) {
           // Send expiry reminder
           await sendSubscriptionEmail(subscription.user_id, 'subscription_expiring', {
-            planName: subscription.plan === 'pro' ? 'Studily Pro' : 'Studily Team',
+            planName: subscription.plan === 'pro' ? 'StudySmartly Pro' : 'StudySmartly Team',
             expiryDate: new Date(subscription.current_period_end).toLocaleDateString('en-US', {
               weekday: 'long',
               year: 'numeric',
@@ -174,7 +174,7 @@ serve(async (req) => {
 
         // Send expiration email
         await sendSubscriptionEmail(subscription.user_id, 'subscription_expired', {
-          planName: previousPlan === 'pro' ? 'Studily Pro' : 'Studily Team',
+          planName: previousPlan === 'pro' ? 'StudySmartly Pro' : 'StudySmartly Team',
           previousPlan,
         });
 

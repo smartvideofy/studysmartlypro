@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -14,8 +14,9 @@ interface OnboardingEmail {
   template: string;
 }
 
+// Welcome email is now sent immediately on signup via database trigger
+// This cron job handles the follow-up drip sequence
 const ONBOARDING_SEQUENCE: OnboardingEmail[] = [
-  { day: 0, template: "welcome" },
   { day: 2, template: "onboarding_day2" },
   { day: 5, template: "onboarding_day5" },
   { day: 7, template: "onboarding_day7" },

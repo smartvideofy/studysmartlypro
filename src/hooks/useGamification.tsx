@@ -177,6 +177,8 @@ export function useAwardXP() {
       const today = new Date().toISOString().split("T")[0];
       const lastStudy = profile?.last_study_date;
       let newStreak = profile?.streak_days || 0;
+      const previousStreak = profile?.streak_days || 0;
+      let streakLost = false;
 
       if (lastStudy !== today) {
         const yesterday = new Date();
@@ -186,7 +188,27 @@ export function useAwardXP() {
         if (lastStudy === yesterdayStr) {
           newStreak += 1;
         } else if (lastStudy !== today) {
+          // Streak was lost - only trigger email if they had a streak before
+          if (previousStreak > 1) {
+            streakLost = true;
+          }
           newStreak = 1;
+        }
+      }
+
+      // Send streak lost email if applicable
+      if (streakLost && previousStreak > 1) {
+        try {
+          await supabase.functions.invoke("send-email", {
+            body: {
+              user_id: user.id,
+              template: "streak_lost",
+              data: { previousStreak },
+            },
+          });
+          console.log(`Streak lost email sent (previous streak: ${previousStreak})`);
+        } catch (emailError) {
+          console.error("Failed to send streak lost email:", emailError);
         }
       }
 
