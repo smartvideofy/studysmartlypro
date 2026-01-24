@@ -1,18 +1,59 @@
-import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/haptics";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface StudyFlashcardProps {
   front: string;
   back: string;
   isFlipped: boolean;
   onFlip: () => void;
+  onSwipeLeft?: () => void;
+  onSwipeRight?: () => void;
 }
 
-export function StudyFlashcard({ front, back, isFlipped, onFlip }: StudyFlashcardProps) {
+export function StudyFlashcard({ 
+  front, 
+  back, 
+  isFlipped, 
+  onFlip,
+  onSwipeLeft,
+  onSwipeRight 
+}: StudyFlashcardProps) {
+  const isMobile = useIsMobile();
+  
+  // Swipe gesture for mobile navigation
+  const swipeHandlers = useSwipeGesture({
+    onSwipeLeft: () => {
+      if (onSwipeLeft) {
+        haptics.light();
+        onSwipeLeft();
+      }
+    },
+    onSwipeRight: () => {
+      if (onSwipeRight) {
+        haptics.light();
+        onSwipeRight();
+      }
+    },
+    threshold: 50,
+  });
+
+  const handleFlip = () => {
+    haptics.medium();
+    onFlip();
+  };
+
   return (
     <div 
-      className="flashcard-flip-container w-full h-[400px] cursor-pointer select-none"
-      onClick={onFlip}
+      className={cn(
+        "flashcard-flip-container w-full cursor-pointer select-none gpu-accelerated",
+        isMobile ? "h-[320px]" : "h-[400px]"
+      )}
+      onClick={handleFlip}
+      onTouchStart={swipeHandlers.onTouchStart}
+      onTouchMove={swipeHandlers.onTouchMove}
+      onTouchEnd={swipeHandlers.onTouchEnd}
     >
       <div className={cn("flashcard-inner", isFlipped && "flipped")}>
         {/* Front */}
@@ -24,13 +65,16 @@ export function StudyFlashcard({ front, back, isFlipped, onFlip }: StudyFlashcar
           </div>
           
           <div className="flex-1 flex items-center justify-center text-center px-4">
-            <p className="font-display text-2xl md:text-3xl font-semibold leading-relaxed">
+            <p className={cn(
+              "font-display font-semibold leading-relaxed",
+              isMobile ? "text-xl" : "text-2xl md:text-3xl"
+            )}>
               {front}
             </p>
           </div>
           
           <div className="absolute bottom-6 text-sm text-muted-foreground">
-            Click to reveal answer
+            {isMobile ? "Tap to reveal" : "Click to reveal answer"}
           </div>
         </div>
         
@@ -43,13 +87,16 @@ export function StudyFlashcard({ front, back, isFlipped, onFlip }: StudyFlashcar
           </div>
           
           <div className="flex-1 flex items-center justify-center text-center px-4">
-            <p className="font-display text-xl md:text-2xl font-medium leading-relaxed text-foreground">
+            <p className={cn(
+              "font-display font-medium leading-relaxed text-foreground",
+              isMobile ? "text-lg" : "text-xl md:text-2xl"
+            )}>
               {back}
             </p>
           </div>
           
           <div className="absolute bottom-6 text-sm text-muted-foreground">
-            Click to see question
+            {isMobile ? "Tap to see question" : "Click to see question"}
           </div>
         </div>
       </div>

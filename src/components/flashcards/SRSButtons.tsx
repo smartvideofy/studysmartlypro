@@ -2,6 +2,8 @@ import { motion } from "framer-motion";
 import { RotateCcw, ChevronRight, Check, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/haptics";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export interface SRSButtonConfig {
   quality: number;
@@ -74,6 +76,8 @@ export function SRSButtons({
   currentInterval,
   currentRepetitions,
 }: SRSButtonsProps) {
+  const isMobile = useIsMobile();
+  
   const buttons: SRSButtonConfig[] = [
     {
       quality: 1,
@@ -109,23 +113,41 @@ export function SRSButtons({
     },
   ];
 
+  const handleAnswer = (quality: number) => {
+    // Haptic feedback based on answer type
+    if (quality === 1) {
+      haptics.error();
+    } else if (quality === 4) {
+      haptics.success();
+    } else {
+      haptics.medium();
+    }
+    onAnswer(quality);
+  };
+
   return (
-    <div className="flex items-center justify-center gap-2 sm:gap-3">
+    <div className={cn(
+      "flex items-stretch justify-center gap-2",
+      isMobile ? "w-full" : "gap-3"
+    )}>
       {buttons.map((button, index) => (
         <motion.div
           key={button.quality}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.05 }}
+          className={cn(isMobile && "flex-1")}
         >
           <Button
             variant="outline"
             size="lg"
             disabled={isLoading}
-            onClick={() => onAnswer(button.quality)}
+            onClick={() => handleAnswer(button.quality)}
             className={cn(
-              "flex flex-col items-center gap-1 h-auto py-3 px-4 sm:px-6 min-w-[70px] sm:min-w-[90px]",
-              "transition-all duration-200",
+              "flex flex-col items-center gap-1 h-auto transition-all duration-200 active:scale-[0.97]",
+              isMobile 
+                ? "py-4 px-2 w-full min-h-[72px]" 
+                : "py-3 px-4 sm:px-6 min-w-[70px] sm:min-w-[90px]",
               button.variant === "destructive" && "border-destructive/50 hover:bg-destructive/10 hover:border-destructive",
               button.variant === "warning" && "border-warning/50 hover:bg-warning/10 hover:border-warning",
               button.variant === "success" && "border-success/50 hover:bg-success/10 hover:border-success",
@@ -133,17 +155,20 @@ export function SRSButtons({
             )}
           >
             <span className={cn(
-              "flex items-center gap-1 font-medium text-sm",
+              "flex items-center gap-1.5 font-semibold",
+              isMobile ? "text-base" : "text-sm",
               button.variant === "destructive" && "text-destructive",
               button.variant === "warning" && "text-warning",
               button.variant === "success" && "text-success",
               button.variant === "accent" && "text-accent"
             )}>
               {button.icon}
-              <span className="hidden sm:inline">{button.label}</span>
-              <span className="sm:hidden">{button.shortLabel}</span>
+              <span>{isMobile ? button.shortLabel : button.label}</span>
             </span>
-            <span className="text-xs text-muted-foreground">
+            <span className={cn(
+              "text-muted-foreground",
+              isMobile ? "text-sm" : "text-xs"
+            )}>
               {button.interval}
             </span>
           </Button>

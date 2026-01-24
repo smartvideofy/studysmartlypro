@@ -31,6 +31,8 @@ import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { useDeck, useFlashcards, useDeleteDeck, useDeleteFlashcard, Flashcard } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonFlashcardRow } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -48,6 +50,7 @@ const itemVariants = {
 export default function DeckDetailPage() {
   const { deckId } = useParams<{ deckId: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [editDeckOpen, setEditDeckOpen] = useState(false);
@@ -258,7 +261,11 @@ export default function DeckDetailPage() {
                           <Button 
                             variant="ghost" 
                             size="icon-sm" 
-                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            className={cn(
+                              "shrink-0 touch-target",
+                              // Always visible on mobile, hover-reveal on desktop
+                              isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+                            )}
                           >
                             <MoreHorizontal className="w-4 h-4" />
                           </Button>
