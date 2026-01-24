@@ -1,6 +1,5 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
@@ -16,7 +15,7 @@ const badgeVariants = cva(
         accent: "border-transparent bg-gradient-to-r from-accent to-accent/90 text-accent-foreground shadow-sm",
         muted: "border-transparent bg-muted/80 backdrop-blur-sm text-muted-foreground",
         ghost: "border-border/30 bg-transparent text-muted-foreground hover:bg-secondary/50",
-        premium: "border-transparent bg-gradient-to-r from-primary via-primary/90 to-accent text-primary-foreground shadow-glow-sm",
+        premium: "relative overflow-hidden border-transparent bg-gradient-to-r from-primary via-primary/90 to-accent text-primary-foreground shadow-glow-sm",
         "outline-primary": "border-primary/30 bg-primary/10 text-primary backdrop-blur-sm",
         "outline-success": "border-success/30 bg-success/10 text-success backdrop-blur-sm",
         "outline-accent": "border-accent/30 bg-accent/10 text-accent backdrop-blur-sm",
@@ -30,10 +29,27 @@ const badgeVariants = cva(
   }
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
+export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {
+  shimmer?: boolean;
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
-  return <div className={cn(badgeVariants({ variant }), className)} {...props} />;
+function Badge({ className, variant, shimmer = false, children, ...props }: BadgeProps) {
+  const showShimmer = shimmer || variant === "premium";
+  
+  return (
+    <div className={cn(badgeVariants({ variant }), className)} {...props}>
+      {showShimmer && (
+        <div 
+          className="absolute inset-0 -translate-x-full animate-[shimmer_2.5s_ease-in-out_infinite]"
+          style={{
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
+          }}
+          aria-hidden="true"
+        />
+      )}
+      <span className="relative z-10">{children}</span>
+    </div>
+  );
 }
 
 export { Badge, badgeVariants };

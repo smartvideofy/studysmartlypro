@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
-
+import { Loader2, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -56,17 +56,53 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
+  loading?: boolean;
+  success?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button";
+  ({ className, variant, size, asChild = false, loading = false, success = false, children, disabled, ...props }, ref) => {
+    // Don't use Slot when loading/success to allow icon replacement
+    const Comp = asChild && !loading && !success ? Slot : "button";
+    
+    const isIconOnly = size?.toString().includes("icon");
+    
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size, className }),
+          (loading || success) && "relative",
+          success && "!bg-success hover:!bg-success"
+        )}
         ref={ref}
+        disabled={disabled || loading}
         {...props}
-      />
+      >
+        {/* Loading state */}
+        {loading && (
+          <>
+            <Loader2 className="animate-spin" />
+            {!isIconOnly && <span className="opacity-0">{children}</span>}
+            {!isIconOnly && (
+              <span className="absolute inset-0 flex items-center justify-center">
+                <Loader2 className="animate-spin mr-2" />
+                Loading...
+              </span>
+            )}
+          </>
+        )}
+        
+        {/* Success state */}
+        {success && !loading && (
+          <>
+            <Check className="animate-in zoom-in-50 duration-200" strokeWidth={3} />
+            {!isIconOnly && <span>Done!</span>}
+          </>
+        )}
+        
+        {/* Normal state */}
+        {!loading && !success && children}
+      </Comp>
     );
   }
 );
