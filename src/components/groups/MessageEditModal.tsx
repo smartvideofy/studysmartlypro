@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2 } from "lucide-react";
@@ -55,45 +55,43 @@ export function MessageEditModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Edit Message</DialogTitle>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle>Edit Message</ResponsiveModalTitle>
+      </ResponsiveModalHeader>
 
-        <div className="py-4">
-          <Textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Type your message..."
-            className="min-h-[100px] resize-none"
-            autoFocus
-          />
-          <p className="text-xs text-muted-foreground mt-2">
-            Press Enter to save, Shift+Enter for new line
-          </p>
-        </div>
+      <ResponsiveModalBody>
+        <Textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Type your message..."
+          className="min-h-[100px] resize-none"
+          autoFocus
+        />
+        <p className="text-xs text-muted-foreground mt-2">
+          Press Enter to save, Shift+Enter for new line
+        </p>
+      </ResponsiveModalBody>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSave} 
-            disabled={isSaving || !content.trim() || content === originalContent}
-          >
-            {isSaving ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
-              </>
-            ) : (
-              "Save"
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+      <ResponsiveModalFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleSave} 
+          disabled={isSaving || !content.trim() || content === originalContent}
+        >
+          {isSaving ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save"
+          )}
+        </Button>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

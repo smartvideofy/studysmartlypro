@@ -247,7 +247,7 @@ export default function GroupsPage() {
                           </Badge>
                         )}
                       </div>
-                      <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button variant="ghost" size="icon-sm" className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </div>

@@ -15,6 +15,9 @@ import {
 } from "@/hooks/useGamification";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useQueryClient } from "@tanstack/react-query";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -71,11 +74,21 @@ function AchievementsSkeleton() {
 }
 
 export default function AchievementsPage() {
+  const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   const { data: achievements, isLoading: achievementsLoading } = useAchievements();
   const { data: userAchievements, isLoading: userAchievementsLoading } = useUserAchievements();
   const { data: profile, isLoading: profileLoading } = useGamificationProfile();
 
   const isLoading = achievementsLoading || userAchievementsLoading || profileLoading;
+
+  const handleRefresh = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['achievements'] }),
+      queryClient.invalidateQueries({ queryKey: ['user-achievements'] }),
+      queryClient.invalidateQueries({ queryKey: ['gamification-profile'] }),
+    ]);
+  };
 
   if (isLoading) {
     return <AchievementsSkeleton />;
@@ -100,11 +113,12 @@ export default function AchievementsPage() {
 
   return (
     <DashboardLayout title="Achievements">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-8"
+      <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6 md:space-y-8"
       >
         {/* Hero Section */}
         <motion.div variants={itemVariants}>
@@ -143,72 +157,72 @@ export default function AchievementsPage() {
           </Card>
         </motion.div>
 
-        {/* Stats Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card variant="glass">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center mx-auto mb-2">
-                <Trophy className="w-5 h-5 text-accent" />
-              </div>
-              <div className="font-display text-2xl font-bold">{earnedCount}</div>
-              <div className="text-xs text-muted-foreground">Achievements</div>
-            </CardContent>
-          </Card>
-          
-          <Card variant="glass">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mx-auto mb-2">
-                <Star className="w-5 h-5 text-primary" />
-              </div>
-              <div className="font-display text-2xl font-bold">{profile?.level || 1}</div>
-              <div className="text-xs text-muted-foreground">Current Level</div>
-            </CardContent>
-          </Card>
-          
-          <Card variant="glass">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-success/15 to-success/5 flex items-center justify-center mx-auto mb-2">
-                <Sparkles className="w-5 h-5 text-success" />
-              </div>
-              <div className="font-display text-2xl font-bold">{totalXPFromAchievements.toLocaleString()}</div>
-              <div className="text-xs text-muted-foreground">XP from Achievements</div>
-            </CardContent>
-          </Card>
-          
-          <Card variant="glass">
-            <CardContent className="p-4 text-center">
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 flex items-center justify-center mx-auto mb-2">
-                <Flame className="w-5 h-5 text-destructive" />
-              </div>
-              <div className="font-display text-2xl font-bold">{profile?.streak_days || 0}</div>
-              <div className="text-xs text-muted-foreground">Day Streak</div>
-            </CardContent>
-          </Card>
-        </motion.div>
-
-        {/* Achievements by Category */}
-        {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => {
-          const CategoryIcon = categoryIcons[category] || Trophy;
-          const earnedInCategory = categoryAchievements?.filter(a => earnedIds.has(a.id)).length || 0;
-          const totalInCategory = categoryAchievements?.length || 0;
-
-          return (
-            <motion.div key={category} variants={itemVariants}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
-                  <CategoryIcon className="w-5 h-5 text-primary" />
+          {/* Stats Cards */}
+          <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+            <Card variant="glass">
+              <CardContent className="p-3 md:p-4 text-center">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center mx-auto mb-2">
+                  <Trophy className="w-4 h-4 md:w-5 md:h-5 text-accent" />
                 </div>
-                <div>
-                  <h3 className="font-display text-lg font-semibold">{categoryLabels[category] || category}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {earnedInCategory} of {totalInCategory} unlocked
-                  </p>
+                <div className="font-display text-xl md:text-2xl font-bold">{earnedCount}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground">Achievements</div>
+              </CardContent>
+            </Card>
+            
+            <Card variant="glass">
+              <CardContent className="p-3 md:p-4 text-center">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mx-auto mb-2">
+                  <Star className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 </div>
-              </div>
+                <div className="font-display text-xl md:text-2xl font-bold">{profile?.level || 1}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground">Current Level</div>
+              </CardContent>
+            </Card>
+            
+            <Card variant="glass">
+              <CardContent className="p-3 md:p-4 text-center">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-success/15 to-success/5 flex items-center justify-center mx-auto mb-2">
+                  <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-success" />
+                </div>
+                <div className="font-display text-xl md:text-2xl font-bold">{totalXPFromAchievements.toLocaleString()}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground">XP from Achievements</div>
+              </CardContent>
+            </Card>
+          
+            <Card variant="glass">
+              <CardContent className="p-3 md:p-4 text-center">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 flex items-center justify-center mx-auto mb-2">
+                  <Flame className="w-4 h-4 md:w-5 md:h-5 text-destructive" />
+                </div>
+                <div className="font-display text-xl md:text-2xl font-bold">{profile?.streak_days || 0}</div>
+                <div className="text-[10px] md:text-xs text-muted-foreground">Day Streak</div>
+              </CardContent>
+            </Card>
+          </motion.div>
 
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {categoryAchievements?.map((achievement) => {
-                  const isEarned = earnedIds.has(achievement.id);
+          {/* Achievements by Category */}
+          {Object.entries(groupedAchievements).map(([category, categoryAchievements]) => {
+            const CategoryIcon = categoryIcons[category] || Trophy;
+            const earnedInCategory = categoryAchievements?.filter(a => earnedIds.has(a.id)).length || 0;
+            const totalInCategory = categoryAchievements?.length || 0;
+
+            return (
+              <motion.div key={category} variants={itemVariants}>
+                <div className="flex items-center gap-3 mb-3 md:mb-4">
+                  <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center">
+                    <CategoryIcon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base md:text-lg font-semibold">{categoryLabels[category] || category}</h3>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      {earnedInCategory} of {totalInCategory} unlocked
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
+                  {categoryAchievements?.map((achievement) => {
+                    const isEarned = earnedIds.has(achievement.id);
                   const userAch = userAchievements?.find(ua => ua.achievement_id === achievement.id);
                   const colors = tierColors[achievement.tier] || tierColors.bronze;
 
@@ -279,32 +293,33 @@ export default function AchievementsPage() {
                     </motion.div>
                   );
                 })}
-              </div>
-            </motion.div>
-          );
-        })}
+                </div>
+              </motion.div>
+            );
+          })}
 
-        {/* Empty State */}
-        {!achievements?.length && (
-          <motion.div variants={itemVariants}>
-            <Card variant="glass" className="p-12 text-center">
-              <div className="w-16 h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
-                <Trophy className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="font-display text-xl font-semibold mb-2">No Achievements Yet</h3>
-              <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                Start studying to unlock achievements and earn XP rewards!
-              </p>
-              <Button variant="hero" asChild>
-                <Link to="/flashcards">
-                  <Play className="w-4 h-4" />
-                  Start a Study Session
-                </Link>
-              </Button>
-            </Card>
-          </motion.div>
-        )}
-      </motion.div>
+          {/* Empty State */}
+          {!achievements?.length && (
+            <motion.div variants={itemVariants}>
+              <Card variant="glass" className="p-8 md:p-12 text-center">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-2xl bg-muted/50 flex items-center justify-center mx-auto mb-4">
+                  <Trophy className="w-7 h-7 md:w-8 md:h-8 text-muted-foreground" />
+                </div>
+                <h3 className="font-display text-lg md:text-xl font-semibold mb-2">No Achievements Yet</h3>
+                <p className="text-muted-foreground max-w-md mx-auto mb-6 text-sm md:text-base">
+                  Start studying to unlock achievements and earn XP rewards!
+                </p>
+                <Button variant="hero" asChild>
+                  <Link to="/flashcards">
+                    <Play className="w-4 h-4" />
+                    Start a Study Session
+                  </Link>
+                </Button>
+              </Card>
+            </motion.div>
+          )}
+        </motion.div>
+      </PullToRefresh>
     </DashboardLayout>
   );
 }

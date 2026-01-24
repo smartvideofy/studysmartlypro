@@ -12,12 +12,13 @@ import {
   Brain
 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -311,124 +312,121 @@ export default function ExportModal({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Download className="w-5 h-5" />
-            Export Content
-          </DialogTitle>
-          <DialogDescription>
-            Export AI-generated content or download the source file
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle className="flex items-center gap-2">
+          <Download className="w-5 h-5" />
+          Export Content
+        </ResponsiveModalTitle>
+        <ResponsiveModalDescription>
+          Export AI-generated content or download the source file
+        </ResponsiveModalDescription>
+      </ResponsiveModalHeader>
 
-        <div className="space-y-6">
-          {/* Download Source File */}
-          {filePath && (
-            <div className="p-4 rounded-lg border border-border bg-secondary/20">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                    <File className="w-5 h-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-sm">Source File</p>
-                    <p className="text-xs text-muted-foreground">Download original uploaded file</p>
-                  </div>
+      <ResponsiveModalBody className="space-y-6">
+        {/* Download Source File */}
+        {filePath && (
+          <div className="p-3 md:p-4 rounded-lg border border-border bg-secondary/20">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                  <File className="w-5 h-5 text-primary" />
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={handleDownloadSource}
-                  disabled={isDownloadingSource}
-                  className="gap-2"
-                >
-                  {isDownloadingSource ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Download className="w-4 h-4" />
-                  )}
-                  Download
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Content Selection */}
-          <div className="space-y-3">
-            <Label>Select Content to Export</Label>
-            <div className="space-y-2">
-              {contentOptions.map((option) => (
-                <motion.div
-                  key={option.id}
-                  whileHover={{ scale: option.available ? 1.01 : 1 }}
-                  className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    selectedContent.has(option.id) 
-                      ? "border-primary bg-primary/5" 
-                      : "border-border"
-                  } ${!option.available ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                  onClick={() => option.available && toggleContent(option.id)}
-                >
-                  <Checkbox 
-                    checked={selectedContent.has(option.id)} 
-                    disabled={!option.available}
-                    onCheckedChange={() => option.available && toggleContent(option.id)}
-                  />
-                  <span className="text-muted-foreground">{option.icon}</span>
-                  <span className="flex-1 text-sm font-medium">{option.label}</span>
-                  {!option.available && (
-                    <span className="text-xs text-muted-foreground">Not available</span>
-                  )}
-                  {option.available && selectedContent.has(option.id) && (
-                    <CheckCircle2 className="w-4 h-4 text-primary" />
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          </div>
-
-          {/* Format Selection */}
-          <div className="space-y-3">
-            <Label>Export Format</Label>
-            <RadioGroup value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
-              <div className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="markdown" id="markdown" />
-                  <Label htmlFor="markdown" className="cursor-pointer">Markdown (.md)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="txt" id="txt" />
-                  <Label htmlFor="txt" className="cursor-pointer">Plain Text (.txt)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="csv" id="csv" />
-                  <Label htmlFor="csv" className="cursor-pointer">CSV (questions)</Label>
+                <div className="min-w-0">
+                  <p className="font-medium text-sm">Source File</p>
+                  <p className="text-xs text-muted-foreground truncate">Download original uploaded file</p>
                 </div>
               </div>
-            </RadioGroup>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleDownloadSource}
+                disabled={isDownloadingSource}
+                className="gap-2 shrink-0"
+              >
+                {isDownloadingSource ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">Download</span>
+              </Button>
+            </div>
           </div>
+        )}
 
-          {/* Export Button */}
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleExport} 
-              disabled={isExporting || selectedContent.size === 0}
-              className="gap-2"
-            >
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              Export Selected
-            </Button>
+        {/* Content Selection */}
+        <div className="space-y-3">
+          <Label>Select Content to Export</Label>
+          <div className="space-y-2">
+            {contentOptions.map((option) => (
+              <motion.div
+                key={option.id}
+                whileHover={{ scale: option.available ? 1.01 : 1 }}
+                className={`flex items-center gap-3 p-3 rounded-lg border ${
+                  selectedContent.has(option.id) 
+                    ? "border-primary bg-primary/5" 
+                    : "border-border"
+                } ${!option.available ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                onClick={() => option.available && toggleContent(option.id)}
+              >
+                <Checkbox 
+                  checked={selectedContent.has(option.id)} 
+                  disabled={!option.available}
+                  onCheckedChange={() => option.available && toggleContent(option.id)}
+                />
+                <span className="text-muted-foreground">{option.icon}</span>
+                <span className="flex-1 text-sm font-medium">{option.label}</span>
+                {!option.available && (
+                  <span className="text-xs text-muted-foreground">Not available</span>
+                )}
+                {option.available && selectedContent.has(option.id) && (
+                  <CheckCircle2 className="w-4 h-4 text-primary" />
+                )}
+              </motion.div>
+            ))}
           </div>
         </div>
-      </DialogContent>
-    </Dialog>
+
+        {/* Format Selection */}
+        <div className="space-y-3">
+          <Label>Export Format</Label>
+          <RadioGroup value={format} onValueChange={(v) => setFormat(v as ExportFormat)}>
+            <div className="flex flex-wrap gap-3 md:gap-4">
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="markdown" id="markdown" />
+                <Label htmlFor="markdown" className="cursor-pointer text-sm">Markdown (.md)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="txt" id="txt" />
+                <Label htmlFor="txt" className="cursor-pointer text-sm">Plain Text (.txt)</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="csv" id="csv" />
+                <Label htmlFor="csv" className="cursor-pointer text-sm">CSV</Label>
+              </div>
+            </div>
+          </RadioGroup>
+        </div>
+      </ResponsiveModalBody>
+
+      <ResponsiveModalFooter>
+        <Button variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button 
+          onClick={handleExport} 
+          disabled={isExporting || selectedContent.size === 0}
+          className="gap-2"
+        >
+          {isExporting ? (
+            <Loader2 className="w-4 h-4 animate-spin" />
+          ) : (
+            <Download className="w-4 h-4" />
+          )}
+          Export Selected
+        </Button>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

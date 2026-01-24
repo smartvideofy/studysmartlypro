@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { FileText, Plus, Loader2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -83,14 +84,16 @@ export default function ShareNoteModal({ open, onOpenChange, groupId }: ShareNot
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{showCreateForm ? "Create & Share Note" : "Share a Note"}</DialogTitle>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={handleClose}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle>
+          {showCreateForm ? "Create & Share Note" : "Share a Note"}
+        </ResponsiveModalTitle>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         {showCreateForm ? (
-          <div className="space-y-4 mt-2">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="note-title">Title</Label>
               <Input
@@ -112,92 +115,93 @@ export default function ShareNoteModal({ open, onOpenChange, groupId }: ShareNot
                 className="resize-none"
               />
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setShowCreateForm(false)} disabled={isCreating}>
-                Back
-              </Button>
-              <Button onClick={handleCreateAndShare} disabled={!newTitle.trim() || isCreating}>
-                {isCreating ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  "Create & Share"
-                )}
-              </Button>
-            </div>
           </div>
         ) : (
-          <>
-            <ScrollArea className="h-[300px] mt-2">
-              {isLoading ? (
-                <p className="text-center text-muted-foreground py-8">Loading notes...</p>
-              ) : !availableNotes.length ? (
-                <div className="text-center py-8">
-                  <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
-                  <p className="text-muted-foreground">No notes available to share</p>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Create a new note to share with your group
-                  </p>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="mt-4"
-                    onClick={() => setShowCreateForm(true)}
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Create Note
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {availableNotes.map((note) => (
-                    <button
-                      key={note.id}
-                      onClick={() => setSelectedNoteId(note.id)}
-                      className={cn(
-                        "w-full text-left p-3 rounded-lg border transition-colors",
-                        selectedNoteId === note.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:bg-secondary/50"
-                      )}
-                    >
-                      <h4 className="font-medium text-sm">{note.title || "Untitled"}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                        {note.content?.substring(0, 80) || "No content"}
-                      </p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-
-            <div className="flex justify-between items-center mt-4">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => setShowCreateForm(true)}
-                className="text-muted-foreground"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Create New
-              </Button>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={handleClose}>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleShare}
-                  disabled={!selectedNoteId || shareNote.isPending}
+          <ScrollArea className="h-[250px] md:h-[300px]">
+            {isLoading ? (
+              <p className="text-center text-muted-foreground py-8">Loading notes...</p>
+            ) : !availableNotes.length ? (
+              <div className="text-center py-8">
+                <FileText className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+                <p className="text-muted-foreground text-sm">No notes available to share</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Create a new note to share with your group
+                </p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="mt-4"
+                  onClick={() => setShowCreateForm(true)}
                 >
-                  {shareNote.isPending ? "Sharing..." : "Share Note"}
+                  <Plus className="w-4 h-4 mr-1" />
+                  Create Note
                 </Button>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                {availableNotes.map((note) => (
+                  <button
+                    key={note.id}
+                    onClick={() => setSelectedNoteId(note.id)}
+                    className={cn(
+                      "w-full text-left p-3 rounded-lg border transition-colors",
+                      selectedNoteId === note.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-secondary/50"
+                    )}
+                  >
+                    <h4 className="font-medium text-sm">{note.title || "Untitled"}</h4>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                      {note.content?.substring(0, 80) || "No content"}
+                    </p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </ScrollArea>
+        )}
+      </ResponsiveModalBody>
+
+      <ResponsiveModalFooter>
+        {showCreateForm ? (
+          <>
+            <Button variant="outline" onClick={() => setShowCreateForm(false)} disabled={isCreating}>
+              Back
+            </Button>
+            <Button onClick={handleCreateAndShare} disabled={!newTitle.trim() || isCreating}>
+              {isCreating ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create & Share"
+              )}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setShowCreateForm(true)}
+              className="text-muted-foreground mr-auto"
+            >
+              <Plus className="w-4 h-4 mr-1" />
+              Create New
+            </Button>
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleShare}
+              disabled={!selectedNoteId || shareNote.isPending}
+            >
+              {shareNote.isPending ? "Sharing..." : "Share Note"}
+            </Button>
           </>
         )}
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

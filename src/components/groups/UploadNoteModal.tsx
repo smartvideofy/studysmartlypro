@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,56 +64,54 @@ export default function UploadNoteModal({ open, onOpenChange, groupId }: UploadN
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Create & Share Note</DialogTitle>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={handleClose}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle>Create & Share Note</ResponsiveModalTitle>
+      </ResponsiveModalHeader>
 
-        <div className="space-y-4 mt-2">
-          <div className="space-y-2">
-            <Label htmlFor="note-title">Title</Label>
-            <Input
-              id="note-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter note title..."
-              autoFocus
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="note-content">Content</Label>
-            <Textarea
-              id="note-content"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your note content here..."
-              rows={8}
-              className="resize-none"
-            />
-          </div>
+      <ResponsiveModalBody className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="note-title">Title</Label>
+          <Input
+            id="note-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Enter note title..."
+            autoFocus
+          />
         </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!title.trim() || isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Creating...
-              </>
-            ) : (
-              "Create & Share"
-            )}
-          </Button>
+        <div className="space-y-2">
+          <Label htmlFor="note-content">Content</Label>
+          <Textarea
+            id="note-content"
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            placeholder="Write your note content here..."
+            rows={8}
+            className="resize-none"
+          />
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+
+      <ResponsiveModalFooter>
+        <Button variant="outline" onClick={handleClose} disabled={isSubmitting}>
+          Cancel
+        </Button>
+        <Button
+          onClick={handleSubmit}
+          disabled={!title.trim() || isSubmitting}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            "Create & Share"
+          )}
+        </Button>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }
