@@ -1160,6 +1160,24 @@
   }
 }
 
+/* Horizontal scroll fade indicator */
+.scroll-fade-horizontal {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 16px,
+    black calc(100% - 16px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 16px,
+    black calc(100% - 16px),
+    transparent
+  );
+}
+
 /* iOS standalone mode adjustments */
 @media (display-mode: standalone) {
   .standalone-pt {

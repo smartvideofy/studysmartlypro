@@ -334,7 +334,7 @@ export default function GroupsPage() {
               
               {/* Category Filter */}
               <ScrollArea className="w-full mt-4">
-                <div className="flex gap-2 pb-2">
+                <div className="flex gap-2 pb-2 scroll-fade-horizontal">
                   {subjectCategories.map((category) => {
                     const Icon = category.icon;
                     const isActive = selectedCategory === category.id;
@@ -343,7 +343,7 @@ export default function GroupsPage() {
                         key={category.id}
                         variant={isActive ? "default" : "outline"}
                         size="sm"
-                        className={`shrink-0 gap-1.5 ${isActive ? '' : 'bg-secondary/50 hover:bg-secondary'}`}
+                        className={`shrink-0 gap-1.5 touch-target ${isActive ? '' : 'bg-secondary/50 hover:bg-secondary'}`}
                         onClick={() => setSelectedCategory(category.id)}
                       >
                         <Icon className="w-3.5 h-3.5" />
