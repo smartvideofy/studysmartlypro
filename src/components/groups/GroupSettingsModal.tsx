@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Loader2, Settings, Trash2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -65,18 +66,18 @@ export function GroupSettingsModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Settings className="w-5 h-5" />
-            Group Settings
-          </DialogTitle>
-          <DialogDescription>
-            Update your group details and preferences.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle className="flex items-center gap-2">
+          <Settings className="w-5 h-5" />
+          Group Settings
+        </ResponsiveModalTitle>
+        <ResponsiveModalDescription>
+          Update your group details and preferences.
+        </ResponsiveModalDescription>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="name">Group Name</Label>
@@ -125,7 +126,7 @@ export function GroupSettingsModal({
           </div>
         </form>
 
-        <Separator className="my-2" />
+        <Separator className="my-4" />
 
         {/* Danger Zone */}
         <div className="space-y-3">
@@ -161,7 +162,7 @@ export function GroupSettingsModal({
             </AlertDialogContent>
           </AlertDialog>
         </div>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+    </ResponsiveModal>
   );
 }

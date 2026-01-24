@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Plus, Trash2, BarChart3 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,19 +72,19 @@ export function CreatePollModal({ open, onOpenChange, groupId }: CreatePollModal
   const isValid = question.trim() && options.filter(o => o.trim()).length >= 2;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-primary" />
-            Create Poll
-          </DialogTitle>
-          <DialogDescription>
-            Ask the group a question and let them vote
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle className="flex items-center gap-2">
+          <BarChart3 className="w-5 h-5 text-primary" />
+          Create Poll
+        </ResponsiveModalTitle>
+        <ResponsiveModalDescription>
+          Ask the group a question and let them vote
+        </ResponsiveModalDescription>
+      </ResponsiveModalHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <ResponsiveModalBody>
+        <form id="create-poll-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="question">Question</Label>
             <Input
@@ -156,26 +157,27 @@ export function CreatePollModal({ open, onOpenChange, groupId }: CreatePollModal
               />
             </div>
           </div>
-
-          <div className="flex gap-2 pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="flex-1"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!isValid || createPoll.isPending}
-              className="flex-1"
-            >
-              {createPoll.isPending ? "Creating..." : "Create Poll"}
-            </Button>
-          </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+
+      <ResponsiveModalFooter>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => onOpenChange(false)}
+          className="flex-1"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="submit"
+          form="create-poll-form"
+          disabled={!isValid || createPoll.isPending}
+          className="flex-1"
+        >
+          {createPoll.isPending ? "Creating..." : "Create Poll"}
+        </Button>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

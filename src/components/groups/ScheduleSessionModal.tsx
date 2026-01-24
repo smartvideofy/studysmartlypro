@@ -2,13 +2,13 @@ import { useState } from "react";
 import { CalendarPlus, Clock, Link2, Loader2 } from "lucide-react";
 import { format, addHours, setHours, setMinutes } from "date-fns";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -88,19 +88,19 @@ export function ScheduleSessionModal({ open, onOpenChange, groupId }: ScheduleSe
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <CalendarPlus className="h-5 w-5 text-primary" />
-            Schedule Study Session
-          </DialogTitle>
-          <DialogDescription>
-            Create a scheduled study session for your group. Members will be able to RSVP.
-          </DialogDescription>
-        </DialogHeader>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <ResponsiveModalTitle className="flex items-center gap-2">
+          <CalendarPlus className="h-5 w-5 text-primary" />
+          Schedule Study Session
+        </ResponsiveModalTitle>
+        <ResponsiveModalDescription>
+          Create a scheduled study session for your group. Members will be able to RSVP.
+        </ResponsiveModalDescription>
+      </ResponsiveModalHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <ResponsiveModalBody>
+        <form id="schedule-session-form" onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="title">Session Title *</Label>
             <Input
@@ -123,7 +123,7 @@ export function ScheduleSessionModal({ open, onOpenChange, groupId }: ScheduleSe
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label>Date *</Label>
               <Popover>
@@ -197,24 +197,28 @@ export function ScheduleSessionModal({ open, onOpenChange, groupId }: ScheduleSe
               />
             </div>
           </div>
-
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={!title.trim() || !date || createSession.isPending}>
-              {createSession.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                "Schedule Session"
-              )}
-            </Button>
-          </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+
+      <ResponsiveModalFooter>
+        <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+          Cancel
+        </Button>
+        <Button 
+          type="submit" 
+          form="schedule-session-form"
+          disabled={!title.trim() || !date || createSession.isPending}
+        >
+          {createSession.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Creating...
+            </>
+          ) : (
+            "Schedule Session"
+          )}
+        </Button>
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

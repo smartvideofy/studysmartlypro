@@ -21,6 +21,8 @@ import { useDecks, useDeckMasteryStats } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -97,6 +99,7 @@ function DeckProgressRow({ deck }: { deck: { id: string; name: string; total: nu
 }
 
 export default function ProgressPage() {
+  const isMobile = useIsMobile();
   const queryClient = useQueryClient();
   const { data: stats, isLoading: statsLoading, isError: statsError } = useStudyStats();
   const { data: decks, isLoading: decksLoading, isError: decksError } = useDecks();
@@ -104,9 +107,11 @@ export default function ProgressPage() {
   const isLoading = statsLoading || decksLoading;
   const hasError = statsError || decksError;
 
-  const handleRetry = () => {
-    queryClient.invalidateQueries({ queryKey: ['study-stats'] });
-    queryClient.invalidateQueries({ queryKey: ['decks'] });
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['study-stats'] }),
+      queryClient.invalidateQueries({ queryKey: ['decks'] }),
+    ]);
   };
 
   // Calculate subject/deck progress - now using placeholders that will be replaced with real data in the component
@@ -140,7 +145,7 @@ export default function ProgressPage() {
       <DashboardLayout title="Progress">
         <div className="space-y-6 animate-in fade-in duration-300">
           {/* Stats Skeleton */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonProgressStat key={i} />
             ))}
@@ -210,73 +215,74 @@ export default function ProgressPage() {
 
   return (
     <DashboardLayout title="Progress">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
-      >
-        {/* Stats Overview */}
-        <motion.div 
-          variants={itemVariants}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+      <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
         >
-          <Card variant="interactive" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Clock className="w-5 h-5 text-primary" />
+          {/* Stats Overview */}
+          <motion.div 
+            variants={itemVariants}
+            className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
+          >
+            <Card variant="interactive" className="p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Clock className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-bold font-display">
+                    {formatTime(stats?.totalTimeMinutes || 0)}
+                  </p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">Total Study Time</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold font-display">
-                  {formatTime(stats?.totalTimeMinutes || 0)}
-                </p>
-                <p className="text-xs text-muted-foreground">Total Study Time</p>
+            </Card>
+            
+            <Card variant="interactive" className="p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-success/10 flex items-center justify-center">
+                  <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-success" />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-bold font-display">
+                    {stats?.totalCardsStudied || 0}
+                  </p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">Cards Studied</p>
+                </div>
               </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+            </Card>
+            
+            <Card variant="interactive" className="p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+                  <Flame className="w-4 h-4 md:w-5 md:h-5 text-accent" />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-bold font-display">
+                    {stats?.streak || 0}
+                  </p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">Day Streak</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold font-display">
-                  {stats?.totalCardsStudied || 0}
-                </p>
-                <p className="text-xs text-muted-foreground">Cards Studied</p>
+            </Card>
+            
+            <Card variant="interactive" className="p-3 md:p-4">
+              <div className="flex items-center gap-2 md:gap-3">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Target className="w-4 h-4 md:w-5 md:h-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-xl md:text-2xl font-bold font-display">
+                    {stats?.accuracy || 0}%
+                  </p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground">Accuracy Rate</p>
+                </div>
               </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                <Flame className="w-5 h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-display">
-                  {stats?.streak || 0}
-                </p>
-                <p className="text-xs text-muted-foreground">Day Streak</p>
-              </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                <Target className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold font-display">
-                  {stats?.accuracy || 0}%
-                </p>
-                <p className="text-xs text-muted-foreground">Accuracy Rate</p>
-              </div>
-            </div>
-          </Card>
-        </motion.div>
+            </Card>
+          </motion.div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Weekly Study Chart */}
@@ -414,7 +420,8 @@ export default function ProgressPage() {
             </CardContent>
           </Card>
         </motion.div>
-      </motion.div>
+        </motion.div>
+      </PullToRefresh>
     </DashboardLayout>
   );
 }
