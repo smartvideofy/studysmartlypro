@@ -153,60 +153,42 @@ export default function FlashcardsPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="space-y-6"
+        className="space-y-5 md:space-y-6"
       >
-        {/* Stats Overview - Grid on all screens */}
+        {/* Stats Overview - Premium grid design */}
         <motion.div 
           variants={itemVariants}
           className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
         >
-          <Card variant="interactive" className="p-3 md:p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Layers className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-bold font-display">{totalCards}</p>
-                <p className="text-xs text-muted-foreground">Total Cards</p>
-              </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-3 md:p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-success" />
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-bold font-display">{totalMastered}</p>
-                <p className="text-xs text-muted-foreground">Mastered</p>
-              </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-3 md:p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                <Target className="w-4 h-4 md:w-5 md:h-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-bold font-display">{totalDue}</p>
-                <p className="text-xs text-muted-foreground">Due Today</p>
-              </div>
-            </div>
-          </Card>
-          
-          <Card variant="interactive" className="p-3 md:p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Brain className="w-4 h-4 md:w-5 md:h-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-xl md:text-2xl font-bold font-display">{decks?.length || 0}</p>
-                <p className="text-xs text-muted-foreground">Decks</p>
-              </div>
-            </div>
-          </Card>
+          {[
+            { icon: Layers, label: "Total Cards", value: totalCards, color: "text-primary", bg: "bg-primary/12", glow: "group-hover:shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]" },
+            { icon: CheckCircle2, label: "Mastered", value: totalMastered, color: "text-success", bg: "bg-success/12", glow: "group-hover:shadow-[0_0_20px_-4px_hsl(var(--success)/0.4)]" },
+            { icon: Target, label: "Due Today", value: totalDue, color: "text-accent", bg: "bg-accent/12", glow: "group-hover:shadow-[0_0_20px_-4px_hsl(var(--accent)/0.4)]" },
+            { icon: Brain, label: "Decks", value: decks?.length || 0, color: "text-primary", bg: "bg-primary/12", glow: "group-hover:shadow-[0_0_20px_-4px_hsl(var(--primary)/0.4)]" },
+          ].map((stat) => (
+            <motion.div
+              key={stat.label}
+              whileHover={{ y: -4, scale: 1.02 }}
+              whileTap={{ scale: 0.97, y: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 25 }}
+              className="group"
+            >
+              <Card variant="interactive" className="relative h-full overflow-hidden p-4 md:p-5 hover:shadow-lg hover:border-primary/20 transition-all duration-300">
+                {/* Decorative gradient orb */}
+                <div className={`absolute top-0 right-0 w-16 h-16 rounded-full blur-2xl opacity-50 -translate-y-1/2 translate-x-1/4 ${stat.bg}`} />
+                
+                <div className="relative flex items-center gap-3">
+                  <div className={`w-11 h-11 md:w-12 md:h-12 rounded-xl ${stat.bg} flex items-center justify-center shrink-0 transition-shadow duration-300 ${stat.glow}`}>
+                    <stat.icon className={`w-5 h-5 md:w-6 md:h-6 ${stat.color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl md:text-3xl font-bold font-display tracking-tight">{stat.value}</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">{stat.label}</p>
+                  </div>
+                </div>
+              </Card>
+            </motion.div>
+          ))}
         </motion.div>
 
         {/* Quick Study Banner */}
