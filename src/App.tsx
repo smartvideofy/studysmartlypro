@@ -1,4 +1,3 @@
-import { useState, useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,27 +7,10 @@ import { BrowserRouter } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import AnimatedRoutes from "@/components/AnimatedRoutes";
-import { InstallPrompt, OfflineIndicator, UpdatePrompt } from "@/components/pwa";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  const [needsRefresh, setNeedsRefresh] = useState(false);
-
-  useEffect(() => {
-    const handleUpdate = () => setNeedsRefresh(true);
-    window.addEventListener('sw-update-available', handleUpdate);
-    return () => window.removeEventListener('sw-update-available', handleUpdate);
-  }, []);
-
-  const handleUpdate = async () => {
-    const updateSW = (window as any).__updateSW;
-    if (updateSW) {
-      await updateSW();
-      window.location.reload();
-    }
-  };
-
   return (
     <ErrorBoundary>
       <HelmetProvider>
@@ -37,9 +19,6 @@ const App = () => {
             <TooltipProvider>
               <Toaster />
               <Sonner />
-              <OfflineIndicator />
-              <InstallPrompt />
-              {needsRefresh && <UpdatePrompt onUpdate={handleUpdate} />}
               <BrowserRouter>
                 <AnimatedRoutes />
               </BrowserRouter>
