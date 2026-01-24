@@ -24,6 +24,8 @@ import { Slider } from "@/components/ui/slider";
 import { useUpdateProfile } from "@/hooks/useProfile";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { haptics } from "@/lib/haptics";
 
 const featureSteps = [
   {
@@ -80,6 +82,7 @@ const studyTimes = [
 const TOTAL_STEPS = featureSteps.length + 1; // Features + Preferences
 
 export default function OnboardingPage() {
+  const isMobile = useIsMobile();
   const [currentStep, setCurrentStep] = useState(0);
   const [studyGoal, setStudyGoal] = useState("general");
   const [dailyMinutes, setDailyMinutes] = useState([30]);
@@ -94,6 +97,7 @@ export default function OnboardingPage() {
   const step = isPreferencesStep ? null : featureSteps[currentStep];
 
   const handleNext = async () => {
+    haptics.light();
     if (currentStep < TOTAL_STEPS - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -105,6 +109,7 @@ export default function OnboardingPage() {
           daily_study_minutes: dailyMinutes[0],
           preferred_study_time: preferredTime,
         });
+        haptics.success();
         toast.success("Preferences saved! Let's start learning.");
         navigate("/dashboard");
       } catch (error) {
@@ -116,6 +121,7 @@ export default function OnboardingPage() {
   };
 
   const handlePrevious = () => {
+    haptics.light();
     if (currentStep > 0) {
       setCurrentStep(currentStep - 1);
     }
@@ -141,7 +147,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="p-6 flex items-center justify-between">
+      <header className="p-4 md:p-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <BookOpen className="w-4 h-4 text-primary-foreground" />
@@ -149,13 +155,13 @@ export default function OnboardingPage() {
           <span className="font-display text-xl font-bold">Studily</span>
         </div>
         
-        <Button variant="ghost" size="sm" onClick={handleSkip} disabled={isSaving}>
+        <Button variant="ghost" size="sm" onClick={handleSkip} disabled={isSaving} className="touch-target">
           Skip Tutorial
         </Button>
       </header>
 
       {/* Progress */}
-      <div className="px-6">
+      <div className="px-4 md:px-6">
         <div className="max-w-lg mx-auto">
           <div className="flex items-center justify-between text-sm text-muted-foreground mb-2">
             <span>{isPreferencesStep ? "Set Your Preferences" : "Getting Started"}</span>
@@ -166,7 +172,7 @@ export default function OnboardingPage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-4 md:p-6">
         <AnimatePresence mode="wait">
           {!isPreferencesStep && step ? (
             <motion.div
@@ -175,25 +181,25 @@ export default function OnboardingPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="max-w-lg text-center"
+              className="max-w-lg text-center px-4"
             >
               {/* Icon */}
               <motion.div
                 initial={{ scale: 0.8 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.1 }}
-                className={`w-24 h-24 rounded-2xl ${step.bg} flex items-center justify-center mx-auto mb-8`}
+                className={`w-20 h-20 md:w-24 md:h-24 rounded-2xl ${step.bg} flex items-center justify-center mx-auto mb-6 md:mb-8`}
               >
-                <step.icon className={`w-12 h-12 ${step.color}`} />
+                <step.icon className={`w-10 h-10 md:w-12 md:h-12 ${step.color}`} />
               </motion.div>
 
               {/* Title */}
-              <h1 className="font-display text-3xl md:text-4xl font-bold mb-4">
+              <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                 {step.title}
               </h1>
 
               {/* Description */}
-              <p className="text-muted-foreground text-lg mb-8 max-w-md mx-auto">
+              <p className="text-muted-foreground text-base md:text-lg mb-6 md:mb-8 max-w-md mx-auto">
                 {step.description}
               </p>
 
@@ -202,11 +208,15 @@ export default function OnboardingPage() {
                 {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setCurrentStep(i)}
+                    onClick={() => {
+                      haptics.light();
+                      setCurrentStep(i);
+                    }}
                     className={cn(
-                      "w-2.5 h-2.5 rounded-full transition-all",
+                      "rounded-full transition-all touch-target",
+                      isMobile ? "w-3 h-3" : "w-2.5 h-2.5",
                       i === currentStep 
-                        ? "bg-primary w-8" 
+                        ? cn("bg-primary", isMobile ? "w-6" : "w-8")
                         : i < currentStep 
                           ? "bg-success" 
                           : "bg-muted"
@@ -222,45 +232,51 @@ export default function OnboardingPage() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: -50 }}
               transition={{ duration: 0.3 }}
-              className="w-full max-w-xl"
+              className="w-full max-w-xl px-4"
             >
-              <div className="text-center mb-8">
-                <h1 className="font-display text-3xl md:text-4xl font-bold mb-4">
+              <div className="text-center mb-6 md:mb-8">
+                <h1 className="font-display text-2xl md:text-3xl lg:text-4xl font-bold mb-3 md:mb-4">
                   Personalize Your Experience
                 </h1>
-                <p className="text-muted-foreground text-lg">
+                <p className="text-muted-foreground text-base md:text-lg">
                   Tell us about your study preferences so we can optimize your learning journey.
                 </p>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-6 md:space-y-8">
                 {/* Study Goal */}
                 <Card variant="elevated">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <Label className="text-base font-semibold mb-4 block">What's your main study goal?</Label>
-                    <RadioGroup value={studyGoal} onValueChange={setStudyGoal} className="grid gap-3">
+                    <RadioGroup value={studyGoal} onValueChange={(v) => {
+                      setStudyGoal(v);
+                      haptics.light();
+                    }} className="grid gap-3">
                       {studyGoals.map((goal) => {
                         const Icon = goal.icon;
                         return (
                           <div
                             key={goal.value}
                             className={cn(
-                              "flex items-center gap-4 p-4 rounded-xl border cursor-pointer transition-all",
+                              "flex items-center gap-3 md:gap-4 p-3 md:p-4 rounded-xl border cursor-pointer transition-all touch-target",
                               studyGoal === goal.value
                                 ? "border-primary bg-primary/5"
                                 : "border-border hover:border-primary/50"
                             )}
-                            onClick={() => setStudyGoal(goal.value)}
+                            onClick={() => {
+                              setStudyGoal(goal.value);
+                              haptics.light();
+                            }}
                           >
                             <RadioGroupItem value={goal.value} id={goal.value} />
-                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                               <Icon className="w-5 h-5 text-primary" />
                             </div>
-                            <div className="flex-1">
-                              <Label htmlFor={goal.value} className="font-medium cursor-pointer">
+                            <div className="flex-1 min-w-0">
+                              <Label htmlFor={goal.value} className="font-medium cursor-pointer text-sm md:text-base">
                                 {goal.label}
                               </Label>
-                              <p className="text-sm text-muted-foreground">{goal.description}</p>
+                              <p className="text-xs md:text-sm text-muted-foreground">{goal.description}</p>
                             </div>
                           </div>
                         );
@@ -271,10 +287,10 @@ export default function OnboardingPage() {
 
                 {/* Daily Study Time */}
                 <Card variant="elevated">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <div className="flex items-center justify-between mb-4">
                       <Label className="text-base font-semibold">Daily study goal</Label>
-                      <span className="text-2xl font-bold text-primary">{dailyMinutes[0]} min</span>
+                      <span className="text-xl md:text-2xl font-bold text-primary">{dailyMinutes[0]} min</span>
                     </div>
                     <Slider
                       value={dailyMinutes}
@@ -293,22 +309,25 @@ export default function OnboardingPage() {
 
                 {/* Preferred Study Time */}
                 <Card variant="elevated">
-                  <CardContent className="p-6">
+                  <CardContent className="p-4 md:p-6">
                     <Label className="text-base font-semibold mb-4 block">When do you prefer to study?</Label>
                     <div className="grid grid-cols-2 gap-3">
                       {studyTimes.map((time) => (
                         <button
                           key={time.value}
-                          onClick={() => setPreferredTime(time.value)}
+                          onClick={() => {
+                            setPreferredTime(time.value);
+                            haptics.light();
+                          }}
                           className={cn(
-                            "p-4 rounded-xl border text-left transition-all",
+                            "p-3 md:p-4 rounded-xl border text-left transition-all touch-target",
                             preferredTime === time.value
                               ? "border-primary bg-primary/5"
                               : "border-border hover:border-primary/50"
                           )}
                         >
-                          <div className="font-medium">{time.label}</div>
-                          <div className="text-sm text-muted-foreground">{time.time}</div>
+                          <div className="font-medium text-sm md:text-base">{time.label}</div>
+                          <div className="text-xs md:text-sm text-muted-foreground">{time.time}</div>
                         </button>
                       ))}
                     </div>
@@ -317,15 +336,19 @@ export default function OnboardingPage() {
               </div>
 
               {/* Step Indicators */}
-              <div className="flex justify-center gap-2 mt-8">
+              <div className="flex justify-center gap-2 mt-6 md:mt-8">
                 {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
                   <button
                     key={i}
-                    onClick={() => setCurrentStep(i)}
+                    onClick={() => {
+                      haptics.light();
+                      setCurrentStep(i);
+                    }}
                     className={cn(
-                      "w-2.5 h-2.5 rounded-full transition-all",
+                      "rounded-full transition-all touch-target",
+                      isMobile ? "w-3 h-3" : "w-2.5 h-2.5",
                       i === currentStep 
-                        ? "bg-primary w-8" 
+                        ? cn("bg-primary", isMobile ? "w-6" : "w-8")
                         : i < currentStep 
                           ? "bg-success" 
                           : "bg-muted"
@@ -339,32 +362,39 @@ export default function OnboardingPage() {
       </div>
 
       {/* Footer Actions */}
-      <footer className="p-6">
-        <div className="max-w-lg mx-auto flex items-center justify-between">
+      <footer className="p-4 md:p-6 pb-safe">
+        <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
           <Button
             variant="ghost"
             onClick={handlePrevious}
             disabled={currentStep === 0 || isSaving}
+            className="h-12 touch-target"
           >
             <ArrowLeft className="w-4 h-4" />
-            Previous
+            <span className="ml-2">Previous</span>
           </Button>
 
-          <Button variant="hero" size="lg" onClick={handleNext} disabled={isSaving}>
+          <Button 
+            variant="hero" 
+            size="lg" 
+            onClick={handleNext} 
+            disabled={isSaving}
+            className="h-12 px-6 md:px-8 touch-target"
+          >
             {isSaving ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Saving...
+                <span className="ml-2">Saving...</span>
               </>
             ) : currentStep === TOTAL_STEPS - 1 ? (
               <>
-                Get Started
-                <CheckCircle2 className="w-4 h-4" />
+                <span>Get Started</span>
+                <CheckCircle2 className="w-4 h-4 ml-2" />
               </>
             ) : (
               <>
-                Next
-                <ArrowRight className="w-4 h-4" />
+                <span>Next</span>
+                <ArrowRight className="w-4 h-4 ml-2" />
               </>
             )}
           </Button>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { 
   Maximize2, 
   Minimize2,
@@ -12,12 +12,13 @@ import {
   Network,
   Settings,
   Download,
-  Headphones,
-  Lock
+  Eye,
+  PenTool
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStudyMaterial } from "@/hooks/useStudyMaterials";
+import { useIsMobile } from "@/hooks/use-mobile";
 import MaterialViewer from "@/components/materials/MaterialViewer";
 import TutorNotesTab from "@/components/materials/tabs/TutorNotesTab";
 import SummariesTab from "@/components/materials/tabs/SummariesTab";
@@ -25,20 +26,23 @@ import FlashcardsTab from "@/components/materials/tabs/FlashcardsTab";
 import PracticeQuestionsTab from "@/components/materials/tabs/PracticeQuestionsTab";
 import ConceptMapTab from "@/components/materials/tabs/ConceptMapTab";
 import AIChatTab from "@/components/materials/tabs/AIChatTab";
-import AudioOverviewTab from "@/components/materials/tabs/AudioOverviewTab";
 import ProcessingStatus from "@/components/materials/ProcessingStatus";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import ExportModal from "@/components/materials/ExportModal";
 import { PremiumGate, PremiumBadge } from "@/components/subscription/PremiumGate";
-import { useCanAccessFeature } from "@/hooks/useSubscription";
+import { cn } from "@/lib/utils";
+
+type MobilePanel = "viewer" | "tools";
 
 export default function MaterialWorkspace() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState("tutor-notes");
   const [isViewerExpanded, setIsViewerExpanded] = useState(false);
   const [isPanelExpanded, setIsPanelExpanded] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [mobilePanel, setMobilePanel] = useState<MobilePanel>("tools");
 
   const { data: material, isLoading } = useStudyMaterial(id || "");
 
@@ -76,6 +80,171 @@ export default function MaterialWorkspace() {
     return <ProcessingStatus material={material} />;
   }
 
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <DashboardLayout 
+        title={material.title}
+        materialId={material.id}
+        activeStudyTab={activeTab}
+        onStudyTabChange={setActiveTab}
+      >
+        <div className="flex flex-col h-[calc(100vh-10rem)] -mx-4 overflow-hidden">
+          {/* Mobile Panel Toggle */}
+          <div className="flex items-center gap-2 px-4 pb-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+            <Button
+              variant={mobilePanel === "viewer" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMobilePanel("viewer")}
+              className="flex-1 gap-2"
+            >
+              <Eye className="w-4 h-4" />
+              Material
+            </Button>
+            <Button
+              variant={mobilePanel === "tools" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setMobilePanel("tools")}
+              className="flex-1 gap-2"
+            >
+              <PenTool className="w-4 h-4" />
+              Study Tools
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 shrink-0" 
+              onClick={() => setShowExportModal(true)}
+            >
+              <Download className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-9 w-9 shrink-0" 
+              onClick={() => navigate(`/materials/${material.id}/settings`)}
+            >
+              <Settings className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Mobile Panels */}
+          <AnimatePresence mode="wait">
+            {mobilePanel === "viewer" ? (
+              <motion.div
+                key="viewer"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 overflow-hidden"
+              >
+                <MaterialViewer material={material} />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="tools"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ duration: 0.2 }}
+                className="flex-1 flex flex-col overflow-hidden"
+              >
+                <Tabs 
+                  value={activeTab} 
+                  onValueChange={setActiveTab}
+                  className="flex-1 flex flex-col"
+                >
+                  {/* Mobile Scrollable Tabs */}
+                  <div className="border-b border-border overflow-x-auto scrollbar-hide">
+                    <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto w-max min-w-full">
+                      <TabsTrigger 
+                        value="tutor-notes" 
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <BookOpen className="w-4 h-4" />
+                        <span className="text-xs">Notes</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="summaries"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <FileText className="w-4 h-4" />
+                        <span className="text-xs">Summary</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="flashcards"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <Lightbulb className="w-4 h-4" />
+                        <span className="text-xs">Cards</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="questions"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <Brain className="w-4 h-4" />
+                        <span className="text-xs">Quiz</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="concept-map"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <Network className="w-4 h-4" />
+                        <span className="text-xs">Map</span>
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="chat"
+                        className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        <span className="text-xs">Chat</span>
+                      </TabsTrigger>
+                    </TabsList>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    <TabsContent value="tutor-notes" className="m-0 h-full">
+                      <TutorNotesTab materialId={material.id} />
+                    </TabsContent>
+                    <TabsContent value="summaries" className="m-0 h-full">
+                      <SummariesTab materialId={material.id} />
+                    </TabsContent>
+                    <TabsContent value="flashcards" className="m-0 h-full">
+                      <FlashcardsTab materialId={material.id} />
+                    </TabsContent>
+                    <TabsContent value="questions" className="m-0 h-full">
+                      <PremiumGate feature="practiceQuestions">
+                        <PracticeQuestionsTab materialId={material.id} />
+                      </PremiumGate>
+                    </TabsContent>
+                    <TabsContent value="concept-map" className="m-0 h-full">
+                      <PremiumGate feature="conceptMaps">
+                        <ConceptMapTab materialId={material.id} />
+                      </PremiumGate>
+                    </TabsContent>
+                    <TabsContent value="chat" className="m-0 h-full">
+                      <AIChatTab materialId={material.id} extractedContent={material.extracted_content} />
+                    </TabsContent>
+                  </div>
+                </Tabs>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        <ExportModal
+          open={showExportModal}
+          onOpenChange={setShowExportModal}
+          materialId={material.id}
+          materialTitle={material.title}
+          filePath={material.file_path}
+        />
+      </DashboardLayout>
+    );
+  }
+
+  // Desktop Layout
   return (
     <DashboardLayout 
       title={material.title}

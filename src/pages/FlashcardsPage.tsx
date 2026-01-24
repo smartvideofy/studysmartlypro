@@ -27,6 +27,8 @@ import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { createFlashcardsJsonLd } from "@/components/seo/jsonld";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -73,6 +75,7 @@ function FlashcardsSkeleton() {
 }
 
 export default function FlashcardsPage() {
+  const isMobile = useIsMobile();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDeckOpen, setCreateDeckOpen] = useState(false);
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
@@ -89,10 +92,12 @@ export default function FlashcardsPage() {
   const isLoading = decksLoading;
   const hasError = decksError || dueCardsError || masteredError;
 
-  const handleRetry = () => {
-    queryClient.invalidateQueries({ queryKey: ['decks'] });
-    queryClient.invalidateQueries({ queryKey: ['due-cards'] });
-    queryClient.invalidateQueries({ queryKey: ['mastered-cards'] });
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['decks'] }),
+      queryClient.invalidateQueries({ queryKey: ['due-cards'] }),
+      queryClient.invalidateQueries({ queryKey: ['mastered-cards'] }),
+    ]);
   };
 
   // Filter decks based on search
@@ -143,11 +148,12 @@ export default function FlashcardsPage() {
         url="/flashcards"
         jsonLd={createFlashcardsJsonLd()}
       />
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
+      <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
       >
         {/* Stats Overview - Horizontal scroll on mobile */}
         <motion.div 
@@ -305,6 +311,7 @@ export default function FlashcardsPage() {
           )}
         </motion.div>
       </motion.div>
+      </PullToRefresh>
 
       {/* Modals */}
       <CreateDeckModal 

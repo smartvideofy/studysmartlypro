@@ -36,6 +36,8 @@ import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonGroupCard } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Subject categories for discovery
 const subjectCategories = [
@@ -63,6 +65,7 @@ const itemVariants = {
 };
 
 export default function GroupsPage() {
+  const isMobile = useIsMobile();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -79,9 +82,11 @@ export default function GroupsPage() {
   const isLoading = groupsLoading || publicLoading;
   const hasError = groupsError || publicError;
 
-  const handleRetry = () => {
-    queryClient.invalidateQueries({ queryKey: ['groups'] });
-    queryClient.invalidateQueries({ queryKey: ['public-groups'] });
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['groups'] }),
+      queryClient.invalidateQueries({ queryKey: ['public-groups'] }),
+    ]);
   };
 
   // Filter groups based on search
@@ -186,12 +191,13 @@ export default function GroupsPage() {
 
   return (
     <DashboardLayout title="Study Groups">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
-      >
+      <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
+        >
         {/* Header Actions */}
         <motion.div 
           variants={itemVariants}
@@ -427,6 +433,7 @@ export default function GroupsPage() {
           </Card>
         </motion.div>
       </motion.div>
+      </PullToRefresh>
 
       <CreateGroupModal 
         open={showCreateModal} 

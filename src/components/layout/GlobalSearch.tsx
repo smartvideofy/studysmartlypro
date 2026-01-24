@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, FileText, Layers, Users, X, ArrowRight, Loader2 } from "lucide-react";
+import { Search, FileText, Layers, Users, X, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { useStudyMaterials } from "@/hooks/useStudyMaterials";
 import { useDecks } from "@/hooks/useFlashcards";
 import { useGroups } from "@/hooks/useGroups";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface GlobalSearchProps {
   open: boolean;
@@ -26,6 +27,7 @@ type SearchResult = {
 export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
   const [query, setQuery] = useState("");
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const { data: materials, isLoading: materialsLoading } = useStudyMaterials();
   const { data: decks, isLoading: decksLoading } = useDecks();
@@ -142,6 +144,114 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
     }
   };
 
+  // Mobile fullscreen layout
+  if (isMobile) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="h-full w-full max-w-full max-h-full p-0 gap-0 rounded-none border-0 [&>button]:hidden">
+          {/* Mobile Header */}
+          <div className="flex items-center gap-3 p-4 border-b border-border bg-background pt-safe">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => onOpenChange(false)}
+              className="shrink-0 h-10 w-10 touch-target"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search..."
+                className="pl-10 h-12 text-base border-0 bg-secondary/50"
+                autoFocus
+              />
+            </div>
+            {query && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setQuery("")}
+                className="shrink-0 h-10 w-10 touch-target"
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            )}
+          </div>
+
+          {/* Results */}
+          <div className="flex-1 overflow-y-auto pb-safe">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : query && results.length === 0 ? (
+              <div className="py-12 text-center text-muted-foreground px-4">
+                <Search className="w-12 h-12 mx-auto mb-3 opacity-40" />
+                <p className="text-base">No results found for "{query}"</p>
+              </div>
+            ) : results.length > 0 ? (
+              <div className="p-2">
+                {results.map((result) => {
+                  const Icon = getIcon(result.type);
+                  return (
+                    <button
+                      key={`${result.type}-${result.id}`}
+                      onClick={() => handleSelect(result)}
+                      className="w-full flex items-center gap-3 p-4 rounded-lg hover:bg-secondary active:bg-secondary transition-colors text-left group touch-target"
+                    >
+                      <div className={cn("w-12 h-12 rounded-lg flex items-center justify-center shrink-0", getTypeColor(result.type))}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-base truncate">{result.title}</p>
+                        {result.subtitle && (
+                          <p className="text-sm text-muted-foreground truncate">{result.subtitle}</p>
+                        )}
+                      </div>
+                      <Badge variant="muted" className="text-xs capitalize shrink-0">
+                        {result.type}
+                      </Badge>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4">
+                <p className="text-sm text-muted-foreground mb-4">Quick links</p>
+                <div className="space-y-1">
+                  {[
+                    { label: "Study Materials", path: "/materials", icon: FileText },
+                    { label: "Flashcard Decks", path: "/flashcards", icon: Layers },
+                    { label: "Study Groups", path: "/groups", icon: Users },
+                  ].map((item) => (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        onOpenChange(false);
+                        navigate(item.path);
+                      }}
+                      className="w-full flex items-center gap-4 p-4 rounded-lg hover:bg-secondary active:bg-secondary transition-colors text-left touch-target"
+                    >
+                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+                        <item.icon className="w-5 h-5 text-muted-foreground" />
+                      </div>
+                      <span className="text-base">{item.label}</span>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground ml-auto" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Desktop layout
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="p-0 gap-0 max-w-lg overflow-hidden">

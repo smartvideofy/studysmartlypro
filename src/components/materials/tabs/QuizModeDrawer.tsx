@@ -23,6 +23,9 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { usePracticeQuestions, PracticeQuestion } from "@/hooks/useStudyMaterials";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { haptics } from "@/lib/haptics";
 
 interface QuizModeDrawerProps {
   open: boolean;
@@ -33,6 +36,7 @@ interface QuizModeDrawerProps {
 type QuizState = "setup" | "active" | "results";
 
 export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizModeDrawerProps) {
+  const isMobile = useIsMobile();
   const { data: allQuestions } = usePracticeQuestions(materialId);
   const [quizState, setQuizState] = useState<QuizState>("setup");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -77,20 +81,24 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
     setIsTimerRunning(true);
     setCurrentIndex(0);
     setSelectedAnswers({});
+    haptics.medium();
   };
 
   const handleSelectAnswer = (answer: string) => {
     if (showAnswer) return;
     setSelectedAnswers(prev => ({ ...prev, [currentQuestion.id]: answer }));
+    haptics.light();
   };
 
   const handleNext = () => {
     if (currentIndex < totalQuestions - 1) {
       setCurrentIndex(prev => prev + 1);
       setShowAnswer(false);
+      haptics.light();
     } else {
       setIsTimerRunning(false);
       setQuizState("results");
+      haptics.success();
     }
   };
 
@@ -98,8 +106,24 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
       setShowAnswer(false);
+      haptics.light();
     }
   };
+
+  // Swipe gestures for mobile navigation
+  const swipeHandlers = useSwipeGesture({
+    threshold: 50,
+    onSwipeLeft: () => {
+      if (quizState === "active" && currentIndex < totalQuestions - 1) {
+        handleNext();
+      }
+    },
+    onSwipeRight: () => {
+      if (quizState === "active" && currentIndex > 0) {
+        handlePrevious();
+      }
+    },
+  });
 
   const calculateScore = () => {
     let correct = 0;
@@ -123,6 +147,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
     setSelectedAnswers({});
     setShowAnswer(false);
     setTimer(0);
+    haptics.medium();
   };
 
   return (
@@ -142,7 +167,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                 </div>
               )}
               <DrawerClose asChild>
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="h-10 w-10 touch-target">
                   <X className="w-4 h-4" />
                 </Button>
               </DrawerClose>
@@ -150,7 +175,10 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
           </div>
         </DrawerHeader>
 
-        <div className="flex-1 overflow-auto p-6">
+        <div 
+          className="flex-1 overflow-auto p-4 md:p-6 pb-safe"
+          {...(isMobile && quizState === "active" ? swipeHandlers : {})}
+        >
           <AnimatePresence mode="wait">
             {/* Setup Screen */}
             {quizState === "setup" && (
@@ -165,12 +193,12 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                   <Brain className="w-10 h-10 text-primary" />
                 </div>
                 <h2 className="text-2xl font-bold mb-2">Ready to Test Your Knowledge?</h2>
-                <p className="text-muted-foreground mb-6 max-w-md">
+                <p className="text-muted-foreground mb-6 max-w-md px-4">
                   Answer {quizQuestions.length} multiple choice questions to test your understanding of the material.
                 </p>
                 
                 {quizQuestions.length > 0 ? (
-                  <Button size="lg" className="gap-2" onClick={startQuiz}>
+                  <Button size="lg" className="gap-2 h-14 px-8 text-base" onClick={startQuiz}>
                     <Play className="w-5 h-5" />
                     Start Quiz
                   </Button>
@@ -201,8 +229,8 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                 </div>
 
                 {/* Question */}
-                <div className="bg-card rounded-xl border border-border p-6 mb-6">
-                  <p className="text-lg font-medium leading-relaxed">{currentQuestion.question}</p>
+                <div className="bg-card rounded-xl border border-border p-4 md:p-6 mb-6">
+                  <p className="text-base md:text-lg font-medium leading-relaxed">{currentQuestion.question}</p>
                 </div>
 
                 {/* Options */}
@@ -215,11 +243,12 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                     return (
                       <motion.button
                         key={index}
-                        whileHover={!showAnswer ? { scale: 1.01 } : {}}
+                        whileHover={!showAnswer && !isMobile ? { scale: 1.01 } : {}}
+                        whileTap={{ scale: 0.99 }}
                         onClick={() => handleSelectAnswer(option)}
                         disabled={showAnswer}
                         className={cn(
-                          "w-full flex items-center gap-4 p-4 rounded-lg border text-left transition-all",
+                          "w-full flex items-center gap-4 p-4 rounded-lg border text-left transition-all min-h-[56px] touch-target",
                           isSelected && !showAnswer && "border-primary bg-primary/5",
                           showAnswer && isCorrect && "border-success bg-success/10",
                           showAnswer && isSelected && !isCorrect && "border-destructive bg-destructive/10",
@@ -227,7 +256,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                         )}
                       >
                         <span className={cn(
-                          "w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium shrink-0",
+                          "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium shrink-0",
                           isSelected && !showAnswer && "bg-primary text-primary-foreground",
                           showAnswer && isCorrect && "bg-success text-success-foreground",
                           showAnswer && isSelected && !isCorrect && "bg-destructive text-destructive-foreground",
@@ -241,7 +270,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                             letter
                           )}
                         </span>
-                        <span>{option}</span>
+                        <span className="text-sm md:text-base">{option}</span>
                       </motion.button>
                     );
                   })}
@@ -262,29 +291,76 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                   )}
                 </AnimatePresence>
 
-                {/* Actions */}
-                <div className="flex items-center justify-between">
-                  <Button
-                    variant="outline"
-                    onClick={handlePrevious}
-                    disabled={currentIndex === 0}
-                    className="gap-2"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                    Previous
-                  </Button>
+                {/* Swipe hint for mobile */}
+                {isMobile && (
+                  <p className="text-xs text-muted-foreground text-center mb-4">
+                    Swipe left/right to navigate questions
+                  </p>
+                )}
 
-                  <div className="flex gap-2">
-                    {!showAnswer && selectedAnswers[currentQuestion.id] && (
-                      <Button variant="outline" onClick={() => setShowAnswer(true)}>
-                        Check Answer
+                {/* Actions */}
+                <div className={cn(
+                  "flex items-center",
+                  isMobile ? "flex-col gap-3" : "justify-between"
+                )}>
+                  {isMobile ? (
+                    <>
+                      {!showAnswer && selectedAnswers[currentQuestion.id] && (
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            setShowAnswer(true);
+                            haptics.medium();
+                          }}
+                          className="w-full h-14 text-base"
+                        >
+                          Check Answer
+                        </Button>
+                      )}
+                      <div className="flex gap-3 w-full">
+                        <Button
+                          variant="outline"
+                          onClick={handlePrevious}
+                          disabled={currentIndex === 0}
+                          className="flex-1 h-14 text-base gap-2"
+                        >
+                          <ChevronLeft className="w-5 h-5" />
+                          Previous
+                        </Button>
+                        <Button 
+                          onClick={handleNext} 
+                          className="flex-1 h-14 text-base gap-2"
+                        >
+                          {currentIndex === totalQuestions - 1 ? "Finish" : "Next"}
+                          {currentIndex < totalQuestions - 1 && <ChevronRight className="w-5 h-5" />}
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={handlePrevious}
+                        disabled={currentIndex === 0}
+                        className="gap-2"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        Previous
                       </Button>
-                    )}
-                    <Button onClick={handleNext} className="gap-2">
-                      {currentIndex === totalQuestions - 1 ? "Finish" : "Next"}
-                      {currentIndex < totalQuestions - 1 && <ChevronRight className="w-4 h-4" />}
-                    </Button>
-                  </div>
+
+                      <div className="flex gap-2">
+                        {!showAnswer && selectedAnswers[currentQuestion.id] && (
+                          <Button variant="outline" onClick={() => setShowAnswer(true)}>
+                            Check Answer
+                          </Button>
+                        )}
+                        <Button onClick={handleNext} className="gap-2">
+                          {currentIndex === totalQuestions - 1 ? "Finish" : "Next"}
+                          {currentIndex < totalQuestions - 1 && <ChevronRight className="w-4 h-4" />}
+                        </Button>
+                      </div>
+                    </>
+                  )}
                 </div>
               </motion.div>
             )}
@@ -296,7 +372,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
-                className="flex flex-col items-center justify-center h-full text-center"
+                className="flex flex-col items-center justify-center h-full text-center px-4"
               >
                 {(() => {
                   const score = calculateScore();
@@ -320,11 +396,11 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                         )} />
                       </motion.div>
 
-                      <h2 className="text-3xl font-bold mb-2">
+                      <h2 className="text-2xl md:text-3xl font-bold mb-2">
                         {isGreat ? "Excellent!" : isGood ? "Good Job!" : "Keep Practicing!"}
                       </h2>
 
-                      <div className="text-6xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+                      <div className="text-5xl md:text-6xl font-bold mb-2 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
                         {score.percentage}%
                       </div>
 
@@ -336,13 +412,20 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
                         Time: {formatTime(timer)}
                       </p>
 
-                      <div className="flex gap-4">
-                        <Button variant="outline" onClick={restartQuiz} className="gap-2">
+                      <div className={cn(
+                        "flex gap-4",
+                        isMobile && "flex-col w-full max-w-xs"
+                      )}>
+                        <Button 
+                          variant="outline" 
+                          onClick={restartQuiz} 
+                          className={cn("gap-2", isMobile && "h-14 text-base")}
+                        >
                           <RotateCcw className="w-4 h-4" />
                           Try Again
                         </Button>
                         <DrawerClose asChild>
-                          <Button>Done</Button>
+                          <Button className={cn(isMobile && "h-14 text-base")}>Done</Button>
                         </DrawerClose>
                       </div>
 

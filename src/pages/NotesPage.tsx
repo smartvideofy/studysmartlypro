@@ -41,6 +41,7 @@ import { useAISummarize, useAIGenerateFlashcardsAdvanced } from "@/hooks/useAINo
 import { formatDistanceToNow } from "date-fns";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -56,6 +57,7 @@ const itemVariants = {
 };
 
 export default function NotesPage() {
+  const isMobile = useIsMobile();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
@@ -162,22 +164,22 @@ export default function NotesPage() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
         >
-          <div className="relative flex-1 max-w-md">
+          <div className="relative flex-1 max-w-md w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search notes..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 h-11"
             />
           </div>
           
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             <div className="flex items-center border border-border rounded-lg p-1">
               <button
                 onClick={() => setViewMode("grid")}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
+                  "p-2 rounded-md transition-colors touch-target",
                   viewMode === "grid" ? "bg-secondary" : "hover:bg-secondary/50"
                 )}
               >
@@ -186,7 +188,7 @@ export default function NotesPage() {
               <button
                 onClick={() => setViewMode("list")}
                 className={cn(
-                  "p-2 rounded-md transition-colors",
+                  "p-2 rounded-md transition-colors touch-target",
                   viewMode === "list" ? "bg-secondary" : "hover:bg-secondary/50"
                 )}
               >
@@ -194,20 +196,20 @@ export default function NotesPage() {
               </button>
             </div>
             
-            <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)} className="h-10 touch-target">
               <FolderPlus className="w-4 h-4" />
-              <span className="hidden sm:inline">New Folder</span>
+              <span className="hidden sm:inline ml-2">New Folder</span>
             </Button>
 
-            <Button variant="outline" size="sm" onClick={() => setImportDocumentOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => setImportDocumentOpen(true)} className="h-10 touch-target">
               <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Import</span>
+              <span className="hidden sm:inline ml-2">Import</span>
             </Button>
             
-            <Button variant="hero" size="sm" asChild>
+            <Button variant="hero" size="sm" asChild className="h-10 touch-target">
               <Link to="/notes/new">
                 <Plus className="w-4 h-4" />
-                New Note
+                <span className="ml-2">New Note</span>
               </Link>
             </Button>
           </div>
@@ -224,7 +226,7 @@ export default function NotesPage() {
                   className="glass-card-hover rounded-xl p-4 flex items-center gap-3 group relative"
                 >
                   <div 
-                    className="w-10 h-10 rounded-lg flex items-center justify-center"
+                    className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
                     style={{ backgroundColor: `${folder.color}20` }}
                   >
                     <Folder className="w-5 h-5" style={{ color: folder.color }} />
@@ -238,20 +240,23 @@ export default function NotesPage() {
                       <Button 
                         variant="ghost" 
                         size="icon-sm" 
-                        className="opacity-0 group-hover:opacity-100 transition-opacity"
+                        className={cn(
+                          "transition-opacity touch-target",
+                          isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                        )}
                       >
                         <MoreHorizontal className="w-4 h-4" />
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => setEditingFolder(folder)}>
+                      <DropdownMenuItem onClick={() => setEditingFolder(folder)} className="touch-target">
                         <Edit className="w-4 h-4 mr-2" />
                         Edit
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         onClick={() => setDeletingFolder(folder)}
-                        className="text-destructive focus:text-destructive"
+                        className="text-destructive focus:text-destructive touch-target"
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Delete
@@ -292,7 +297,7 @@ export default function NotesPage() {
                     <Card variant="interactive" className="group">
                       <CardContent className="p-5">
                         <div className="flex items-start justify-between mb-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {folder && (
                               <Badge 
                                 variant="muted" 
@@ -310,12 +315,19 @@ export default function NotesPage() {
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon-sm" className="opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button 
+                                variant="ghost" 
+                                size="icon-sm" 
+                                className={cn(
+                                  "transition-opacity touch-target",
+                                  isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+                                )}
+                              >
                                 <MoreHorizontal className="w-4 h-4" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem asChild>
+                              <DropdownMenuItem asChild className="touch-target">
                                 <Link to={`/notes/${note.id}`}>
                                   <Edit className="w-4 h-4 mr-2" />
                                   Edit
@@ -325,6 +337,7 @@ export default function NotesPage() {
                               <DropdownMenuItem 
                                 onClick={() => handleSummarize(note)}
                                 disabled={!note.content}
+                                className="touch-target"
                               >
                                 <Sparkles className="w-4 h-4 mr-2" />
                                 AI Summary
@@ -332,6 +345,7 @@ export default function NotesPage() {
                               <DropdownMenuItem 
                                 onClick={() => handleGenerateFlashcards(note)}
                                 disabled={!note.content}
+                                className="touch-target"
                               >
                                 <BookOpen className="w-4 h-4 mr-2" />
                                 Generate Flashcards
@@ -339,7 +353,7 @@ export default function NotesPage() {
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
                                 onClick={() => setDeletingNoteId(note.id)}
-                                className="text-destructive focus:text-destructive"
+                                className="text-destructive focus:text-destructive touch-target"
                               >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Delete
