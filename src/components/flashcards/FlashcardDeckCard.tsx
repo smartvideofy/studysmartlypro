@@ -21,6 +21,7 @@ import {
 import { FlashcardDeck } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface FlashcardDeckCardProps {
   deck: FlashcardDeck;
@@ -48,6 +49,7 @@ const deckGradients = [
 export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDeckCardProps) {
   const colorScheme = deckColors[index % deckColors.length];
   const gradient = deckGradients[index % deckGradients.length];
+  const isMobile = useIsMobile();
 
   return (
     <motion.div
@@ -87,7 +89,11 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
                 <Button 
                   variant="ghost" 
                   size="icon-sm" 
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                  className={cn(
+                    "shrink-0 touch-target",
+                    // Always visible on mobile, hover-reveal on desktop
+                    isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100 transition-opacity"
+                  )}
                 >
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>

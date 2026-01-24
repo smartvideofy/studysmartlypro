@@ -25,7 +25,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 import NotificationBell from "@/components/notifications/NotificationBell";
 import { GlobalSearch } from "./GlobalSearch";
+import { MobileBottomNav } from "./MobileBottomNav";
+import { MobileHeader } from "./MobileHeader";
+import { MobileMenuDrawer } from "./MobileMenuDrawer";
 import { useProfile } from "@/hooks/useProfile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import logoImage from "@/assets/logo.png";
 
 const navItems = [
@@ -68,14 +72,52 @@ export default function DashboardLayout({
 }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(!!materialId);
   const location = useLocation();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const isMobile = useIsMobile();
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
 
+  // Mobile Layout
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background bg-gradient-mesh flex flex-col">
+        {/* Floating orbs - simplified for mobile */}
+        <div className="fixed inset-0 pointer-events-none overflow-hidden">
+          <div className="orb orb-primary w-64 h-64 -top-32 -left-32 animate-orb opacity-50" />
+          <div className="orb orb-accent w-48 h-48 bottom-20 -right-24 animate-orb opacity-50" style={{ animationDelay: '-4s' }} />
+        </div>
+
+        {/* Mobile Header */}
+        <MobileHeader 
+          title={title || "Studily"}
+          onMenuClick={() => setMenuOpen(true)}
+          onSearchOpen={() => setSearchOpen(true)}
+          onUploadClick={() => navigate('/materials')}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 px-4 py-4 pb-24 relative z-10">
+          {children}
+        </main>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav />
+
+        {/* Mobile Menu Drawer */}
+        <MobileMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
+
+        {/* Global Search Modal */}
+        <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
+      </div>
+    );
+  }
+
+  // Desktop Layout
   return (
     <div className="min-h-screen bg-background bg-gradient-mesh flex">
       {/* Floating orbs for glassmorphism effect */}
