@@ -260,10 +260,10 @@ export default function Dashboard() {
           <XPProgress />
         </motion.div>
 
-        {/* Stats Cards - Horizontal scroll on mobile */}
+        {/* Stats Cards - Grid on all screens */}
         <motion.div 
           variants={itemVariants}
-          className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4"
+          className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
         >
           {[
             { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/materials", isTime: false },
@@ -276,21 +276,20 @@ export default function Dashboard() {
               whileHover={{ y: -4, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              className="mobile-card"
             >
               <Link to={stat.path}>
                 <Card variant="glass" className="h-full hover:shadow-card-hover hover:border-primary/20 transition-all duration-300">
-                  <CardContent className="p-5">
-                    <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-3`}>
+                  <CardContent className="p-4 md:p-5">
+                    <div className={`w-10 h-10 md:w-11 md:h-11 rounded-xl bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-2 md:mb-3`}>
                       <stat.icon className={`w-5 h-5 ${stat.color}`} />
                     </div>
-                    <div className="font-display text-2xl font-bold">
+                    <div className="font-display text-xl md:text-2xl font-bold">
                       <AnimatedCounter 
                         value={stat.value as number} 
                         suffix={stat.isTime ? "m" : ""} 
                       />
                     </div>
-                    <div className="text-sm text-muted-foreground">{stat.label}</div>
+                    <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
                   </CardContent>
                 </Card>
               </Link>
@@ -298,10 +297,10 @@ export default function Dashboard() {
           ))}
         </motion.div>
 
-        {/* Quick Actions - Horizontal scroll on mobile */}
+        {/* Quick Actions - Grid on all screens */}
         <motion.div variants={itemVariants}>
           <h3 className="font-display text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               const colorMap: Record<string, string> = {
@@ -315,16 +314,15 @@ export default function Dashboard() {
                   whileHover={{ y: -4, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  className="mobile-card"
                 >
                   <Link
                     to={action.path}
-                    className="group glass-card rounded-xl p-5 flex flex-col items-center text-center hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 block min-h-[120px]"
+                    className="group glass-card rounded-xl p-4 md:p-5 flex flex-col items-center text-center hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 block min-h-[100px] md:min-h-[120px]"
                   >
-                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colorMap[action.color]} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="w-7 h-7" />
+                    <div className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-gradient-to-br ${colorMap[action.color]} flex items-center justify-center mb-2 md:mb-3 group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="w-6 h-6 md:w-7 md:h-7" />
                     </div>
-                    <span className="text-sm font-medium">{action.label}</span>
+                    <span className="text-xs md:text-sm font-medium">{action.label}</span>
                   </Link>
                 </motion.div>
               );

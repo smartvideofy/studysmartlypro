@@ -155,54 +155,54 @@ export default function FlashcardsPage() {
           animate="visible"
           className="space-y-6"
       >
-        {/* Stats Overview - Horizontal scroll on mobile */}
+        {/* Stats Overview - Grid on all screens */}
         <motion.div 
           variants={itemVariants}
-          className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4"
+          className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
         >
-          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
+          <Card variant="interactive" className="p-3 md:p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Layers className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Layers className="w-4 h-4 md:w-5 md:h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{totalCards}</p>
+                <p className="text-xl md:text-2xl font-bold font-display">{totalCards}</p>
                 <p className="text-xs text-muted-foreground">Total Cards</p>
               </div>
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
+          <Card variant="interactive" className="p-3 md:p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
-                <CheckCircle2 className="w-5 h-5 text-success" />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-success/10 flex items-center justify-center">
+                <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-success" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{totalMastered}</p>
+                <p className="text-xl md:text-2xl font-bold font-display">{totalMastered}</p>
                 <p className="text-xs text-muted-foreground">Mastered</p>
               </div>
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
+          <Card variant="interactive" className="p-3 md:p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                <Target className="w-5 h-5 text-accent" />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                <Target className="w-4 h-4 md:w-5 md:h-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{totalDue}</p>
+                <p className="text-xl md:text-2xl font-bold font-display">{totalDue}</p>
                 <p className="text-xs text-muted-foreground">Due Today</p>
               </div>
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
+          <Card variant="interactive" className="p-3 md:p-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Brain className="w-5 h-5 text-primary" />
+              <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Brain className="w-4 h-4 md:w-5 md:h-5 text-primary" />
               </div>
               <div>
-                <p className="text-2xl font-bold font-display">{decks?.length || 0}</p>
+                <p className="text-xl md:text-2xl font-bold font-display">{decks?.length || 0}</p>
                 <p className="text-xs text-muted-foreground">Decks</p>
               </div>
             </div>
