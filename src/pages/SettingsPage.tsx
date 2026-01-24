@@ -18,7 +18,9 @@ import {
   ChevronRight,
   Key,
   ChevronDown,
-  Mail
+  Mail,
+  Trophy,
+  BarChart3
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,16 +37,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
@@ -56,6 +55,7 @@ import { EmailPreferencesSection } from "@/components/settings/EmailPreferencesS
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { haptics } from "@/lib/haptics";
 
 const APP_VERSION = "1.0.0";
 
@@ -81,7 +81,8 @@ export default function SettingsPage() {
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
   const [deletingAccount, setDeletingAccount] = useState(false);
-
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
@@ -165,6 +166,23 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Activity Section */}
+        <Section title="Activity">
+          <LinkRow 
+            icon={<Trophy className="w-4 h-4" />}
+            label="Achievements"
+            description="View your earned badges"
+            onClick={() => navigate('/achievements')}
+          />
+          <Separator />
+          <LinkRow 
+            icon={<BarChart3 className="w-4 h-4" />}
+            label="Progress & Stats"
+            description="Track your study analytics"
+            onClick={() => navigate('/progress')}
+          />
+        </Section>
+
         {/* Subscription Section */}
         <Section title="Subscription">
           {subLoading ? (
@@ -208,35 +226,17 @@ export default function SettingsPage() {
                     label="Manage Subscription" 
                     description="Cancel or modify your plan"
                   >
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button variant="outline" size="sm" className="text-destructive hover:text-destructive">
-                          Cancel Plan
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Cancel Subscription?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            You'll lose access to premium features at the end of your billing period. 
-                            Your data will be preserved.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Keep Plan</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => cancelSubscription.mutate()}
-                            className="bg-destructive hover:bg-destructive/90"
-                          >
-                            {cancelSubscription.isPending ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              "Cancel Subscription"
-                            )}
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive hover:text-destructive"
+                      onClick={() => {
+                        haptics.light();
+                        setCancelDialogOpen(true);
+                      }}
+                    >
+                      Cancel Plan
+                    </Button>
                   </SettingRow>
                 </>
               )}
@@ -409,7 +409,7 @@ export default function SettingsPage() {
 
         {/* Danger Zone */}
         <Section title="Danger Zone">
-          <div className="px-4 py-3">
+          <div className="px-4 py-3 min-h-[48px]">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-destructive">Delete Account</p>
@@ -417,40 +417,83 @@ export default function SettingsPage() {
                   Permanently delete your account and all data
                 </p>
               </div>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="text-destructive border-destructive/50 hover:bg-destructive/10">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Delete
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Delete Account?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. All your notes, flashcards, study materials, 
-                      and progress will be permanently deleted.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleDeleteAccount}
-                      className="bg-destructive hover:bg-destructive/90"
-                      disabled={deletingAccount}
-                    >
-                      {deletingAccount ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        "Delete Account"
-                      )}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="text-destructive border-destructive/50 hover:bg-destructive/10"
+                onClick={() => {
+                  haptics.warning();
+                  setDeleteDialogOpen(true);
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
             </div>
           </div>
         </Section>
+
+        {/* Cancel Subscription Modal */}
+        <ResponsiveModal open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>Cancel Subscription?</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              You'll lose access to premium features at the end of your billing period. 
+              Your data will be preserved.
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
+              Keep Plan
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                haptics.error();
+                cancelSubscription.mutate();
+                setCancelDialogOpen(false);
+              }}
+              disabled={cancelSubscription.isPending}
+            >
+              {cancelSubscription.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Cancel Subscription"
+              )}
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModal>
+
+        {/* Delete Account Modal */}
+        <ResponsiveModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <ResponsiveModalHeader>
+            <ResponsiveModalTitle>Delete Account?</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              This action cannot be undone. All your notes, flashcards, study materials, 
+              and progress will be permanently deleted.
+            </ResponsiveModalDescription>
+          </ResponsiveModalHeader>
+          <ResponsiveModalFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                haptics.error();
+                handleDeleteAccount();
+                setDeleteDialogOpen(false);
+              }}
+              disabled={deletingAccount}
+            >
+              {deletingAccount ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                "Delete Account"
+              )}
+            </Button>
+          </ResponsiveModalFooter>
+        </ResponsiveModal>
 
         {/* Save Button */}
         {hasChanges && (
@@ -510,7 +553,7 @@ interface SettingRowProps {
 
 function SettingRow({ icon, label, description, children }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3">
+    <div className="flex items-center justify-between gap-4 px-4 py-3 min-h-[48px]">
       <div className="flex items-center gap-3 min-w-0">
         {icon && <span className="text-muted-foreground">{icon}</span>}
         <div className="min-w-0">
@@ -528,17 +571,23 @@ function SettingRow({ icon, label, description, children }: SettingRowProps) {
 interface LinkRowProps {
   icon?: React.ReactNode;
   label: string;
+  description?: string;
   onClick?: () => void;
   href?: string;
   external?: boolean;
 }
 
-function LinkRow({ icon, label, onClick, href, external }: LinkRowProps) {
+function LinkRow({ icon, label, description, onClick, href, external }: LinkRowProps) {
   const content = (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/50 transition-colors cursor-pointer">
+    <div className="flex items-center justify-between gap-4 px-4 py-3 min-h-[48px] hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted/70">
       <div className="flex items-center gap-3">
         {icon && <span className="text-muted-foreground">{icon}</span>}
-        <p className="text-sm font-medium">{label}</p>
+        <div>
+          <p className="text-sm font-medium">{label}</p>
+          {description && (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          )}
+        </div>
       </div>
       {external ? (
         <ExternalLink className="w-4 h-4 text-muted-foreground" />

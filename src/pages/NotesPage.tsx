@@ -36,6 +36,7 @@ import { AISummaryModal } from "@/components/notes/AISummaryModal";
 import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
 import { ImportDocumentModal } from "@/components/notes/ImportDocumentModal";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType, Note } from "@/hooks/useNotes";
@@ -136,8 +137,39 @@ export default function NotesPage() {
   if (isLoading) {
     return (
       <DashboardLayout title="Notes">
-        <div className="flex items-center justify-center min-h-[50vh]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="space-y-6 animate-in fade-in duration-300">
+          {/* Search & Actions Skeleton */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <Skeleton className="h-11 flex-1 max-w-md rounded-lg" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-10 sm:w-24 rounded-lg" />
+              <Skeleton className="h-10 w-10 sm:w-20 rounded-lg" />
+              <Skeleton className="h-10 w-24 rounded-lg" />
+            </div>
+          </div>
+          
+          {/* Folders Skeleton */}
+          <div>
+            <Skeleton className="h-6 w-20 mb-4" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Skeleton key={i} className="h-[72px] rounded-xl" />
+              ))}
+            </div>
+          </div>
+          
+          {/* Notes Grid Skeleton */}
+          <div>
+            <div className="flex items-center justify-between mb-4">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-8 w-36" />
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-[140px] rounded-xl" />
+              ))}
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );

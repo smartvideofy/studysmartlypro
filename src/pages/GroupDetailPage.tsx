@@ -89,6 +89,7 @@ export default function GroupDetailPage() {
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [showScrollFab, setShowScrollFab] = useState(false);
   const [editingMessage, setEditingMessage] = useState<GroupMessage | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -125,6 +126,21 @@ export default function GroupDetailPage() {
   const isAdmin = members?.find(m => m.user_id === user?.id)?.role === 'admin' || isOwner;
   const myName = profile?.full_name || user?.email?.split('@')[0] || 'User';
   const memberCount = members?.length || 0;
+
+  // Keyboard avoidance for mobile
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const heightDiff = window.innerHeight - window.visualViewport.height;
+        setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
+      }
+    };
+    
+    window.visualViewport?.addEventListener('resize', handleResize);
+    return () => window.visualViewport?.removeEventListener('resize', handleResize);
+  }, [isMobile]);
 
   // Mark messages as read when viewing chat
   useEffect(() => {
@@ -566,7 +582,11 @@ export default function GroupDetailPage() {
             )}
 
             {/* Message Input */}
-            <form onSubmit={handleSendMessage} className="border-t border-border p-3 flex gap-2 items-end">
+            <form 
+              onSubmit={handleSendMessage} 
+              className="border-t border-border p-3 flex gap-2 items-end transition-all duration-200"
+              style={{ paddingBottom: keyboardHeight > 0 ? keyboardHeight + 12 : undefined }}
+            >
               <input
                 type="file"
                 ref={fileInputRef}
@@ -578,6 +598,7 @@ export default function GroupDetailPage() {
                 type="button"
                 variant="ghost"
                 size="icon"
+                className="shrink-0"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
               >
@@ -605,6 +626,7 @@ export default function GroupDetailPage() {
                 <Button 
                   type="submit" 
                   size="icon" 
+                  className="shrink-0"
                   disabled={(!message.trim() && !attachmentFile) || sendMessage.isPending || isUploading}
                 >
                   {sendMessage.isPending || isUploading ? (
