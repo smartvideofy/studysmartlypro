@@ -20,6 +20,9 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useSwipeGesture } from "@/hooks/useSwipeGesture";
+import { haptics } from "@/lib/haptics";
 
 interface MaterialFlashcard {
   id: string;
@@ -42,6 +45,7 @@ export function FlashcardStudyDrawer({
   flashcards,
   initialIndex = 0,
 }: FlashcardStudyDrawerProps) {
+  const isMobile = useIsMobile();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isFlipped, setIsFlipped] = useState(false);
   const [showHint, setShowHint] = useState(false);
@@ -64,6 +68,7 @@ export function FlashcardStudyDrawer({
 
   const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
+    haptics.light();
     if (!isFlipped && currentCard) {
       setStudiedCards((prev) => new Set(prev).add(currentCard.id));
     }
@@ -73,12 +78,14 @@ export function FlashcardStudyDrawer({
     setIsFlipped(false);
     setShowHint(false);
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : flashcards.length - 1));
+    haptics.light();
   }, [flashcards.length]);
 
   const handleNext = useCallback(() => {
     setIsFlipped(false);
     setShowHint(false);
     setCurrentIndex((prev) => (prev < flashcards.length - 1 ? prev + 1 : 0));
+    haptics.light();
   }, [flashcards.length]);
 
   const handleShuffle = useCallback(() => {
@@ -87,6 +94,7 @@ export function FlashcardStudyDrawer({
     setCurrentIndex(0);
     setIsFlipped(false);
     setShowHint(false);
+    haptics.medium();
   }, [flashcards]);
 
   const handleReset = useCallback(() => {
@@ -95,7 +103,15 @@ export function FlashcardStudyDrawer({
     setShowHint(false);
     setStudiedCards(new Set());
     setShuffledCards([...flashcards]);
+    haptics.medium();
   }, [flashcards]);
+
+  // Swipe gestures for mobile
+  const swipeHandlers = useSwipeGesture({
+    threshold: 50,
+    onSwipeLeft: handleNext,
+    onSwipeRight: handlePrevious,
+  });
 
   // Keyboard navigation
   useEffect(() => {
@@ -167,7 +183,7 @@ export function FlashcardStudyDrawer({
                   variant="ghost"
                   size="icon"
                   onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="h-8 w-8"
+                  className="h-10 w-10 touch-target"
                 >
                   {isFullscreen ? (
                     <Minimize2 className="h-4 w-4" />
@@ -179,7 +195,7 @@ export function FlashcardStudyDrawer({
                   variant="ghost"
                   size="icon"
                   onClick={() => onOpenChange(false)}
-                  className="h-8 w-8"
+                  className="h-10 w-10 touch-target"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -193,9 +209,12 @@ export function FlashcardStudyDrawer({
           </DrawerHeader>
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col items-center justify-center p-6 overflow-hidden">
+          <div 
+            className="flex-1 flex flex-col items-center justify-center p-4 md:p-6 overflow-hidden"
+            {...(isMobile ? swipeHandlers : {})}
+          >
             {/* Card counter and difficulty */}
-            <div className="flex items-center gap-3 mb-6">
+            <div className="flex items-center gap-3 mb-4 md:mb-6">
               <span className="text-sm font-medium text-muted-foreground">
                 Card {currentIndex + 1} of {flashcards.length}
               </span>
@@ -213,7 +232,7 @@ export function FlashcardStudyDrawer({
             <motion.div
               className="flashcard-flip-container w-full max-w-2xl aspect-[4/3] cursor-pointer select-none"
               onClick={handleFlip}
-              whileHover={{ scale: 1.01 }}
+              whileHover={!isMobile ? { scale: 1.01 } : {}}
               whileTap={{ scale: 0.99 }}
             >
               <div className={cn("flashcard-inner", isFlipped && "flipped")}>
@@ -225,15 +244,15 @@ export function FlashcardStudyDrawer({
                     </span>
                   </div>
                   
-                  <div className="flex-1 flex items-center justify-center text-center px-8">
-                    <p className="font-display text-2xl md:text-3xl lg:text-4xl font-semibold leading-relaxed">
+                  <div className="flex-1 flex items-center justify-center text-center px-6 md:px-8">
+                    <p className="font-display text-xl md:text-2xl lg:text-4xl font-semibold leading-relaxed">
                       {currentCard.front}
                     </p>
                   </div>
                   
-                  <div className="absolute bottom-6 flex flex-col items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      Click or press Space to reveal
+                  <div className="absolute bottom-4 md:bottom-6 flex flex-col items-center gap-2">
+                    <span className="text-xs md:text-sm text-muted-foreground">
+                      {isMobile ? "Tap to reveal" : "Click or press Space to reveal"}
                     </span>
                     <AnimatePresence>
                       {showHint && currentCard.hint && (
@@ -241,7 +260,7 @@ export function FlashcardStudyDrawer({
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: 10 }}
-                          className="flex items-center gap-2 text-sm text-primary bg-primary/10 px-4 py-2 rounded-full"
+                          className="flex items-center gap-2 text-xs md:text-sm text-primary bg-primary/10 px-4 py-2 rounded-full"
                         >
                           <Lightbulb className="w-4 h-4" />
                           {currentCard.hint}
@@ -259,14 +278,14 @@ export function FlashcardStudyDrawer({
                     </span>
                   </div>
                   
-                  <div className="flex-1 flex items-center justify-center text-center px-8">
-                    <p className="font-display text-xl md:text-2xl lg:text-3xl font-medium leading-relaxed">
+                  <div className="flex-1 flex items-center justify-center text-center px-6 md:px-8">
+                    <p className="font-display text-lg md:text-xl lg:text-3xl font-medium leading-relaxed">
                       {currentCard.back}
                     </p>
                   </div>
                   
-                  <div className="absolute bottom-6 text-sm text-muted-foreground">
-                    Click or press Space to see question
+                  <div className="absolute bottom-4 md:bottom-6 text-xs md:text-sm text-muted-foreground">
+                    {isMobile ? "Tap to see question" : "Click or press Space to see question"}
                   </div>
                 </div>
               </div>
@@ -280,86 +299,144 @@ export function FlashcardStudyDrawer({
                 onClick={(e) => {
                   e.stopPropagation();
                   setShowHint(!showHint);
+                  haptics.light();
                 }}
-                className="mt-4 gap-2 text-muted-foreground hover:text-primary"
+                className="mt-4 gap-2 text-muted-foreground hover:text-primary h-11 touch-target"
               >
                 <Lightbulb className="w-4 h-4" />
                 {showHint ? "Hide Hint" : "Show Hint"}
               </Button>
             )}
+
+            {/* Swipe hint for mobile */}
+            {isMobile && (
+              <p className="text-xs text-muted-foreground mt-4">
+                Swipe left/right to navigate cards
+              </p>
+            )}
           </div>
 
           {/* Controls */}
-          <div className="flex-shrink-0 border-t border-border/50 p-4">
-            <div className="flex items-center justify-center gap-3 mb-4">
+          <div className="flex-shrink-0 border-t border-border/50 p-4 pb-safe">
+            <div className={cn(
+              "flex items-center justify-center gap-2 md:gap-3 mb-4",
+              isMobile && "flex-wrap"
+            )}>
               <Button
                 variant="outline"
-                size="lg"
+                size={isMobile ? "lg" : "default"}
                 onClick={handlePrevious}
-                className="gap-2"
+                className={cn(
+                  "gap-2",
+                  isMobile && "flex-1 h-14 text-base"
+                )}
               >
                 <ChevronLeft className="w-5 h-5" />
                 Previous
               </Button>
               
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setIsFlipped(false);
-                  setShowHint(false);
-                }}
-                className="h-11 w-11"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </Button>
+              {!isMobile && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      setIsFlipped(false);
+                      setShowHint(false);
+                    }}
+                    className="h-11 w-11"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleShuffle}
-                className="h-11 w-11"
-              >
-                <Shuffle className="w-5 h-5" />
-              </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleShuffle}
+                    className="h-11 w-11"
+                  >
+                    <Shuffle className="w-5 h-5" />
+                  </Button>
 
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleReset}
-                className="h-11 w-11"
-              >
-                <RotateCcw className="w-5 h-5" />
-              </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleReset}
+                    className="h-11 w-11"
+                  >
+                    <RotateCcw className="w-5 h-5" />
+                  </Button>
+                </>
+              )}
               
               <Button
                 variant="outline"
-                size="lg"
+                size={isMobile ? "lg" : "default"}
                 onClick={handleNext}
-                className="gap-2"
+                className={cn(
+                  "gap-2",
+                  isMobile && "flex-1 h-14 text-base"
+                )}
               >
                 Next
                 <ChevronRight className="w-5 h-5" />
               </Button>
             </div>
 
-            {/* Keyboard shortcuts */}
-            <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1.5">
-                <Keyboard className="w-3 h-3" />
-                <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">Space</kbd>
-                Flip
-              </span>
-              <span className="flex items-center gap-1.5">
-                <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">←</kbd>
-                <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">→</kbd>
-                Navigate
-              </span>
-              <span className="flex items-center gap-1.5">
-                <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">H</kbd>
-                Hint
-              </span>
-            </div>
+            {/* Mobile action buttons */}
+            {isMobile && (
+              <div className="flex items-center justify-center gap-3 mb-4">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => {
+                    setIsFlipped(false);
+                    setShowHint(false);
+                  }}
+                  className="h-12 w-12 touch-target"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleShuffle}
+                  className="h-12 w-12 touch-target"
+                >
+                  <Shuffle className="w-5 h-5" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleReset}
+                  className="h-12 w-12 touch-target"
+                >
+                  <RotateCcw className="w-5 h-5" />
+                </Button>
+              </div>
+            )}
+
+            {/* Keyboard shortcuts - hide on mobile */}
+            {!isMobile && (
+              <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5">
+                  <Keyboard className="w-3 h-3" />
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">Space</kbd>
+                  Flip
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">←</kbd>
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">→</kbd>
+                  Navigate
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-[10px] font-mono">H</kbd>
+                  Hint
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </DrawerContent>
