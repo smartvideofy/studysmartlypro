@@ -9,7 +9,9 @@ import {
   X,
   Trash2,
   ExternalLink,
-  Loader2
+  Loader2,
+  CalendarPlus,
+  Download
 } from "lucide-react";
 import { format, formatDistanceToNow, isPast, addMinutes } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -31,6 +33,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { 
@@ -39,6 +47,7 @@ import {
   useUpdateRSVP, 
   useDeleteGroupStudySession 
 } from "@/hooks/useGroupStudySessions";
+import { downloadICS, generateGoogleCalendarUrl } from "@/lib/calendar";
 
 interface StudySessionCardProps {
   session: GroupStudySession;
@@ -74,6 +83,22 @@ export function StudySessionCard({ session, groupId }: StudySessionCardProps) {
   const handleDelete = () => {
     deleteSession.mutate({ sessionId: session.id, groupId });
     setDeleteDialogOpen(false);
+  };
+
+  const handleAddToCalendar = (type: 'ics' | 'google') => {
+    const event = {
+      title: session.title,
+      description: session.description || undefined,
+      start: scheduledDate,
+      durationMinutes: session.duration_minutes,
+      location: session.meeting_link || undefined,
+    };
+
+    if (type === 'ics') {
+      downloadICS(event);
+    } else {
+      window.open(generateGoogleCalendarUrl(event), '_blank');
+    }
   };
 
   return (
@@ -115,18 +140,43 @@ export function StudySessionCard({ session, groupId }: StudySessionCardProps) {
             )}
           </div>
 
-          {session.meeting_link && (
-            <a
-              href={session.meeting_link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline mt-2"
-            >
-              <Link2 className="h-3.5 w-3.5" />
-              Join Meeting
-              <ExternalLink className="h-3 w-3" />
-            </a>
-          )}
+          <div className="flex items-center gap-2 mt-2 flex-wrap">
+            {session.meeting_link && (
+              <a
+                href={session.meeting_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                <Link2 className="h-3.5 w-3.5" />
+                Join Meeting
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+            
+            {isUpcoming && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 gap-1.5 text-muted-foreground hover:text-foreground">
+                    <CalendarPlus className="h-3.5 w-3.5" />
+                    Add to Calendar
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start">
+                  <DropdownMenuItem onClick={() => handleAddToCalendar('google')}>
+                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 22a10 10 0 1 1 0-20 10 10 0 0 1 0 20zm0-2a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm1-9h4v2h-6V7h2v4z"/>
+                    </svg>
+                    Google Calendar
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleAddToCalendar('ics')}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download .ics File
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
         </div>
 
         {/* RSVP counts */}

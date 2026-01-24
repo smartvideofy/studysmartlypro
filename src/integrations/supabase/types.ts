@@ -597,6 +597,50 @@ export type Database = {
           },
         ]
       }
+      group_polls: {
+        Row: {
+          allow_multiple: boolean
+          created_at: string
+          created_by: string
+          ends_at: string | null
+          group_id: string
+          id: string
+          is_anonymous: boolean
+          is_closed: boolean
+          question: string
+        }
+        Insert: {
+          allow_multiple?: boolean
+          created_at?: string
+          created_by: string
+          ends_at?: string | null
+          group_id: string
+          id?: string
+          is_anonymous?: boolean
+          is_closed?: boolean
+          question: string
+        }
+        Update: {
+          allow_multiple?: boolean
+          created_at?: string
+          created_by?: string
+          ends_at?: string | null
+          group_id?: string
+          id?: string
+          is_anonymous?: boolean
+          is_closed?: boolean
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_polls_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "study_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_study_sessions: {
         Row: {
           created_at: string | null
@@ -606,6 +650,8 @@ export type Database = {
           group_id: string
           id: string
           meeting_link: string | null
+          reminder_sent_15min: boolean
+          reminder_sent_1hr: boolean
           scheduled_at: string
           title: string
           updated_at: string | null
@@ -618,6 +664,8 @@ export type Database = {
           group_id: string
           id?: string
           meeting_link?: string | null
+          reminder_sent_15min?: boolean
+          reminder_sent_1hr?: boolean
           scheduled_at: string
           title: string
           updated_at?: string | null
@@ -630,6 +678,8 @@ export type Database = {
           group_id?: string
           id?: string
           meeting_link?: string | null
+          reminder_sent_15min?: boolean
+          reminder_sent_1hr?: boolean
           scheduled_at?: string
           title?: string
           updated_at?: string | null
@@ -1026,6 +1076,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      poll_options: {
+        Row: {
+          created_at: string
+          id: string
+          option_text: string
+          poll_id: string
+          position: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_text: string
+          poll_id: string
+          position?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_text?: string
+          poll_id?: string
+          position?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_options_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_votes: {
+        Row: {
+          created_at: string
+          id: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          option_id: string
+          poll_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          option_id?: string
+          poll_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_votes_option_id_fkey"
+            columns: ["option_id"]
+            isOneToOne: false
+            referencedRelation: "poll_options"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "poll_votes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "group_polls"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       practice_questions: {
         Row: {

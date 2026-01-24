@@ -47,6 +47,7 @@ import { usePinnedMessages, useTogglePin } from "@/hooks/useMessagePinning";
 import { useGroupStudySessions } from "@/hooks/useGroupStudySessions";
 import { useReadReceipts, useBulkMarkAsRead } from "@/hooks/useReadReceipts";
 import { useEditMessage } from "@/hooks/useEditMessage";
+import { useGroupPolls } from "@/hooks/useGroupPolls";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import UploadNoteModal from "@/components/groups/UploadNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
@@ -66,7 +67,10 @@ import { ChatMessageBubble } from "@/components/groups/ChatMessageBubble";
 import { VoiceRecorderInput } from "@/components/groups/VoiceRecorderInput";
 import { ScrollToBottomFab, NewMessagesDivider } from "@/components/groups/ScrollToBottomFab";
 import { MessageEditModal } from "@/components/groups/MessageEditModal";
+import { CreatePollModal } from "@/components/groups/CreatePollModal";
+import { PollCard } from "@/components/groups/PollCard";
 import { cn } from "@/lib/utils";
+import { BarChart3 } from "lucide-react";
 
 export default function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
@@ -88,6 +92,7 @@ export default function GroupDetailPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [scheduleModalOpen, setScheduleModalOpen] = useState(false);
+  const [pollModalOpen, setPollModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("chat");
 
   const { data: group, isLoading: groupLoading } = useGroup(groupId || "");
@@ -97,6 +102,7 @@ export default function GroupDetailPage() {
   const { data: profile } = useProfile();
   const { data: pinnedMessages } = usePinnedMessages(groupId || "");
   const { data: studySessions } = useGroupStudySessions(groupId || "");
+  const { data: polls, isLoading: pollsLoading } = useGroupPolls(groupId || "");
   const { getReadStatusForMessage } = useReadReceipts(groupId || "");
   const sendMessage = useSendMessage();
   const deleteMessage = useDeleteMessage();
@@ -402,6 +408,10 @@ export default function GroupDetailPage() {
             <FileText className="w-4 h-4" />
             Shared Notes
           </TabsTrigger>
+          <TabsTrigger value="polls" className="gap-2">
+            <BarChart3 className="w-4 h-4" />
+            Polls
+          </TabsTrigger>
           <TabsTrigger value="sessions" className="gap-2">
             <Calendar className="w-4 h-4" />
             Sessions
@@ -688,7 +698,50 @@ export default function GroupDetailPage() {
           )}
         </TabsContent>
 
-        {/* Members Tab */}
+        {/* Polls Tab */}
+        <TabsContent value="polls" className="mt-0">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-semibold">Group Polls</h3>
+            <Button onClick={() => setPollModalOpen(true)} size="sm">
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Create Poll
+            </Button>
+          </div>
+
+          {pollsLoading ? (
+            <div className="space-y-3">
+              {[1, 2].map(i => (
+                <div key={i} className="border border-border rounded-xl p-4">
+                  <Skeleton className="h-4 w-32 mb-2" />
+                  <Skeleton className="h-6 w-full mb-3" />
+                  <Skeleton className="h-10 w-full mb-2" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          ) : !polls?.length ? (
+            <div className="text-center py-12 border border-dashed border-border rounded-xl">
+              <BarChart3 className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
+              <p className="text-muted-foreground mb-1">No polls yet</p>
+              <p className="text-sm text-muted-foreground mb-4">Create a poll to get group input on decisions</p>
+              <Button onClick={() => setPollModalOpen(true)} size="sm">
+                Create First Poll
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {polls.map((poll) => (
+                <PollCard 
+                  key={poll.id} 
+                  poll={poll}
+                  groupId={groupId || ""}
+                  isAdmin={isAdmin}
+                />
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
         <TabsContent value="members" className="mt-0">
           {onlineUsers.length > 0 && (
             <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
@@ -757,6 +810,12 @@ export default function GroupDetailPage() {
         onOpenChange={(open) => !open && setEditingMessage(null)}
         originalContent={editingMessage?.content || ""}
         onSave={handleEditSave}
+      />
+
+      <CreatePollModal
+        open={pollModalOpen}
+        onOpenChange={setPollModalOpen}
+        groupId={groupId || ""}
       />
 
       {/* Leave Group Confirmation */}

@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.unsubscribe]
 verify_jwt = false
+
+[functions.schedule-session-reminder]
+verify_jwt = false
