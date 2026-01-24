@@ -67,41 +67,46 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     
     const isIconOnly = size?.toString().includes("icon");
     
+    // Render content based on state - always return a single element structure
+    const renderContent = () => {
+      if (loading) {
+        if (isIconOnly) {
+          return <Loader2 className="animate-spin" />;
+        }
+        return (
+          <span className="inline-flex items-center gap-2">
+            <Loader2 className="animate-spin" />
+            Loading...
+          </span>
+        );
+      }
+      
+      if (success) {
+        if (isIconOnly) {
+          return <Check className="animate-in zoom-in-50 duration-200" strokeWidth={3} />;
+        }
+        return (
+          <span className="inline-flex items-center gap-2">
+            <Check className="animate-in zoom-in-50 duration-200" strokeWidth={3} />
+            Done!
+          </span>
+        );
+      }
+      
+      return children;
+    };
+    
     return (
       <Comp
         className={cn(
           buttonVariants({ variant, size, className }),
-          (loading || success) && "relative",
           success && "!bg-success hover:!bg-success"
         )}
         ref={ref}
         disabled={disabled || loading}
         {...props}
       >
-        {/* Loading state */}
-        {loading && (
-          <>
-            <Loader2 className="animate-spin" />
-            {!isIconOnly && <span className="opacity-0">{children}</span>}
-            {!isIconOnly && (
-              <span className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="animate-spin mr-2" />
-                Loading...
-              </span>
-            )}
-          </>
-        )}
-        
-        {/* Success state */}
-        {success && !loading && (
-          <>
-            <Check className="animate-in zoom-in-50 duration-200" strokeWidth={3} />
-            {!isIconOnly && <span>Done!</span>}
-          </>
-        )}
-        
-        {/* Normal state */}
-        {!loading && !success && children}
+        {renderContent()}
       </Comp>
     );
   }
