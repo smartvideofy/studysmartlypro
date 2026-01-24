@@ -77,62 +77,36 @@ export default function DashboardLayout({
   const location = useLocation();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
-  const isMobile = useIsMobile();
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
 
-  // Mobile Layout
-  if (isMobile) {
-    return (
-      <div className="min-h-screen bg-background bg-gradient-mesh flex flex-col">
-        {/* Floating orbs - simplified for mobile */}
-        <div className="fixed inset-0 pointer-events-none overflow-hidden">
-          <div className="orb orb-primary w-64 h-64 -top-32 -left-32 animate-orb opacity-50" />
-          <div className="orb orb-accent w-48 h-48 bottom-20 -right-24 animate-orb opacity-50" style={{ animationDelay: '-4s' }} />
-        </div>
+  // CSS-first approach: render both layouts, CSS controls visibility
+  return (
+    <div className="min-h-screen bg-background bg-gradient-mesh">
+      {/* Floating orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="orb orb-primary w-64 h-64 md:w-96 md:h-96 -top-32 md:-top-48 -left-32 md:-left-48 animate-orb opacity-50 md:opacity-100" />
+        <div className="orb orb-accent w-48 h-48 md:w-80 md:h-80 bottom-20 -right-24 md:top-1/4 md:-right-40 animate-orb opacity-50 md:opacity-100" style={{ animationDelay: '-4s' }} />
+        <div className="hidden md:block orb orb-success w-64 h-64 bottom-20 left-1/4 animate-orb" style={{ animationDelay: '-2s' }} />
+      </div>
 
-        {/* Mobile Header */}
+      {/* Mobile Header - hidden on md+ */}
+      <div className="md:hidden">
         <MobileHeader 
           title={title || "Studily"}
           onMenuClick={() => setMenuOpen(true)}
           onSearchOpen={() => setSearchOpen(true)}
           onUploadClick={() => navigate('/materials')}
         />
-
-        {/* Main Content */}
-        <main className="flex-1 px-4 py-4 pb-24 relative z-10">
-          {children}
-        </main>
-
-        {/* Mobile Bottom Navigation */}
-        <MobileBottomNav />
-
-        {/* Mobile Menu Drawer */}
-        <MobileMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
-
-        {/* Global Search Modal */}
-        <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
-      </div>
-    );
-  }
-
-  // Desktop Layout
-  return (
-    <div className="min-h-screen bg-background bg-gradient-mesh flex">
-      {/* Floating orbs for glassmorphism effect */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="orb orb-primary w-96 h-96 -top-48 -left-48 animate-orb" />
-        <div className="orb orb-accent w-80 h-80 top-1/4 -right-40 animate-orb" style={{ animationDelay: '-4s' }} />
-        <div className="orb orb-success w-64 h-64 bottom-20 left-1/4 animate-orb" style={{ animationDelay: '-2s' }} />
       </div>
 
-      {/* Sidebar */}
+      {/* Desktop Sidebar - hidden on mobile */}
       <motion.aside
         initial={false}
         animate={{ width: collapsed ? 72 : 260 }}
         transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="fixed left-0 top-0 bottom-0 z-40 flex flex-col glass-panel"
+        className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col glass-panel"
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-border/30">
@@ -357,15 +331,18 @@ export default function DashboardLayout({
         </motion.button>
       </motion.aside>
 
-      {/* Main Content */}
+      {/* Main Content - Responsive margins */}
       <main
         className={cn(
           "flex-1 transition-all duration-300 relative z-10",
-          collapsed ? "ml-[72px]" : "ml-[260px]"
+          // Mobile: full width with bottom padding for nav
+          "pb-24 md:pb-0",
+          // Desktop: margin for sidebar
+          collapsed ? "md:ml-[72px]" : "md:ml-[260px]"
         )}
       >
-        {/* Header */}
-        <header className="sticky top-0 z-30 h-16 flex items-center px-6 glass-panel border-b border-border/30">
+        {/* Desktop Header - hidden on mobile */}
+        <header className="hidden md:flex sticky top-0 z-30 h-16 items-center px-6 glass-panel border-b border-border/30">
           <div className="flex-1 flex items-center gap-4">
             {title && (
               <h1 className="font-display text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{title}</h1>
@@ -378,7 +355,7 @@ export default function DashboardLayout({
               onClick={() => setSearchOpen(true)}
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="hidden md:flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl glass-input text-sm text-muted-foreground hover:border-primary/30 transition-all"
+              className="flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl glass-input text-sm text-muted-foreground hover:border-primary/30 transition-all"
             >
               <Search className="w-4 h-4" />
               <span className="flex-1 text-left">Search...</span>
@@ -388,7 +365,7 @@ export default function DashboardLayout({
             {/* Quick Upload */}
             <Button variant="hero" size="sm" onClick={() => navigate('/materials')} className="shadow-glow-sm">
               <Upload className="w-4 h-4" />
-              <span className="hidden sm:inline">Upload</span>
+              <span>Upload</span>
             </Button>
 
             {/* Notifications */}
@@ -408,11 +385,19 @@ export default function DashboardLayout({
           </div>
         </header>
 
-        {/* Page Content */}
-        <div className="p-6 relative">
+        {/* Page Content - Responsive padding */}
+        <div className="p-4 md:p-6 relative">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation - hidden on md+ */}
+      <div className="md:hidden">
+        <MobileBottomNav />
+      </div>
+
+      {/* Mobile Menu Drawer */}
+      <MobileMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
 
       {/* Global Search Modal */}
       <GlobalSearch open={searchOpen} onOpenChange={setSearchOpen} />
