@@ -39,6 +39,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { XPProgress } from "@/components/gamification/XPProgress";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { createDashboardJsonLd } from "@/components/seo/jsonld";
+import { AnimatedCounter } from "@/components/ui/animated-counter";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -265,10 +266,10 @@ export default function Dashboard() {
           className="grid grid-cols-2 lg:grid-cols-4 gap-4"
         >
           {[
-            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/materials" },
-            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "from-accent/15 to-accent/5", path: "/flashcards" },
-            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "from-success/15 to-success/5", path: "/progress" },
-            { icon: Clock, label: "Study Time", value: `${stats?.totalTimeMinutes || 0}m`, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/progress" },
+            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/materials", isTime: false },
+            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "from-accent/15 to-accent/5", path: "/flashcards", isTime: false },
+            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "from-success/15 to-success/5", path: "/progress", isTime: false },
+            { icon: Clock, label: "Study Time", value: stats?.totalTimeMinutes || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/progress", isTime: true },
           ].map((stat, index) => (
             <motion.div
               key={stat.label}
@@ -282,7 +283,12 @@ export default function Dashboard() {
                     <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${stat.bg} flex items-center justify-center mb-3`}>
                       <stat.icon className={`w-5 h-5 ${stat.color}`} />
                     </div>
-                    <div className="font-display text-2xl font-bold">{stat.value}</div>
+                    <div className="font-display text-2xl font-bold">
+                      <AnimatedCounter 
+                        value={stat.value as number} 
+                        suffix={stat.isTime ? "m" : ""} 
+                      />
+                    </div>
                     <div className="text-sm text-muted-foreground">{stat.label}</div>
                   </CardContent>
                 </Card>
