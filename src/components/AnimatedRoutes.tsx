@@ -21,7 +21,7 @@ import HelpPage from "@/pages/HelpPage";
 import HelpCategoryPage from "@/pages/HelpCategoryPage";
 import HelpArticlePage from "@/pages/HelpArticlePage";
 import PricingPage from "@/pages/PricingPage";
-import InstallPage from "@/pages/InstallPage";
+
 import AchievementsPage from "@/pages/AchievementsPage";
 import SitemapRedirect from "@/pages/SitemapRedirect";
 import UnsubscribePage from "@/pages/UnsubscribePage";
@@ -180,11 +180,6 @@ export const AnimatedRoutes = () => {
               <PricingPage />
             </PageTransition>
           </ProtectedRoute>
-        } />
-        <Route path="/install" element={
-          <PageTransition>
-            <InstallPage />
-          </PageTransition>
         } />
         <Route path="/achievements" element={
           <ProtectedRoute>
