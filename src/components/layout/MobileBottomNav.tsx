@@ -19,6 +19,7 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
+import { haptics } from "@/lib/haptics";
 
 const mainNavItems = [
   { icon: Home, label: "Home", path: "/dashboard" },
@@ -63,7 +64,8 @@ export function MobileBottomNav() {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative flex flex-col items-center justify-center min-w-[64px] min-h-[44px] py-1"
+                onClick={() => haptics.selection()}
+                className="relative flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 active:scale-95 transition-transform"
               >
                 {active && (
                   <motion.div
@@ -73,8 +75,8 @@ export function MobileBottomNav() {
                   />
                 )}
                 <div className={cn(
-                  "flex items-center justify-center w-10 h-10 rounded-xl transition-colors",
-                  active ? "text-primary" : "text-muted-foreground"
+                  "flex items-center justify-center w-11 h-11 rounded-xl transition-colors",
+                  active ? "text-primary bg-primary/10" : "text-muted-foreground"
                 )}>
                   <Icon className="w-5 h-5" />
                 </div>
@@ -90,8 +92,11 @@ export function MobileBottomNav() {
           
           {/* More button */}
           <button
-            onClick={() => setMoreOpen(true)}
-            className="relative flex flex-col items-center justify-center min-w-[64px] min-h-[44px] py-1"
+            onClick={() => {
+              haptics.selection();
+              setMoreOpen(true);
+            }}
+            className="relative flex flex-col items-center justify-center min-w-[64px] min-h-[48px] py-1 active:scale-95 transition-transform"
           >
             {isMoreActive && (
               <motion.div
@@ -101,8 +106,8 @@ export function MobileBottomNav() {
               />
             )}
             <div className={cn(
-              "flex items-center justify-center w-10 h-10 rounded-xl transition-colors",
-              isMoreActive ? "text-primary" : "text-muted-foreground"
+              "flex items-center justify-center w-11 h-11 rounded-xl transition-colors",
+              isMoreActive ? "text-primary bg-primary/10" : "text-muted-foreground"
             )}>
               <MoreHorizontal className="w-5 h-5" />
             </div>
@@ -131,9 +136,12 @@ export function MobileBottomNav() {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setMoreOpen(false)}
+                  onClick={() => {
+                    haptics.selection();
+                    setMoreOpen(false);
+                  }}
                   className={cn(
-                    "flex items-center gap-3 p-4 rounded-xl border transition-colors min-h-[60px]",
+                    "flex items-center gap-3 p-4 rounded-xl border transition-all min-h-[64px] active:scale-[0.97]",
                     active 
                       ? "bg-primary/10 border-primary/30 text-primary" 
                       : "bg-muted/30 border-border/50 hover:bg-muted/50"

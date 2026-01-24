@@ -188,18 +188,35 @@
 @layer base {
   * {
     @apply border-border;
+    -webkit-tap-highlight-color: transparent;
   }
   
   html {
     scroll-behavior: smooth;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+    touch-action: manipulation;
   }
   
   body {
     @apply bg-background text-foreground antialiased;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Disable text selection on interactive elements */
+  button, a, [role="button"], .no-select {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  
+  /* Allow text selection on content areas */
+  p, article, .selectable {
+    -webkit-user-select: text;
+    user-select: text;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -210,6 +227,20 @@
   ::selection {
     background-color: hsl(var(--primary) / 0.2);
     color: hsl(var(--foreground));
+  }
+  
+  /* Mobile input sizing - prevents iOS zoom on focus */
+  @media (max-width: 768px) {
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="search"],
+    input[type="tel"],
+    input[type="url"],
+    textarea,
+    select {
+      font-size: 16px !important;
+    }
   }
 }
 
@@ -947,5 +978,96 @@
   
   .min-h-screen-dynamic {
     min-height: 100dvh;
+  }
+}
+
+/* ===== NATIVE-LIKE MOBILE BEHAVIORS ===== */
+
+/* Momentum scrolling container */
+.scroll-momentum {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Scroll containment - prevents page bounce during internal scroll */
+.scroll-contain {
+  overscroll-behavior: contain;
+}
+
+/* Touch action utilities */
+.touch-pan-x {
+  touch-action: pan-x;
+}
+
+.touch-pan-y {
+  touch-action: pan-y;
+}
+
+.touch-none {
+  touch-action: none;
+}
+
+/* Active press states for native feel */
+.press-scale {
+  transition: transform 0.1s ease-out;
+}
+
+.press-scale:active {
+  transform: scale(0.97);
+}
+
+/* Horizontal scrollable container */
+.scroll-x-native {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 0.75rem;
+}
+
+.scroll-x-native::-webkit-scrollbar {
+  display: none;
+}
+
+.scroll-x-native > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Large touch target for mobile */
+.touch-target-xl {
+  min-height: 56px;
+  min-width: 56px;
+}
+
+/* Performance optimization for transforms */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* iOS standalone mode adjustments */
+@media (display-mode: standalone) {
+  .standalone-pt {
+    padding-top: max(env(safe-area-inset-top), 1rem);
+  }
+  
+  .standalone-pb {
+    padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
 }

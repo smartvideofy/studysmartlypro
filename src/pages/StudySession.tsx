@@ -21,6 +21,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { StudyFlashcard } from "@/components/flashcards/StudyFlashcard";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/haptics";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { 
   useDeck, 
   useDueFlashcards, 
@@ -37,6 +39,7 @@ import { useAwardXP, useUpdateDailyChallenge } from "@/hooks/useGamification";
 export default function StudySession() {
   const { deckId } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -140,8 +143,27 @@ export default function StudySession() {
   };
 
   const handleFlip = () => {
+    haptics.medium();
     setIsFlipped(!isFlipped);
     setShowHint(false);
+  };
+
+  const handlePrevCard = () => {
+    if (currentIndex > 0) {
+      haptics.light();
+      setCurrentIndex(currentIndex - 1);
+      setIsFlipped(false);
+      setShowHint(false);
+    }
+  };
+
+  const handleNextCard = () => {
+    if (currentIndex < cards.length - 1) {
+      haptics.light();
+      setCurrentIndex(currentIndex + 1);
+      setIsFlipped(false);
+      setShowHint(false);
+    }
   };
 
   const handleEndSession = async () => {
@@ -318,12 +340,14 @@ export default function StudySession() {
             <Progress value={progress} className="h-2" />
           </div>
 
-          {/* Flashcard */}
+          {/* Flashcard with swipe support */}
           <StudyFlashcard
             front={currentCard?.front || ""}
             back={currentCard?.back || ""}
             isFlipped={isFlipped}
             onFlip={handleFlip}
+            onSwipeLeft={handleNextCard}
+            onSwipeRight={handlePrevCard}
           />
 
           {/* Hint Section */}
@@ -346,28 +370,40 @@ export default function StudySession() {
           </AnimatePresence>
 
           {/* Action Buttons */}
-          <div className="flex items-center justify-center gap-4">
+          <div className={cn(
+            "flex items-center justify-center",
+            isMobile ? "gap-3 px-2" : "gap-4"
+          )}>
             {!isFlipped ? (
               <>
                 <Button 
                   variant="outline" 
-                  size="lg"
-                  className="gap-2"
-                  onClick={() => setShowHint(true)}
+                  size={isMobile ? "lg" : "lg"}
+                  className={cn(
+                    "gap-2",
+                    isMobile && "flex-1 min-h-[56px]"
+                  )}
+                  onClick={() => {
+                    haptics.light();
+                    setShowHint(true);
+                  }}
                   disabled={showHint || !currentCard?.hint}
                 >
                   <Lightbulb className="w-5 h-5" />
-                  Show Hint
+                  {isMobile ? "Hint" : "Show Hint"}
                 </Button>
                 
                 <Button 
                   variant="hero" 
                   size="lg"
-                  className="gap-2 min-w-[140px]"
+                  className={cn(
+                    "gap-2",
+                    isMobile ? "flex-1 min-h-[56px]" : "min-w-[140px]"
+                  )}
                   onClick={handleFlip}
                 >
                   <RotateCcw className="w-5 h-5" />
-                  Reveal Answer
+                  {isMobile ? "Reveal" : "Reveal Answer"}
                 </Button>
               </>
             ) : (
@@ -385,23 +421,28 @@ export default function StudySession() {
           <div className="flex items-center justify-between pt-4">
             <Button 
               variant="ghost" 
+              size={isMobile ? "icon" : "default"}
+              className={cn(isMobile && "w-12 h-12")}
               disabled={currentIndex === 0}
-              onClick={() => {
-                setCurrentIndex(currentIndex - 1);
-                setIsFlipped(false);
-                setShowHint(false);
-              }}
+              onClick={handlePrevCard}
             >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
+              <ChevronLeft className={cn(isMobile ? "w-6 h-6" : "w-4 h-4")} />
+              {!isMobile && "Previous"}
             </Button>
             
             <div className="flex gap-1.5">
-              {cards.slice(0, 10).map((_, idx) => (
-                <div 
+              {cards.slice(0, isMobile ? 8 : 10).map((_, idx) => (
+                <button
                   key={idx}
+                  onClick={() => {
+                    haptics.selection();
+                    setCurrentIndex(idx);
+                    setIsFlipped(false);
+                    setShowHint(false);
+                  }}
                   className={cn(
-                    "w-2.5 h-2.5 rounded-full transition-all duration-200",
+                    "rounded-full transition-all duration-200",
+                    isMobile ? "w-3 h-3" : "w-2.5 h-2.5",
                     idx === currentIndex 
                       ? "bg-primary scale-125" 
                       : idx < currentIndex 
@@ -410,24 +451,29 @@ export default function StudySession() {
                   )}
                 />
               ))}
-              {cards.length > 10 && (
-                <span className="text-xs text-muted-foreground ml-1">+{cards.length - 10}</span>
+              {cards.length > (isMobile ? 8 : 10) && (
+                <span className="text-xs text-muted-foreground ml-1">+{cards.length - (isMobile ? 8 : 10)}</span>
               )}
             </div>
             
             <Button 
               variant="ghost"
+              size={isMobile ? "icon" : "default"}
+              className={cn(isMobile && "w-12 h-12")}
               disabled={currentIndex === cards.length - 1}
-              onClick={() => {
-                setCurrentIndex(currentIndex + 1);
-                setIsFlipped(false);
-                setShowHint(false);
-              }}
+              onClick={handleNextCard}
             >
-              Next
-              <ChevronRight className="w-4 h-4" />
+              {!isMobile && "Next"}
+              <ChevronRight className={cn(isMobile ? "w-6 h-6" : "w-4 h-4")} />
             </Button>
           </div>
+
+          {/* Mobile swipe hint */}
+          {isMobile && currentIndex === 0 && (
+            <p className="text-center text-xs text-muted-foreground mt-2">
+              Swipe left/right to navigate between cards
+            </p>
+          )}
         </motion.div>
       </div>
     </DashboardLayout>

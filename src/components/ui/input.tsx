@@ -12,7 +12,21 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-11 w-full rounded-xl border bg-[hsl(var(--glass-bg))] backdrop-blur-xl px-4 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all duration-200 shadow-xs",
+          // Base styles with mobile-optimized sizing
+          "flex h-12 w-full rounded-xl border bg-[hsl(var(--glass-bg))] backdrop-blur-xl px-4 py-3 text-base ring-offset-background transition-all duration-200 shadow-xs",
+          // File input styles
+          "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+          // Placeholder
+          "placeholder:text-muted-foreground",
+          // Focus states
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+          // Disabled state
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          // Desktop text size adjustment
+          "md:h-11 md:py-2 md:text-sm",
+          // Touch-friendly tap target
+          "touch-target",
+          // Conditional styles
           error
             ? "border-destructive/50 focus-visible:ring-destructive/30 focus-visible:border-destructive animate-[shake_0.3s_ease-in-out]"
             : success

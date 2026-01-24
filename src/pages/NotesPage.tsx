@@ -35,7 +35,9 @@ import { DeleteConfirmModal } from "@/components/notes/DeleteConfirmModal";
 import { AISummaryModal } from "@/components/notes/AISummaryModal";
 import { AIFlashcardsModal } from "@/components/notes/AIFlashcardsModal";
 import { ImportDocumentModal } from "@/components/notes/ImportDocumentModal";
+import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { cn } from "@/lib/utils";
+import { haptics } from "@/lib/haptics";
 import { useNotes, useFolders, useDeleteNote, useDeleteFolder, Folder as FolderType, Note } from "@/hooks/useNotes";
 import { useAISummarize, useAIGenerateFlashcardsAdvanced } from "@/hooks/useAINotes";
 import { formatDistanceToNow } from "date-fns";
@@ -79,9 +81,11 @@ export default function NotesPage() {
   const isLoading = notesLoading || foldersLoading;
   const hasError = notesError || foldersError;
 
-  const handleRetry = () => {
-    queryClient.invalidateQueries({ queryKey: ['notes'] });
-    queryClient.invalidateQueries({ queryKey: ['folders'] });
+  const handleRetry = async () => {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['notes'] }),
+      queryClient.invalidateQueries({ queryKey: ['folders'] }),
+    ]);
   };
 
   // Filter notes based on search query
@@ -153,12 +157,13 @@ export default function NotesPage() {
 
   return (
     <DashboardLayout title="Notes">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="space-y-6"
-      >
+      <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-6"
+        >
         {/* Header Actions */}
         <motion.div 
           variants={itemVariants}
@@ -406,7 +411,7 @@ export default function NotesPage() {
           )}
         </motion.div>
       </motion.div>
-
+      </PullToRefresh>
       {/* Modals */}
       <CreateFolderModal 
         open={createFolderOpen} 
