@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Crown, MoreHorizontal, UserMinus, Shield, Loader2 } from "lucide-react";
+import { Crown, MoreHorizontal, UserMinus, Shield, Loader2, ShieldPlus, ShieldMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -22,6 +23,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GroupMember, useRemoveMember } from "@/hooks/useGroups";
+import { useUpdateMemberRole } from "@/hooks/useUpdateMemberRole";
 import { useAuth } from "@/hooks/useAuth";
 import { OnlineIndicator } from "./OnlineIndicator";
 
@@ -42,6 +44,7 @@ export function MemberManagementPanel({
 }: MemberManagementPanelProps) {
   const { user } = useAuth();
   const removeMember = useRemoveMember();
+  const updateRole = useUpdateMemberRole();
   const [memberToRemove, setMemberToRemove] = useState<GroupMember | null>(null);
 
   const isOwnerUser = user?.id === ownerId;
@@ -53,6 +56,14 @@ export function MemberManagementPanel({
       userId: memberToRemove.user_id 
     });
     setMemberToRemove(null);
+  };
+
+  const handleRoleChange = async (member: GroupMember, newRole: 'admin' | 'member') => {
+    await updateRole.mutateAsync({
+      groupId,
+      userId: member.user_id,
+      newRole,
+    });
   };
 
   const getInitials = (name: string | null | undefined) => {
@@ -111,6 +122,7 @@ export function MemberManagementPanel({
         {members.map((member) => {
           const isMe = member.user_id === user?.id;
           const isMemberOwner = member.role === "owner";
+          const isMemberAdmin = member.role === "admin";
           const displayName = member.profiles?.full_name || "Unknown User";
           
           return (
@@ -155,6 +167,18 @@ export function MemberManagementPanel({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
+                    {isMemberAdmin ? (
+                      <DropdownMenuItem onClick={() => handleRoleChange(member, 'member')}>
+                        <ShieldMinus className="w-4 h-4 mr-2" />
+                        Demote to Member
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem onClick={() => handleRoleChange(member, 'admin')}>
+                        <ShieldPlus className="w-4 h-4 mr-2" />
+                        Promote to Admin
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem 
                       className="text-destructive focus:text-destructive"
                       onClick={() => setMemberToRemove(member)}
