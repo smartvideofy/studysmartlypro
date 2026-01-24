@@ -1,12 +1,13 @@
 import { formatDistanceToNow } from "date-fns";
-import { FileText, X, ExternalLink, Trash2, Loader2 } from "lucide-react";
+import { FileText, ExternalLink, Trash2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalBody,
+  ResponsiveModalFooter,
+} from "@/components/ui/responsive-modal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,19 +54,24 @@ export function SharedNotePreview({
   if (!sharedNote) return null;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 pr-8">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange} className="sm:max-w-[600px]">
+      <ResponsiveModalHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <FileText className="w-5 h-5 text-primary" />
-            <span className="truncate">{sharedNote.notes?.title || "Untitled Note"}</span>
-          </DialogTitle>
-        </DialogHeader>
-
-        <div className="text-xs text-muted-foreground mb-2">
-          Shared {formatDistanceToNow(new Date(sharedNote.shared_at), { addSuffix: true })}
+          </div>
+          <div className="text-left flex-1 min-w-0">
+            <ResponsiveModalTitle className="truncate">
+              {sharedNote.notes?.title || "Untitled Note"}
+            </ResponsiveModalTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Shared {formatDistanceToNow(new Date(sharedNote.shared_at), { addSuffix: true })}
+            </p>
+          </div>
         </div>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         <ScrollArea className="h-[300px] border border-border rounded-lg p-4 bg-secondary/30">
           <div className="prose prose-sm dark:prose-invert max-w-none">
             {sharedNote.notes?.content ? (
@@ -75,50 +81,50 @@ export function SharedNotePreview({
             )}
           </div>
         </ScrollArea>
+      </ResponsiveModalBody>
 
-        <div className="flex items-center justify-between pt-2">
-          <Button variant="outline" size="sm" asChild>
-            <Link to={`/materials/${sharedNote.note_id}`}>
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View Full Note
-            </Link>
-          </Button>
+      <ResponsiveModalFooter className="pt-4">
+        <Button variant="outline" size="sm" asChild className="flex-1 md:flex-none">
+          <Link to={`/materials/${sharedNote.note_id}`}>
+            <ExternalLink className="w-4 h-4 mr-2" />
+            View Full Note
+          </Link>
+        </Button>
 
-          {canUnshare && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Unshare
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Unshare Note?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will remove "{sharedNote.notes?.title}" from the group. 
-                    Other members will no longer be able to view it here.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleUnshare}
-                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                    disabled={unshareNote.isPending}
-                  >
-                    {unshareNote.isPending ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      "Unshare Note"
-                    )}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-        </div>
-      </DialogContent>
-    </Dialog>
+        {canUnshare && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive flex-1 md:flex-none">
+                <Trash2 className="w-4 h-4 mr-2" />
+                Unshare
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Unshare Note?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove "{sharedNote.notes?.title}" from the group. 
+                  Other members will no longer be able to view it here.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleUnshare}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  disabled={unshareNote.isPending}
+                >
+                  {unshareNote.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    "Unshare Note"
+                  )}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
+      </ResponsiveModalFooter>
+    </ResponsiveModal>
   );
 }

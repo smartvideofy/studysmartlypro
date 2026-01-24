@@ -19,13 +19,13 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import {
   Select,
   SelectContent,
@@ -406,20 +406,27 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         initialIndex={0}
       />
 
-      {/* Save to Deck Dialog */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Save Flashcards to Deck</DialogTitle>
-            <DialogDescription>
-              {selectedCards.size > 0 
-                ? `Save ${selectedCards.size} selected cards to a deck`
-                : `Save all ${flashcards.length} flashcards to a deck`
-              }
-            </DialogDescription>
-          </DialogHeader>
+      {/* Save to Deck Dialog - Now Responsive */}
+      <ResponsiveModal open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <ResponsiveModalHeader>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <FolderPlus className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <ResponsiveModalTitle>Save Flashcards to Deck</ResponsiveModalTitle>
+              <ResponsiveModalDescription>
+                {selectedCards.size > 0 
+                  ? `Save ${selectedCards.size} selected cards to a deck`
+                  : `Save all ${flashcards.length} flashcards to a deck`
+                }
+              </ResponsiveModalDescription>
+            </div>
+          </div>
+        </ResponsiveModalHeader>
 
-          <div className="space-y-4 py-4">
+        <ResponsiveModalBody>
+          <div className="space-y-4 py-2">
             <div className="space-y-2">
               <Label>Select Deck</Label>
               <Select 
@@ -466,25 +473,30 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
               </div>
             </div>
           </div>
+        </ResponsiveModalBody>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSaveDialog(false)}>
-              Cancel
-            </Button>
-            <Button 
-              onClick={handleSaveToDecks}
-              disabled={saveToDeckmutation.isPending || (!selectedDeckId && !newDeckName.trim())}
-            >
-              {saveToDeckmutation.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin mr-2" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              Save Cards
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        <ResponsiveModalFooter className="pt-4">
+          <Button 
+            variant="outline" 
+            onClick={() => setShowSaveDialog(false)}
+            className="flex-1 md:flex-none"
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handleSaveToDecks}
+            disabled={saveToDeckmutation.isPending || (!selectedDeckId && !newDeckName.trim())}
+            className="flex-1 md:flex-none"
+          >
+            {saveToDeckmutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Save className="w-4 h-4 mr-2" />
+            )}
+            Save Cards
+          </Button>
+        </ResponsiveModalFooter>
+      </ResponsiveModal>
     </div>
   );
 }

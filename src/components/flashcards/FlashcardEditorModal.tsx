@@ -4,13 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CreditCard, Loader2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -91,25 +91,25 @@ export function FlashcardEditorModal({ open, onOpenChange, deckId, flashcard }: 
   const isLoading = createFlashcard.isPending || updateFlashcard.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-              <CreditCard className="w-5 h-5 text-accent" />
-            </div>
-            <div>
-              <DialogTitle>{isEditing ? "Edit Flashcard" : "Add New Flashcard"}</DialogTitle>
-              <DialogDescription>
-                {isEditing 
-                  ? "Update your flashcard content" 
-                  : "Create a new flashcard for your deck"
-                }
-              </DialogDescription>
-            </div>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange} className="sm:max-w-lg">
+      <ResponsiveModalHeader>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
+            <CreditCard className="w-5 h-5 text-accent" />
           </div>
-        </DialogHeader>
+          <div className="text-left">
+            <ResponsiveModalTitle>{isEditing ? "Edit Flashcard" : "Add New Flashcard"}</ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              {isEditing 
+                ? "Update your flashcard content" 
+                : "Create a new flashcard for your deck"
+              }
+            </ResponsiveModalDescription>
+          </div>
+        </div>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -170,16 +170,17 @@ export function FlashcardEditorModal({ open, onOpenChange, deckId, flashcard }: 
               )}
             />
 
-            <DialogFooter className="pt-4">
+            <ResponsiveModalFooter className="pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="flex-1 md:flex-none"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="flex-1 md:flex-none">
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -189,10 +190,10 @@ export function FlashcardEditorModal({ open, onOpenChange, deckId, flashcard }: 
                   isEditing ? "Save Changes" : "Add Card"
                 )}
               </Button>
-            </DialogFooter>
+            </ResponsiveModalFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+    </ResponsiveModal>
   );
 }

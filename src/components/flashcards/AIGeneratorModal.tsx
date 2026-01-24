@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -225,15 +225,17 @@ export function AIGeneratorModal({ open, onOpenChange }: AIGeneratorModalProps) 
   const isSaving = createDeck.isPending || createFlashcard.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange} className="sm:max-w-2xl max-h-[90vh]">
+      <ResponsiveModalHeader>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-primary" />
-            AI Flashcard Generator
-          </DialogTitle>
-        </DialogHeader>
+          </div>
+          <ResponsiveModalTitle>AI Flashcard Generator</ResponsiveModalTitle>
+        </div>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody className="overflow-y-auto">
         <AnimatePresence mode="wait">
           {/* Step 1: Source Selection */}
           {step === "source" && (
@@ -629,7 +631,7 @@ export function AIGeneratorModal({ open, onOpenChange }: AIGeneratorModalProps) 
             </motion.div>
           )}
         </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+    </ResponsiveModal>
   );
 }
