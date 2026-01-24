@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface MaterialCardProps {
   material: StudyMaterial;
@@ -52,6 +53,7 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
   const status = statusConfig[material.processing_status];
   const FileIcon = fileConfig.icon;
   const StatusIcon = status.icon;
+  const isMobile = useIsMobile();
 
   return (
     <motion.div
@@ -93,11 +95,17 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+      {/* Actions - Always visible on mobile */}
+      <div 
+        className={cn(
+          "absolute top-2 right-2 transition-opacity",
+          isMobile ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+        )} 
+        onClick={(e) => e.stopPropagation()}
+      >
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="secondary" size="icon" className="h-8 w-8">
+            <Button variant="secondary" size="icon" className="h-9 w-9 touch-target">
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>

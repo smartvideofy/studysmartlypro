@@ -149,12 +149,12 @@ export default function FlashcardsPage() {
         animate="visible"
         className="space-y-6"
       >
-        {/* Stats Overview */}
+        {/* Stats Overview - Horizontal scroll on mobile */}
         <motion.div 
           variants={itemVariants}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+          className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4"
         >
-          <Card variant="interactive" className="p-4">
+          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Layers className="w-5 h-5 text-primary" />
@@ -166,7 +166,7 @@ export default function FlashcardsPage() {
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4">
+          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-success/10 flex items-center justify-center">
                 <CheckCircle2 className="w-5 h-5 text-success" />
@@ -178,7 +178,7 @@ export default function FlashcardsPage() {
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4">
+          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
                 <Target className="w-5 h-5 text-accent" />
@@ -190,7 +190,7 @@ export default function FlashcardsPage() {
             </div>
           </Card>
           
-          <Card variant="interactive" className="p-4">
+          <Card variant="interactive" className="p-4 mobile-card min-w-[160px]">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Brain className="w-5 h-5 text-primary" />
@@ -260,10 +260,10 @@ export default function FlashcardsPage() {
           </div>
         </motion.div>
 
-        {/* Decks Grid */}
+        {/* Decks Grid - Single column on mobile */}
         <motion.div variants={itemVariants}>
           {filteredDecks.length > 0 ? (
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-5">
               {filteredDecks.map((deck, index) => (
                 <FlashcardDeckCard
                   key={deck.id}

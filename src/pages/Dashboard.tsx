@@ -260,10 +260,10 @@ export default function Dashboard() {
           <XPProgress />
         </motion.div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Horizontal scroll on mobile */}
         <motion.div 
           variants={itemVariants}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+          className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4"
         >
           {[
             { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "from-primary/15 to-primary/5", path: "/materials", isTime: false },
@@ -276,6 +276,7 @@ export default function Dashboard() {
               whileHover={{ y: -4, scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className="mobile-card"
             >
               <Link to={stat.path}>
                 <Card variant="glass" className="h-full hover:shadow-card-hover hover:border-primary/20 transition-all duration-300">
@@ -297,10 +298,10 @@ export default function Dashboard() {
           ))}
         </motion.div>
 
-        {/* Quick Actions */}
+        {/* Quick Actions - Horizontal scroll on mobile */}
         <motion.div variants={itemVariants}>
           <h3 className="font-display text-lg font-semibold mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="scroll-x-mobile md:grid md:grid-cols-4 md:gap-4">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               const colorMap: Record<string, string> = {
@@ -314,10 +315,11 @@ export default function Dashboard() {
                   whileHover={{ y: -4, scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  className="mobile-card"
                 >
                   <Link
                     to={action.path}
-                    className="group glass-card rounded-xl p-5 flex flex-col items-center text-center hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 block"
+                    className="group glass-card rounded-xl p-5 flex flex-col items-center text-center hover:shadow-card-hover hover:border-primary/20 transition-all duration-300 block min-h-[120px]"
                   >
                     <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${colorMap[action.color]} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
                       <Icon className="w-7 h-7" />

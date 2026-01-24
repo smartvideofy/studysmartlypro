@@ -71,11 +71,13 @@ import { CreatePollModal } from "@/components/groups/CreatePollModal";
 import { PollCard } from "@/components/groups/PollCard";
 import { cn } from "@/lib/utils";
 import { BarChart3 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function GroupDetailPage() {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isMobile = useIsMobile();
   const [message, setMessage] = useState("");
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [uploadNoteModalOpen, setUploadNoteModalOpen] = useState(false);
@@ -399,28 +401,35 @@ export default function GroupDetailPage() {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="chat" className="gap-2">
-            <MessageSquare className="w-4 h-4" />
-            Chat
-          </TabsTrigger>
-          <TabsTrigger value="notes" className="gap-2">
-            <FileText className="w-4 h-4" />
-            Shared Notes
-          </TabsTrigger>
-          <TabsTrigger value="polls" className="gap-2">
-            <BarChart3 className="w-4 h-4" />
-            Polls
-          </TabsTrigger>
-          <TabsTrigger value="sessions" className="gap-2">
-            <Calendar className="w-4 h-4" />
-            Sessions
-          </TabsTrigger>
-          <TabsTrigger value="members" className="gap-2">
-            <Users className="w-4 h-4" />
-            Members ({memberCount})
-          </TabsTrigger>
-        </TabsList>
+        {/* Horizontal scrollable tabs on mobile */}
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
+          <TabsList className="mb-4 inline-flex min-w-max md:flex">
+            <TabsTrigger value="chat" className="gap-2 min-w-[100px] touch-target">
+              <MessageSquare className="w-4 h-4" />
+              <span className="hidden sm:inline">Chat</span>
+              <span className="sm:hidden">Chat</span>
+            </TabsTrigger>
+            <TabsTrigger value="notes" className="gap-2 min-w-[100px] touch-target">
+              <FileText className="w-4 h-4" />
+              <span className="hidden sm:inline">Shared Notes</span>
+              <span className="sm:hidden">Notes</span>
+            </TabsTrigger>
+            <TabsTrigger value="polls" className="gap-2 min-w-[100px] touch-target">
+              <BarChart3 className="w-4 h-4" />
+              Polls
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="gap-2 min-w-[100px] touch-target">
+              <Calendar className="w-4 h-4" />
+              <span className="hidden sm:inline">Sessions</span>
+              <span className="sm:hidden">Sessions</span>
+            </TabsTrigger>
+            <TabsTrigger value="members" className="gap-2 min-w-[100px] touch-target">
+              <Users className="w-4 h-4" />
+              <span className="hidden sm:inline">Members ({memberCount})</span>
+              <span className="sm:hidden">{memberCount}</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Chat Tab */}
         <TabsContent value="chat" className="mt-0">
@@ -451,7 +460,10 @@ export default function GroupDetailPage() {
             />
 
             <ScrollArea 
-              className="h-[400px] p-4" 
+              className={cn(
+                "p-4",
+                isMobile ? "h-[calc(100vh-20rem)]" : "h-[400px]"
+              )}
               ref={scrollAreaRef}
               onScrollCapture={handleScroll}
             >
