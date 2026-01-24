@@ -64,59 +64,59 @@ const quickActions = [
 function DashboardSkeleton() {
   return (
     <DashboardLayout title="Dashboard">
-      <div className="space-y-8 animate-in fade-in duration-300">
+      <div className="space-y-6 md:space-y-8 animate-in fade-in duration-300">
         {/* Welcome Skeleton */}
         <SkeletonWelcome />
 
-        {/* Stats Skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Stats Skeleton - Mobile responsive grid */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonStatCard key={i} />
           ))}
         </div>
 
-        {/* Quick Actions Skeleton */}
+        {/* Quick Actions Skeleton - Mobile responsive grid */}
         <div>
-          <Skeleton className="h-6 w-32 mb-4" />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Skeleton className="h-5 md:h-6 w-28 md:w-32 mb-3 md:mb-4" />
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
             {Array.from({ length: 4 }).map((_, i) => (
               <SkeletonQuickAction key={i} />
             ))}
           </div>
         </div>
 
-        {/* Main Content Skeleton */}
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 rounded-xl border border-border/40 bg-card/50 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-36" />
-                <Skeleton className="h-4 w-48" />
+        {/* Main Content Skeleton - Stacked on mobile */}
+        <div className="grid gap-4 md:gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2 rounded-xl border border-border/40 bg-card/50 p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3 md:mb-4">
+              <div className="space-y-1.5 md:space-y-2">
+                <Skeleton className="h-4 md:h-5 w-28 md:w-36" />
+                <Skeleton className="h-3 md:h-4 w-36 md:w-48" />
               </div>
-              <Skeleton className="h-9 w-20 rounded-lg" />
+              <Skeleton className="h-8 md:h-9 w-16 md:w-20 rounded-lg" />
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <SkeletonMaterialItem key={i} />
               ))}
             </div>
           </div>
-          <div className="rounded-xl border border-border/40 bg-card/50 p-6">
-            <div className="space-y-2 mb-4">
-              <Skeleton className="h-5 w-32" />
-              <Skeleton className="h-4 w-44" />
+          <div className="rounded-xl border border-border/40 bg-card/50 p-4 md:p-6">
+            <div className="space-y-1.5 md:space-y-2 mb-3 md:mb-4">
+              <Skeleton className="h-4 md:h-5 w-28 md:w-32" />
+              <Skeleton className="h-3 md:h-4 w-36 md:w-44" />
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               {Array.from({ length: 3 }).map((_, i) => (
                 <SkeletonReviewItem key={i} />
               ))}
             </div>
-            <Skeleton className="h-10 w-full rounded-lg mt-4" />
+            <Skeleton className="h-9 md:h-10 w-full rounded-lg mt-3 md:mt-4" />
           </div>
         </div>
 
-        {/* Progress Skeleton */}
-        <div className="rounded-xl border border-border/40 bg-card/50 p-6">
+        {/* Progress Skeleton - Hidden on mobile for performance */}
+        <div className="hidden md:block rounded-xl border border-border/40 bg-card/50 p-6">
           <div className="flex items-center justify-between mb-6">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
