@@ -46,25 +46,25 @@ const itemVariants = {
 function FlashcardsSkeleton() {
   return (
     <DashboardLayout title="Flashcards">
-      <div className="space-y-6 animate-in fade-in duration-300">
-        {/* Stats Skeleton */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="space-y-4 md:space-y-6 animate-in fade-in duration-300">
+        {/* Stats Skeleton - Mobile responsive grid */}
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
             <SkeletonFlashcardStat key={i} />
           ))}
         </div>
 
         {/* Search & Actions Skeleton */}
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <Skeleton className="h-10 w-full max-w-md rounded-lg" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 items-start sm:items-center justify-between">
+          <Skeleton className="h-10 md:h-10 w-full max-w-md rounded-lg" />
           <div className="flex items-center gap-2">
-            <Skeleton className="h-9 w-28 rounded-lg" />
-            <Skeleton className="h-9 w-24 rounded-lg" />
+            <Skeleton className="h-9 w-24 md:w-28 rounded-lg" />
+            <Skeleton className="h-9 w-20 md:w-24 rounded-lg" />
           </div>
         </div>
 
-        {/* Decks Grid Skeleton */}
-        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
+        {/* Decks Grid Skeleton - Single column on mobile */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-5 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, i) => (
             <SkeletonDeckCard key={i} />
           ))}

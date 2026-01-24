@@ -1,16 +1,16 @@
-import { useState } from "react";
+import { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Layers, Loader2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,6 +53,17 @@ export function CreateDeckModal({ open, onOpenChange, deck, onSuccess }: CreateD
     },
   });
 
+  // Reset form when deck changes
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: deck?.name || "",
+        subject: deck?.subject || "",
+        description: deck?.description || "",
+      });
+    }
+  }, [deck, open, form]);
+
   const onSubmit = async (values: DeckFormValues) => {
     try {
       if (isEditing && deck) {
@@ -81,25 +92,27 @@ export function CreateDeckModal({ open, onOpenChange, deck, onSuccess }: CreateD
   const isLoading = createDeck.isPending || updateDeck.isPending;
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-              <Layers className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <DialogTitle>{isEditing ? "Edit Deck" : "Create New Deck"}</DialogTitle>
-              <DialogDescription>
-                {isEditing 
-                  ? "Update your flashcard deck details" 
-                  : "Create a new flashcard deck to start learning"
-                }
-              </DialogDescription>
-            </div>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Layers className="w-5 h-5 text-primary" />
           </div>
-        </DialogHeader>
+          <div className="text-left">
+            <ResponsiveModalTitle>
+              {isEditing ? "Edit Deck" : "Create New Deck"}
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              {isEditing 
+                ? "Update your flashcard deck details" 
+                : "Create a new flashcard deck to start learning"
+              }
+            </ResponsiveModalDescription>
+          </div>
+        </div>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -158,16 +171,17 @@ export function CreateDeckModal({ open, onOpenChange, deck, onSuccess }: CreateD
               )}
             />
 
-            <DialogFooter className="pt-4">
+            <ResponsiveModalFooter className="pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="flex-1 md:flex-none"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="flex-1 md:flex-none">
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -177,10 +191,10 @@ export function CreateDeckModal({ open, onOpenChange, deck, onSuccess }: CreateD
                   isEditing ? "Save Changes" : "Create Deck"
                 )}
               </Button>
-            </DialogFooter>
+            </ResponsiveModalFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+    </ResponsiveModal>
   );
 }

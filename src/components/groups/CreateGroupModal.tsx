@@ -1,13 +1,13 @@
 import { useState } from "react";
-import { Loader2, Lock, Globe } from "lucide-react";
+import { Loader2, Lock, Globe, Users } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,17 +45,24 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Create Study Group</DialogTitle>
-            <DialogDescription>
-              Create a new study group to collaborate with others.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <form onSubmit={handleSubmit}>
+        <ResponsiveModalHeader>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="text-left">
+              <ResponsiveModalTitle>Create Study Group</ResponsiveModalTitle>
+              <ResponsiveModalDescription>
+                Create a new study group to collaborate with others.
+              </ResponsiveModalDescription>
+            </div>
+          </div>
+        </ResponsiveModalHeader>
+        
+        <ResponsiveModalBody>
+          <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <Label htmlFor="name">Group Name</Label>
               <Input
@@ -78,12 +85,12 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
               />
             </div>
             
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+              <div className="flex items-center gap-3">
                 {isPrivate ? (
-                  <Lock className="w-4 h-4 text-muted-foreground" />
+                  <Lock className="w-5 h-5 text-muted-foreground" />
                 ) : (
-                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <Globe className="w-5 h-5 text-muted-foreground" />
                 )}
                 <div>
                   <p className="font-medium text-sm">Private Group</p>
@@ -100,27 +107,29 @@ export function CreateGroupModal({ open, onOpenChange }: CreateGroupModalProps) 
               />
             </div>
           </div>
-          
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={!name.trim() || createGroup.isPending}
-            >
-              {createGroup.isPending && (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              )}
-              Create Group
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+        </ResponsiveModalBody>
+        
+        <ResponsiveModalFooter className="pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="flex-1 md:flex-none"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={!name.trim() || createGroup.isPending}
+            className="flex-1 md:flex-none"
+          >
+            {createGroup.isPending && (
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            )}
+            Create Group
+          </Button>
+        </ResponsiveModalFooter>
+      </form>
+    </ResponsiveModal>
   );
 }

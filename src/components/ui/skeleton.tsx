@@ -41,14 +41,14 @@ function SkeletonStatCard({ className, ...props }: React.HTMLAttributes<HTMLDivE
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-card/50 p-5",
+        "rounded-xl border border-border/40 bg-card/50 p-4 md:p-5",
         className
       )}
       {...props}
     >
-      <Skeleton className="w-11 h-11 rounded-xl mb-3" />
-      <Skeleton className="h-7 w-16 mb-2" />
-      <Skeleton className="h-4 w-20" />
+      <Skeleton className="w-10 h-10 md:w-11 md:h-11 rounded-xl mb-2 md:mb-3" />
+      <Skeleton className="h-6 md:h-7 w-14 md:w-16 mb-1 md:mb-2" />
+      <Skeleton className="h-3 md:h-4 w-16 md:w-20" />
     </div>
   );
 }
@@ -57,13 +57,13 @@ function SkeletonQuickAction({ className, ...props }: React.HTMLAttributes<HTMLD
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-card/50 p-5 flex flex-col items-center",
+        "rounded-xl border border-border/40 bg-card/50 p-4 md:p-5 flex flex-col items-center min-h-[100px] md:min-h-[120px]",
         className
       )}
       {...props}
     >
-      <Skeleton className="w-14 h-14 rounded-2xl mb-3" />
-      <Skeleton className="h-4 w-20" />
+      <Skeleton className="w-12 h-12 md:w-14 md:h-14 rounded-2xl mb-2 md:mb-3" />
+      <Skeleton className="h-3 md:h-4 w-16 md:w-20" />
     </div>
   );
 }
@@ -242,15 +242,15 @@ function SkeletonFlashcardStat({ className, ...props }: React.HTMLAttributes<HTM
   return (
     <div
       className={cn(
-        "rounded-xl border border-border/40 bg-card/50 p-4 flex items-center gap-3",
+        "rounded-xl border border-border/40 bg-card/50 p-3 md:p-4 flex items-center gap-3",
         className
       )}
       {...props}
     >
-      <Skeleton className="w-10 h-10 rounded-xl" />
-      <div className="space-y-2">
-        <Skeleton className="h-6 w-12" />
-        <Skeleton className="h-3 w-20" />
+      <Skeleton className="w-9 h-9 md:w-10 md:h-10 rounded-xl" />
+      <div className="space-y-1.5 md:space-y-2">
+        <Skeleton className="h-5 md:h-6 w-10 md:w-12" />
+        <Skeleton className="h-3 w-16 md:w-20" />
       </div>
     </div>
   );

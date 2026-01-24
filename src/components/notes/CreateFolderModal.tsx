@@ -4,13 +4,13 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Folder, Loader2 } from "lucide-react";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  ResponsiveModal,
+  ResponsiveModalHeader,
+  ResponsiveModalTitle,
+  ResponsiveModalDescription,
+  ResponsiveModalFooter,
+  ResponsiveModalBody,
+} from "@/components/ui/responsive-modal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -96,28 +96,30 @@ export function CreateFolderModal({ open, onOpenChange, folder }: CreateFolderMo
   const selectedColor = form.watch("color");
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <div className="flex items-center gap-3 mb-2">
-            <div 
-              className="w-10 h-10 rounded-lg flex items-center justify-center"
-              style={{ backgroundColor: `${selectedColor}20` }}
-            >
-              <Folder className="w-5 h-5" style={{ color: selectedColor }} />
-            </div>
-            <div>
-              <DialogTitle>{isEditing ? "Edit Folder" : "Create New Folder"}</DialogTitle>
-              <DialogDescription>
-                {isEditing 
-                  ? "Update your folder details" 
-                  : "Organize your notes into folders"
-                }
-              </DialogDescription>
-            </div>
+    <ResponsiveModal open={open} onOpenChange={onOpenChange}>
+      <ResponsiveModalHeader>
+        <div className="flex items-center gap-3 mb-2">
+          <div 
+            className="w-10 h-10 rounded-lg flex items-center justify-center"
+            style={{ backgroundColor: `${selectedColor}20` }}
+          >
+            <Folder className="w-5 h-5" style={{ color: selectedColor }} />
           </div>
-        </DialogHeader>
+          <div className="text-left">
+            <ResponsiveModalTitle>
+              {isEditing ? "Edit Folder" : "Create New Folder"}
+            </ResponsiveModalTitle>
+            <ResponsiveModalDescription>
+              {isEditing 
+                ? "Update your folder details" 
+                : "Organize your notes into folders"
+              }
+            </ResponsiveModalDescription>
+          </div>
+        </div>
+      </ResponsiveModalHeader>
 
+      <ResponsiveModalBody>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -151,7 +153,7 @@ export function CreateFolderModal({ open, onOpenChange, folder }: CreateFolderMo
                           key={color}
                           type="button"
                           onClick={() => field.onChange(color)}
-                          className={`w-8 h-8 rounded-lg transition-all ${
+                          className={`w-9 h-9 md:w-8 md:h-8 rounded-lg transition-all min-w-[36px] ${
                             field.value === color 
                               ? "ring-2 ring-offset-2 ring-primary scale-110" 
                               : "hover:scale-105"
@@ -167,16 +169,17 @@ export function CreateFolderModal({ open, onOpenChange, folder }: CreateFolderMo
               )}
             />
 
-            <DialogFooter className="pt-4">
+            <ResponsiveModalFooter className="pt-4">
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={() => onOpenChange(false)}
                 disabled={isLoading}
+                className="flex-1 md:flex-none"
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isLoading}>
+              <Button type="submit" disabled={isLoading} className="flex-1 md:flex-none">
                 {isLoading ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -186,10 +189,10 @@ export function CreateFolderModal({ open, onOpenChange, folder }: CreateFolderMo
                   isEditing ? "Save Changes" : "Create Folder"
                 )}
               </Button>
-            </DialogFooter>
+            </ResponsiveModalFooter>
           </form>
         </Form>
-      </DialogContent>
-    </Dialog>
+      </ResponsiveModalBody>
+    </ResponsiveModal>
   );
 }
