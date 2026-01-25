@@ -30,14 +30,11 @@ export function MobileBottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
-      {/* Premium glassmorphism background with gradient border */}
-      <div className="absolute inset-0 bg-background/90 backdrop-blur-2xl border-t border-border/30">
-        {/* Subtle gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/50 to-transparent pointer-events-none" />
-      </div>
+      {/* Clean background */}
+      <div className="absolute inset-0 bg-background border-t border-border" />
       
       {/* Safe area padding for notched devices */}
-      <div className="relative flex items-center justify-around px-2 pt-1.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="relative flex items-center justify-around px-2 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = item.icon;
@@ -47,25 +44,25 @@ export function MobileBottomNav() {
               key={item.path}
               to={item.path}
               onClick={() => haptics.selection()}
-              className="relative flex flex-col items-center justify-center min-w-[60px] min-h-[52px] py-1.5"
+              className="relative flex flex-col items-center justify-center min-w-[56px] min-h-[48px] py-1"
             >
               <motion.div
-                whileTap={{ scale: 0.85 }}
+                whileTap={{ scale: 0.9 }}
                 transition={{ type: "spring", stiffness: 500, damping: 25 }}
                 className="relative"
               >
                 {active && (
                   <motion.div
                     layoutId="bottomNavIndicator"
-                    className="absolute -inset-2 rounded-2xl bg-primary/12"
+                    className="absolute -inset-2 rounded-xl bg-primary/10"
                     transition={{ type: "spring", stiffness: 400, damping: 28 }}
                   />
                 )}
                 <div className={cn(
-                  "relative flex items-center justify-center w-11 h-9 rounded-xl transition-colors duration-200",
+                  "relative flex items-center justify-center w-10 h-8 rounded-lg transition-colors duration-200",
                   active ? "text-primary" : "text-muted-foreground"
                 )}>
-                  <Icon className={cn("w-[22px] h-[22px] transition-transform duration-200", active && "scale-110")} strokeWidth={active ? 2.5 : 2} />
+                  <Icon className={cn("w-5 h-5", active && "scale-105")} strokeWidth={active ? 2.5 : 2} />
                 </div>
               </motion.div>
               <span className={cn(

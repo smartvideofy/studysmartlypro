@@ -17,88 +17,58 @@ export default function SplashScreen() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-background bg-gradient-mesh flex items-center justify-center relative overflow-hidden">
-      {/* Animated floating orbs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <motion.div 
-          className="orb orb-primary w-80 h-80 top-1/4 left-1/4"
-          animate={{ 
-            x: [0, 30, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="orb orb-accent w-64 h-64 bottom-1/4 right-1/4"
-          animate={{ 
-            x: [0, -25, 0],
-            y: [0, 25, 0],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div 
-          className="orb orb-success w-48 h-48 top-1/2 right-1/3"
-          animate={{ 
-            x: [0, 20, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
+    <div className="min-h-screen bg-background flex items-center justify-center relative overflow-hidden">
       <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
+        initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="flex flex-col items-center relative z-10"
       >
-        {/* Glass card container */}
+        {/* Card container */}
         <motion.div
-          className="glass-card p-12 rounded-3xl flex flex-col items-center"
-          initial={{ y: 20 }}
+          className="bg-card border border-border rounded-2xl p-12 flex flex-col items-center shadow-lg"
+          initial={{ y: 16 }}
           animate={{ y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
         >
           {/* Logo */}
           <motion.div
             animate={{ 
-              scale: [1, 1.08, 1],
-              rotate: [0, 2, -2, 0],
+              scale: [1, 1.03, 1],
             }}
             transition={{ 
-              duration: 3, 
+              duration: 2.5, 
               repeat: Infinity,
               repeatType: "reverse",
               ease: "easeInOut"
             }}
-            className="w-24 h-24 rounded-2xl overflow-hidden mb-8 shadow-glow"
+            className="w-20 h-20 rounded-2xl overflow-hidden mb-8 shadow-md"
           >
             <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
           </motion.div>
 
           {/* App Name */}
-          <h1 className="font-display text-5xl font-bold gradient-text mb-3">
+          <h1 className="font-display text-4xl font-bold text-foreground mb-2">
             Studily
           </h1>
 
           {/* Tagline */}
-          <p className="text-muted-foreground text-lg mb-10">
+          <p className="text-muted-foreground text-base mb-10">
             Study Smarter, Not Harder
           </p>
 
           {/* Loading indicator */}
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {[0, 1, 2].map((i) => (
               <motion.div
                 key={i}
-                className="w-3 h-3 rounded-full bg-gradient-to-r from-primary to-primary/70"
+                className="w-2 h-2 rounded-full bg-primary"
                 animate={{ 
                   opacity: [0.3, 1, 0.3],
-                  scale: [0.8, 1.1, 0.8],
-                  y: [0, -4, 0]
+                  scale: [0.85, 1, 0.85],
                 }}
                 transition={{
-                  duration: 1.2,
+                  duration: 1,
                   repeat: Infinity,
                   delay: i * 0.15,
                   ease: "easeInOut"

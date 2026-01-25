@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import MaterialCard from "@/components/materials/MaterialCard";
 import UploadMaterialModal from "@/components/materials/UploadMaterialModal";
 import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
@@ -109,17 +110,13 @@ export default function StudyMaterialsPage() {
     <DashboardLayout title="Study Materials">
       <PullToRefresh onRefresh={handlePullRefresh} disabled={!isMobile}>
         <div className="space-y-6">
-          {/* Hero Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-background p-5 sm:p-8 border border-border/50"
-          >
-            <div className="relative z-10">
+          {/* Hero Section - Clean design */}
+          <Card className="overflow-hidden">
+            <div className="p-5 sm:p-6">
               <h2 className="text-xl sm:text-2xl font-display font-bold mb-2">
                 Upload & Learn
               </h2>
-              <p className="text-muted-foreground max-w-lg mb-5 sm:mb-6 text-sm sm:text-base">
+              <p className="text-muted-foreground max-w-lg mb-5 text-sm sm:text-base">
                 Upload your study materials and let AI generate structured notes, flashcards, and practice questions.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
@@ -137,11 +134,7 @@ export default function StudyMaterialsPage() {
                 </Button>
               </div>
             </div>
-            
-            {/* Decorative elements */}
-            <div className="absolute top-4 right-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 right-12 w-24 h-24 bg-accent/10 rounded-full blur-2xl" />
-          </motion.div>
+          </Card>
 
           {/* Filters & Search */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
@@ -171,8 +164,8 @@ export default function StudyMaterialsPage() {
                 <DropdownMenuTrigger asChild>
                   <Button 
                     variant={fileTypeFilters.length > 0 ? "secondary" : "outline"} 
-                    size="icon" 
-                    className="h-9 w-9 relative touch-target"
+                    size="sm" 
+                    className="h-9 w-9 p-0 relative touch-target"
                   >
                     <Filter className="w-4 h-4" />
                     {fileTypeFilters.length > 0 && (
@@ -190,7 +183,7 @@ export default function StudyMaterialsPage() {
                     onCheckedChange={() => toggleFileTypeFilter('pdf')}
                     className="touch-target"
                   >
-                    <FileText className="w-4 h-4 mr-2 text-destructive" />
+                    <FileText className="w-4 h-4 mr-2 text-red-500" />
                     PDF
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
@@ -198,7 +191,7 @@ export default function StudyMaterialsPage() {
                     onCheckedChange={() => toggleFileTypeFilter('docx')}
                     className="touch-target"
                   >
-                    <FileText className="w-4 h-4 mr-2 text-primary" />
+                    <FileText className="w-4 h-4 mr-2 text-blue-500" />
                     Word
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
@@ -206,7 +199,7 @@ export default function StudyMaterialsPage() {
                     onCheckedChange={() => toggleFileTypeFilter('pptx')}
                     className="touch-target"
                   >
-                    <FileText className="w-4 h-4 mr-2 text-warning" />
+                    <FileText className="w-4 h-4 mr-2 text-orange-500" />
                     PowerPoint
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
@@ -214,7 +207,7 @@ export default function StudyMaterialsPage() {
                     onCheckedChange={() => toggleFileTypeFilter('audio')}
                     className="touch-target"
                   >
-                    <FileAudio className="w-4 h-4 mr-2 text-accent" />
+                    <FileAudio className="w-4 h-4 mr-2 text-purple-500" />
                     Audio
                   </DropdownMenuCheckboxItem>
                   <DropdownMenuCheckboxItem
@@ -222,7 +215,7 @@ export default function StudyMaterialsPage() {
                     onCheckedChange={() => toggleFileTypeFilter('image')}
                     className="touch-target"
                   >
-                    <FileImage className="w-4 h-4 mr-2 text-success" />
+                    <FileImage className="w-4 h-4 mr-2 text-green-500" />
                     Image
                   </DropdownMenuCheckboxItem>
                   {fileTypeFilters.length > 0 && (
@@ -252,7 +245,7 @@ export default function StudyMaterialsPage() {
                 <Badge 
                   key={filter} 
                   variant="secondary" 
-                  className="gap-1 cursor-pointer hover:bg-destructive/20"
+                  className="gap-1 cursor-pointer hover:bg-destructive/10"
                   onClick={() => toggleFileTypeFilter(filter)}
                 >
                   {filter.toUpperCase()}
@@ -327,13 +320,13 @@ export default function StudyMaterialsPage() {
             ) : filteredMaterials.length === 0 ? (
               <motion.div
                 key="empty"
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center py-16 text-center"
               >
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <BookOpen className="w-8 h-8 text-primary" />
+                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                  <BookOpen className="w-7 h-7 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No materials yet</h3>
                 <p className="text-muted-foreground max-w-sm mb-6">
@@ -366,9 +359,9 @@ export default function StudyMaterialsPage() {
                 {filteredMaterials.map((material, index) => (
                   <motion.div
                     key={material.id}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+                    transition={{ delay: index * 0.03 }}
                   >
                     <MaterialCard
                       material={material}

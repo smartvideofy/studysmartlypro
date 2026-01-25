@@ -148,32 +148,16 @@ export default function AuthPage() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-background bg-gradient-mesh flex items-center justify-center">
-        <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-3 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-mesh">
+    <div className="min-h-screen flex bg-background">
       {/* Left Panel - Branding & Features */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary to-[hsl(290,75%,55%)]">
-        {/* Decorative elements */}
-        <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-60" />
-          <motion.div 
-            className="absolute top-20 -left-20 w-80 h-80 bg-white/15 rounded-full blur-3xl"
-            animate={{ x: [0, 20, 0], y: [0, -15, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <motion.div 
-            className="absolute bottom-20 -right-20 w-96 h-96 bg-accent/25 rounded-full blur-3xl"
-            animate={{ x: [0, -20, 0], y: [0, 20, 0] }}
-            transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
-          />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-white/5 rounded-full blur-3xl" />
-        </div>
-        
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-primary">
         <div className="relative z-10 flex flex-col justify-between w-full p-12 text-white">
           {/* Logo */}
           <motion.div 
@@ -181,7 +165,7 @@ export default function AuthPage() {
             animate={{ opacity: 1, y: 0 }}
             className="flex items-center gap-3"
           >
-            <div className="w-12 h-12 rounded-xl overflow-hidden">
+            <div className="w-11 h-11 rounded-xl overflow-hidden bg-white/10">
               <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
             </div>
             <span className="font-display text-2xl font-bold">Studily</span>
@@ -190,15 +174,15 @@ export default function AuthPage() {
           {/* Main content */}
           <div className="max-w-lg">
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
+              initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
             >
-              <h1 className="font-display text-5xl font-bold leading-tight mb-6">
+              <h1 className="font-display text-4xl font-bold leading-tight mb-6">
                 Learn smarter,<br />
                 not harder.
               </h1>
-              <p className="text-xl text-white/80 mb-12">
+              <p className="text-lg text-white/80 mb-10">
                 Your AI-powered study companion that helps you take notes, create flashcards, and master any subject.
               </p>
             </motion.div>
@@ -208,35 +192,34 @@ export default function AuthPage() {
               {features.map((feature, i) => (
                 <motion.div
                   key={feature.label}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 16 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 + i * 0.1 }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  className="p-5 rounded-2xl bg-white/10 backdrop-blur-lg border border-white/15 hover:bg-white/15 transition-all duration-300 cursor-default shadow-lg"
+                  transition={{ delay: 0.2 + i * 0.08 }}
+                  className="p-4 rounded-xl bg-white/10 border border-white/10"
                 >
-                  <div className="w-10 h-10 rounded-xl bg-white/15 flex items-center justify-center mb-3">
-                    <feature.icon className="w-5 h-5 text-accent" />
+                  <div className="w-9 h-9 rounded-lg bg-white/10 flex items-center justify-center mb-3">
+                    <feature.icon className="w-4.5 h-4.5 text-white" />
                   </div>
-                  <h3 className="font-semibold mb-1">{feature.label}</h3>
-                  <p className="text-sm text-white/70">{feature.description}</p>
+                  <h3 className="font-semibold text-sm mb-1">{feature.label}</h3>
+                  <p className="text-xs text-white/70">{feature.description}</p>
                 </motion.div>
               ))}
             </div>
           </div>
           
-          {/* Bottom stats */}
+          {/* Bottom badges */}
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.6 }}
-            className="flex items-center gap-8 text-sm text-white/60"
+            transition={{ delay: 0.5 }}
+            className="flex items-center gap-6 text-sm text-white/70"
           >
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-accent" />
+              <CheckCircle2 className="w-4 h-4" />
               Free to start
             </div>
             <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-accent" />
+              <CheckCircle2 className="w-4 h-4" />
               No credit card required
             </div>
           </motion.div>
@@ -244,27 +227,18 @@ export default function AuthPage() {
       </div>
 
       {/* Right Panel - Auth Form */}
-      <div className="flex-1 flex items-center justify-center p-6 bg-background/50 backdrop-blur-xl relative">
-        {/* Background orbs */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="orb orb-primary w-64 h-64 -top-32 -right-32 opacity-40" />
-          <div className="orb orb-success w-48 h-48 bottom-20 -left-24 opacity-30" />
-        </div>
-
+      <div className="flex-1 flex items-center justify-center p-6 relative">
         <motion.div
-          initial={{ opacity: 0, x: 20 }}
+          initial={{ opacity: 0, x: 16 }}
           animate={{ opacity: 1, x: 0 }}
-          className="w-full max-w-[440px] relative z-10"
+          className="w-full max-w-[420px] relative z-10"
         >
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
-            <motion.div 
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              className="w-12 h-12 rounded-xl overflow-hidden shadow-glow-sm"
-            >
+            <div className="w-11 h-11 rounded-xl overflow-hidden">
               <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
-            </motion.div>
-            <span className="font-display text-2xl font-bold gradient-text">Studily</span>
+            </div>
+            <span className="font-display text-2xl font-bold">Studily</span>
           </div>
 
           {/* Form Header */}
@@ -272,11 +246,11 @@ export default function AuthPage() {
             <AnimatePresence mode="wait">
               <motion.div
                 key={mode}
-                initial={{ opacity: 0, y: 10 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
+                exit={{ opacity: 0, y: -8 }}
               >
-                <h2 className="font-display text-3xl font-bold mb-2">
+                <h2 className="font-display text-2xl font-bold mb-2">
                   {mode === "login" && "Welcome back"}
                   {mode === "signup" && "Create your account"}
                   {mode === "forgot" && "Reset password"}
@@ -295,9 +269,9 @@ export default function AuthPage() {
             <div className="mb-6">
               <Button
                 type="button"
-                variant="glass"
+                variant="outline"
                 size="lg"
-                className="w-full h-12 text-base font-medium hover:shadow-md"
+                className="w-full h-11 text-base font-medium"
                 onClick={handleGoogleSignIn}
                 disabled={isLoading}
               >
@@ -312,17 +286,17 @@ export default function AuthPage() {
               
               <div className="relative my-6">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border/50" />
+                  <div className="w-full border-t border-border" />
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background/80 backdrop-blur-sm px-4 text-muted-foreground font-medium rounded-full">or</span>
+                  <span className="bg-background px-4 text-muted-foreground font-medium">or</span>
                 </div>
               </div>
             </div>
           )}
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <AnimatePresence mode="wait">
               {mode === "signup" && (
                 <motion.div
@@ -334,14 +308,14 @@ export default function AuthPage() {
                 >
                   <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
                   <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                     <Input
                       id="name"
                       placeholder="John Doe"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className={cn(
-                        "h-12 pl-12 text-base border-2 focus:border-primary",
+                        "h-11 pl-10 text-base",
                         errors.name && "border-destructive focus:border-destructive"
                       )}
                     />
@@ -359,7 +333,7 @@ export default function AuthPage() {
             <div className="space-y-2">
               <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   id="email"
                   type="email"
@@ -367,7 +341,7 @@ export default function AuthPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className={cn(
-                    "h-12 pl-12 text-base border-2 focus:border-primary",
+                    "h-11 pl-10 text-base",
                     errors.email && "border-destructive focus:border-destructive"
                   )}
                 />
@@ -395,7 +369,7 @@ export default function AuthPage() {
                   )}
                 </div>
                 <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
@@ -403,16 +377,16 @@ export default function AuthPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className={cn(
-                      "h-12 pl-12 pr-12 text-base border-2 focus:border-primary",
+                      "h-11 pl-10 pr-10 text-base",
                       errors.password && "border-destructive focus:border-destructive"
                     )}
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
                 {errors.password && (
@@ -427,69 +401,45 @@ export default function AuthPage() {
             <Button
               type="submit"
               size="lg"
-              className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+              className="w-full h-11 text-base font-medium mt-6"
               disabled={isLoading}
             >
               {isLoading ? (
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                  Processing...
-                </div>
+                <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
               ) : (
-                <span className="flex items-center gap-2">
+                <>
                   {mode === "login" && "Sign In"}
                   {mode === "signup" && "Create Account"}
                   {mode === "forgot" && "Send Reset Link"}
-                  <ArrowRight className="w-5 h-5" />
-                </span>
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
               )}
             </Button>
           </form>
 
-          {/* Mode switch */}
-          <div className="mt-8 text-center">
-            {mode === "login" && (
-              <p className="text-muted-foreground">
-                Don't have an account?{" "}
-                <button
-                  onClick={() => setMode("signup")}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Sign up for free
-                </button>
-              </p>
-            )}
-            {mode === "signup" && (
-              <p className="text-muted-foreground">
-                Already have an account?{" "}
-                <button
-                  onClick={() => setMode("login")}
-                  className="text-primary font-semibold hover:underline"
-                >
-                  Sign in
-                </button>
-              </p>
-            )}
-            {mode === "forgot" && (
+          {/* Mode Switch */}
+          <div className="mt-6 text-center">
+            {mode === "forgot" ? (
               <button
                 onClick={() => setMode("login")}
-                className="text-primary font-semibold hover:underline inline-flex items-center gap-2"
+                className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back to sign in
               </button>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {mode === "login" ? "Don't have an account? " : "Already have an account? "}
+                <button
+                  type="button"
+                  onClick={() => setMode(mode === "login" ? "signup" : "login")}
+                  className="text-primary hover:underline font-medium"
+                >
+                  {mode === "login" ? "Sign up" : "Sign in"}
+                </button>
+              </p>
             )}
           </div>
-
-          {/* Terms */}
-          {mode === "signup" && (
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              By creating an account, you agree to our{" "}
-              <a href="#" className="underline hover:text-foreground">Terms of Service</a>
-              {" "}and{" "}
-              <a href="#" className="underline hover:text-foreground">Privacy Policy</a>
-            </p>
-          )}
         </motion.div>
       </div>
     </div>

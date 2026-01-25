@@ -33,13 +33,13 @@ interface MaterialCardProps {
   onSettings: () => void;
 }
 
-const fileTypeConfig: Record<string, { icon: typeof FileText; gradient: string; bgColor: string; label: string }> = {
-  pdf: { icon: FileText, gradient: 'from-red-500/20 via-red-500/10 to-transparent', bgColor: 'bg-red-500/12', label: 'PDF' },
-  docx: { icon: FileText, gradient: 'from-blue-500/20 via-blue-500/10 to-transparent', bgColor: 'bg-blue-500/12', label: 'Word' },
-  pptx: { icon: FileSpreadsheet, gradient: 'from-orange-500/20 via-orange-500/10 to-transparent', bgColor: 'bg-orange-500/12', label: 'PowerPoint' },
-  audio: { icon: FileAudio, gradient: 'from-purple-500/20 via-purple-500/10 to-transparent', bgColor: 'bg-purple-500/12', label: 'Audio' },
-  image: { icon: FileImage, gradient: 'from-green-500/20 via-green-500/10 to-transparent', bgColor: 'bg-green-500/12', label: 'Image' },
-  other: { icon: FileText, gradient: 'from-muted-foreground/20 via-muted/10 to-transparent', bgColor: 'bg-muted/30', label: 'File' },
+const fileTypeConfig: Record<string, { icon: typeof FileText; bgColor: string; label: string }> = {
+  pdf: { icon: FileText, bgColor: 'bg-red-500/10', label: 'PDF' },
+  docx: { icon: FileText, bgColor: 'bg-blue-500/10', label: 'Word' },
+  pptx: { icon: FileSpreadsheet, bgColor: 'bg-orange-500/10', label: 'PowerPoint' },
+  audio: { icon: FileAudio, bgColor: 'bg-purple-500/10', label: 'Audio' },
+  image: { icon: FileImage, bgColor: 'bg-green-500/10', label: 'Image' },
+  other: { icon: FileText, bgColor: 'bg-muted', label: 'File' },
 };
 
 const statusConfig: Record<string, { icon: typeof Loader2; color: string; bgColor: string; label: string }> = {
@@ -58,45 +58,33 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
 
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.01 }}
-      whileTap={{ scale: 0.98, y: 0 }}
+      whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="group relative bg-card/80 backdrop-blur-sm border border-border/40 rounded-2xl overflow-hidden hover:border-primary/25 hover:shadow-lg transition-all duration-300 cursor-pointer"
+      className="relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer"
       onClick={() => {
         haptics.selection();
         onClick();
       }}
     >
-      {/* File Type Banner with gradient */}
-      <div className={cn('relative h-24 flex items-center justify-center overflow-hidden', fileConfig.bgColor)}>
-        {/* Decorative gradient orb */}
-        <div className={cn("absolute inset-0 bg-gradient-to-br", fileConfig.gradient)} />
-        <div className="absolute top-0 right-0 w-24 h-24 rounded-full blur-2xl opacity-60 -translate-y-1/2 translate-x-1/4 bg-gradient-to-br from-white/20 to-transparent" />
-        
-        <motion.div
-          initial={{ scale: 1 }}
-          whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-          transition={{ duration: 0.3 }}
-          className="relative"
-        >
-          <FileIcon className="w-12 h-12 opacity-80" />
-        </motion.div>
+      {/* File Type Banner */}
+      <div className={cn('h-20 flex items-center justify-center', fileConfig.bgColor)}>
+        <FileIcon className="w-10 h-10 opacity-70" />
       </div>
 
       {/* Content */}
       <div className="p-4 space-y-3">
         {/* Title */}
-        <h3 className="font-semibold text-foreground line-clamp-2 group-hover:text-primary transition-colors duration-200">
+        <h3 className="font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors">
           {material.title}
         </h3>
 
         {/* Meta Info */}
         <div className="flex items-center gap-2 flex-wrap">
-          <Badge variant="secondary" className="text-xs rounded-full px-2.5">
+          <Badge variant="secondary" className="text-xs">
             {fileConfig.label}
           </Badge>
           {material.subject && (
-            <Badge variant="outline" className="text-xs rounded-full px-2.5">
+            <Badge variant="outline" className="text-xs">
               {material.subject}
             </Badge>
           )}
@@ -108,11 +96,11 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
             <StatusIcon className={cn('w-3.5 h-3.5', status.color, material.processing_status === 'processing' && 'animate-spin')} />
             <span className={status.color}>{status.label}</span>
           </div>
-          <span className="opacity-75">{formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}</span>
+          <span>{formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}</span>
         </div>
       </div>
 
-      {/* Actions - Always visible on mobile */}
+      {/* Actions */}
       <div 
         className={cn(
           "absolute top-2 right-2 transition-opacity duration-200",
@@ -124,14 +112,14 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
           <DropdownMenuTrigger asChild>
             <Button 
               variant="secondary" 
-              size="icon" 
-              className="h-9 w-9 rounded-xl shadow-sm backdrop-blur-sm"
+              size="sm" 
+              className="h-8 w-8 p-0"
               onClick={() => haptics.selection()}
             >
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-44">
+          <DropdownMenuContent align="end" className="w-40">
             <DropdownMenuItem onClick={onSettings}>
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -146,19 +134,12 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
 
       {/* Processing Overlay */}
       {material.processing_status === 'processing' && (
-        <motion.div 
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="absolute inset-0 bg-background/85 backdrop-blur-sm flex items-center justify-center"
-        >
-          <div className="text-center space-y-3">
-            <div className="relative">
-              <div className="absolute inset-0 rounded-full blur-md bg-primary/20 animate-pulse" />
-              <Loader2 className="relative w-10 h-10 animate-spin text-primary" />
-            </div>
+        <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+          <div className="text-center space-y-2">
+            <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
             <p className="text-sm font-medium">Processing...</p>
           </div>
-        </motion.div>
+        </div>
       )}
     </motion.div>
   );
