@@ -219,36 +219,37 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
   };
 
   const ViewerToolbar = () => (
-    <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-background/50 backdrop-blur-sm">
-      <div className="flex items-center gap-2">
-        {/* Zoom Controls */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => setZoom(Math.max(50, zoom - 10))}
-          disabled={zoom <= 50}
-        >
-          <ZoomOut className="w-4 h-4" />
-        </Button>
-        <span className="text-sm text-muted-foreground w-12 text-center">{zoom}%</span>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="h-8 w-8"
-          onClick={() => setZoom(Math.min(200, zoom + 10))}
-          disabled={zoom >= 200}
-        >
-          <ZoomIn className="w-4 h-4" />
-        </Button>
-
-        <div className="w-px h-6 bg-border mx-2" />
+    <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-background/50 backdrop-blur-sm">
+      <div className="flex items-center gap-1 sm:gap-2">
+        {/* Zoom Controls - Hidden on mobile, use pinch-to-zoom */}
+        <div className="hidden sm:flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 min-h-[40px] min-w-[40px]"
+            onClick={() => setZoom(Math.max(50, zoom - 10))}
+            disabled={zoom <= 50}
+          >
+            <ZoomOut className="w-4 h-4" />
+          </Button>
+          <span className="text-sm text-muted-foreground w-12 text-center">{zoom}%</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-10 w-10 min-h-[40px] min-w-[40px]"
+            onClick={() => setZoom(Math.min(200, zoom + 10))}
+            disabled={zoom >= 200}
+          >
+            <ZoomIn className="w-4 h-4" />
+          </Button>
+          <div className="w-px h-6 bg-border mx-2" />
+        </div>
 
         {/* Search Toggle */}
         <Button
           variant={showSearch ? "secondary" : "ghost"}
           size="icon"
-          className="h-8 w-8"
+          className="h-10 w-10 min-h-[40px] min-w-[40px]"
           onClick={() => {
             setShowSearch(!showSearch);
             if (!showSearch) setSearchQuery("");
@@ -262,7 +263,7 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
           <Button
             variant="ghost"
             size="icon"
-            className="h-8 w-8"
+            className="h-10 w-10 min-h-[40px] min-w-[40px]"
             onClick={handleDownload}
             disabled={isDownloading}
           >
@@ -270,11 +271,11 @@ export default function MaterialViewer({ material }: MaterialViewerProps) {
           </Button>
         )}
 
-        {/* Fullscreen */}
+        {/* Fullscreen - Hidden on mobile */}
         <Button
           variant="ghost"
           size="icon"
-          className="h-8 w-8"
+          className="hidden sm:flex h-10 w-10 min-h-[40px] min-w-[40px]"
           onClick={() => setIsFullscreen(true)}
         >
           <Maximize2 className="w-4 h-4" />

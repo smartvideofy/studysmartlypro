@@ -141,9 +141,9 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
 
   const SummaryContent = ({ inDialog = false }: { inDialog?: boolean }) => (
     <ScrollArea className={inDialog ? "h-[80vh]" : "h-full"}>
-      <div className="p-6">
+      <div className="p-4 sm:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between mb-6">
           <div>
             <h3 className="font-semibold flex items-center gap-2">
               <FileText className="w-5 h-5 text-primary" />
@@ -156,17 +156,17 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2"
+                className="gap-2 h-9 min-h-[36px] hidden sm:flex"
                 onClick={() => setIsFullscreen(true)}
               >
                 <Maximize2 className="w-4 h-4" />
-                Fullscreen
+                <span className="hidden md:inline">Fullscreen</span>
               </Button>
             )}
             <Button 
               variant="outline" 
               size="sm" 
-              className="gap-2"
+              className="gap-2 h-9 min-h-[36px]"
               onClick={handleRegenerate}
               disabled={regenerate.isPending}
             >
@@ -175,25 +175,25 @@ export default function SummariesTab({ materialId }: SummariesTabProps) {
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Regenerate
+              <span className="hidden sm:inline">Regenerate</span>
             </Button>
           </div>
         </div>
 
         {/* Summary Types */}
         <Tabs value={activeType} onValueChange={setActiveType}>
-          <TabsList className="w-full mb-6">
-            <TabsTrigger value="quick" className="flex-1 gap-2" disabled={!quickSummary}>
-              <Clock className="w-4 h-4" />
-              Quick (2 min)
+          <TabsList className="w-full mb-6 h-auto flex-wrap">
+            <TabsTrigger value="quick" className="flex-1 gap-1.5 min-w-0 py-2.5" disabled={!quickSummary}>
+              <Clock className="w-4 h-4 shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Quick</span>
             </TabsTrigger>
-            <TabsTrigger value="detailed" className="flex-1 gap-2" disabled={!detailedSummary}>
-              <AlignLeft className="w-4 h-4" />
-              Detailed
+            <TabsTrigger value="detailed" className="flex-1 gap-1.5 min-w-0 py-2.5" disabled={!detailedSummary}>
+              <AlignLeft className="w-4 h-4 shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Detailed</span>
             </TabsTrigger>
-            <TabsTrigger value="bullet_points" className="flex-1 gap-2" disabled={!bulletSummary}>
-              <List className="w-4 h-4" />
-              Key Points
+            <TabsTrigger value="bullet_points" className="flex-1 gap-1.5 min-w-0 py-2.5" disabled={!bulletSummary}>
+              <List className="w-4 h-4 shrink-0" />
+              <span className="truncate text-xs sm:text-sm">Points</span>
             </TabsTrigger>
           </TabsList>
 
