@@ -34,54 +34,16 @@ export function EmptyState({
         className
       )}
     >
-      {/* Animated Icon Container */}
+      {/* Clean Icon Container */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1, duration: 0.4 }}
-        className="relative mb-6"
+        className="mb-6"
       >
-        {/* Decorative rings */}
-        <motion.div
-          animate={{
-            scale: [1, 1.1, 1],
-            opacity: [0.3, 0.1, 0.3],
-          }}
-          transition={{
-            duration: 3,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="absolute inset-0 w-24 h-24 rounded-full bg-gradient-to-br from-primary/20 to-accent/10 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2"
-        />
-        <motion.div
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.2, 0.05, 0.2],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: "easeInOut",
-            delay: 0.5,
-          }}
-          className="absolute inset-0 w-32 h-32 rounded-full bg-gradient-to-br from-primary/10 to-accent/5 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2"
-        />
-        
-        {/* Main icon container */}
-        <motion.div
-          animate={{
-            y: [0, -4, 0],
-          }}
-          transition={{
-            duration: 2.5,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-          className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-muted/80 to-muted/40 backdrop-blur-sm border border-border/50 flex items-center justify-center shadow-soft"
-        >
-          <Icon className="w-9 h-9 text-muted-foreground/70" strokeWidth={1.5} />
-        </motion.div>
+        <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center">
+          <Icon className="w-10 h-10 text-muted-foreground/50" strokeWidth={1.5} />
+        </div>
       </motion.div>
 
       {/* Text content */}

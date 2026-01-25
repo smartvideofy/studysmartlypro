@@ -120,17 +120,17 @@ export default function GroupsPage() {
     return GraduationCap;
   };
 
-  // Get gradient colors for group cards
-  const getGroupGradient = (index: number) => {
-    const gradients = [
-      'from-violet-500/20 to-purple-500/20',
-      'from-blue-500/20 to-cyan-500/20',
-      'from-emerald-500/20 to-teal-500/20',
-      'from-orange-500/20 to-amber-500/20',
-      'from-pink-500/20 to-rose-500/20',
-      'from-indigo-500/20 to-blue-500/20',
+  // Get subtle background colors for group cards using design tokens
+  const getGroupBg = (index: number) => {
+    const backgrounds = [
+      'bg-primary/8',
+      'bg-primary/6',
+      'bg-success/8',
+      'bg-accent/8',
+      'bg-primary/10',
+      'bg-muted/50',
     ];
-    return gradients[index % gradients.length];
+    return backgrounds[index % backgrounds.length];
   };
 
   if (isLoading) {
@@ -291,13 +291,15 @@ export default function GroupsPage() {
             </div>
           ) : (
             <Card variant="elevated" className="p-8 text-center">
-              <Users className="w-12 h-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h4 className="font-medium mb-2">No groups yet</h4>
-              <p className="text-sm text-muted-foreground mb-4">
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center">
+                <Users className="w-10 h-10 text-muted-foreground/50" />
+              </div>
+              <h4 className="font-display font-semibold text-lg mb-2">No groups yet</h4>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                 Create a study group or join a public one to get started.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button variant="outline" onClick={() => setShowCreateModal(true)}>
+                <Button onClick={() => setShowCreateModal(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Group
                 </Button>
@@ -316,8 +318,8 @@ export default function GroupsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <Globe className="w-5 h-5 text-primary" />
+                    <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
+                      <Globe className="w-5 h-5 text-success" />
                     </div>
                     Discover Study Groups
                   </CardTitle>
@@ -367,10 +369,10 @@ export default function GroupsPage() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
-                        className={`group relative p-4 rounded-xl bg-gradient-to-br ${getGroupGradient(index)} border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300`}
+                        className={`group relative p-4 rounded-xl ${getGroupBg(index)} border border-border hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
                       >
                         <div className="flex items-start gap-3 mb-3">
-                          <div className="w-12 h-12 rounded-xl bg-background/80 backdrop-blur-sm flex items-center justify-center shadow-sm">
+                          <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm">
                             <GroupIcon className="w-6 h-6 text-primary" />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -397,7 +399,7 @@ export default function GroupsPage() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          className="w-full bg-background/80 backdrop-blur-sm hover:bg-primary hover:text-primary-foreground transition-all"
+                          className="w-full bg-card hover:bg-primary hover:text-primary-foreground transition-all"
                           onClick={() => handleJoinGroup(group.id)}
                           disabled={joinGroup.isPending}
                         >

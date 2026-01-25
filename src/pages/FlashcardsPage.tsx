@@ -155,10 +155,10 @@ export default function FlashcardsPage() {
             className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
           >
             {[
-              { icon: Layers, label: "Total Cards", value: totalCards, color: "text-primary", bg: "bg-primary/10" },
-              { icon: CheckCircle2, label: "Mastered", value: totalMastered, color: "text-success", bg: "bg-success/10" },
-              { icon: Target, label: "Due Today", value: totalDue, color: "text-accent", bg: "bg-accent/10" },
-              { icon: Brain, label: "Decks", value: decks?.length || 0, color: "text-primary", bg: "bg-primary/10" },
+              { icon: Layers, label: "Total Cards", value: totalCards, color: "text-primary", bg: "bg-primary/15" },
+              { icon: CheckCircle2, label: "Mastered", value: totalMastered, color: "text-success", bg: "bg-success/15" },
+              { icon: Target, label: "Due Today", value: totalDue, color: "text-accent", bg: "bg-accent/15" },
+              { icon: Brain, label: "Decks", value: decks?.length || 0, color: "text-primary", bg: "bg-primary/15" },
             ].map((stat) => (
               <motion.div
                 key={stat.label}
@@ -254,8 +254,8 @@ export default function FlashcardsPage() {
               </div>
             ) : decks && decks.length === 0 ? (
               <div className="text-center py-16">
-                <div className="w-16 h-16 mx-auto mb-6 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Layers className="w-8 h-8 text-primary" />
+                <div className="w-20 h-20 mx-auto mb-6 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center">
+                  <Layers className="w-10 h-10 text-muted-foreground/50" />
                 </div>
                 <h3 className="font-display text-xl font-semibold mb-2">No decks yet</h3>
                 <p className="text-muted-foreground mb-6 max-w-sm mx-auto">
