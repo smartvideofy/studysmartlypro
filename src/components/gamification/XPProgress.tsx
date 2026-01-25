@@ -38,17 +38,12 @@ export function XPProgress({ compact = false }: XPProgressProps) {
   }
 
   return (
-    <Card className="p-4 bg-gradient-to-br from-primary/5 via-transparent to-accent/5">
+    <Card className="p-4">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <motion.div
-            initial={{ scale: 0.8 }}
-            animate={{ scale: 1 }}
-            className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent 
-                       flex items-center justify-center text-white font-bold text-lg"
-          >
+          <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
             {profile.level}
-          </motion.div>
+          </div>
           <div>
             <p className="font-semibold">Level {profile.level}</p>
             <p className="text-sm text-muted-foreground">
@@ -60,7 +55,7 @@ export function XPProgress({ compact = false }: XPProgressProps) {
         <div className="flex items-center gap-4">
           {profile.streak_days > 0 && (
             <div className="flex items-center gap-1.5">
-              <Flame className="w-5 h-5 text-destructive" />
+              <Flame className="w-5 h-5 text-orange-500" />
               <span className="font-bold">{profile.streak_days}</span>
               <span className="text-sm text-muted-foreground">day streak</span>
             </div>
@@ -77,11 +72,7 @@ export function XPProgress({ compact = false }: XPProgressProps) {
       </div>
 
       {dailyChallenge && !dailyChallenge.completed && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20"
-        >
+        <div className="mt-4 p-3 rounded-lg bg-accent/10 border border-accent/20">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Trophy className="w-4 h-4 text-accent" />
@@ -103,7 +94,7 @@ export function XPProgress({ compact = false }: XPProgressProps) {
               {dailyChallenge.current_value} / {dailyChallenge.target_value}
             </span>
           </div>
-        </motion.div>
+        </div>
       )}
     </Card>
   );
@@ -150,18 +141,17 @@ export function AchievementBadge({
   };
 
   return (
-    <motion.div
-      whileHover={{ scale: 1.05 }}
+    <div
       className={cn(
-        "rounded-full flex items-center justify-center",
+        "rounded-full flex items-center justify-center transition-transform hover:scale-105",
         sizeClasses[size],
-        earned ? getTierGradient(tier) : "bg-muted",
+        earned ? getTierColor(tier) : "bg-muted",
         !earned && "opacity-40 grayscale"
       )}
       title={name}
     >
       <IconComponent className={cn(iconSizes[size], earned ? "text-white" : "text-muted-foreground")} />
-    </motion.div>
+    </div>
   );
 }
 
@@ -180,17 +170,17 @@ function getIconComponent(icon: string) {
   }
 }
 
-function getTierGradient(tier: string): string {
+function getTierColor(tier: string): string {
   switch (tier) {
     case "bronze":
-      return "bg-gradient-to-br from-amber-600 to-amber-800";
+      return "bg-amber-600";
     case "silver":
-      return "bg-gradient-to-br from-slate-400 to-slate-600";
+      return "bg-slate-500";
     case "gold":
-      return "bg-gradient-to-br from-yellow-400 to-yellow-600";
+      return "bg-yellow-500";
     case "platinum":
-      return "bg-gradient-to-br from-purple-400 to-purple-600";
+      return "bg-purple-500";
     default:
-      return "bg-gradient-to-br from-primary to-primary/80";
+      return "bg-primary";
   }
 }

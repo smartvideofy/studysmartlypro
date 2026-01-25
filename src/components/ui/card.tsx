@@ -3,18 +3,18 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const cardVariants = cva(
-  "rounded-2xl border text-card-foreground transition-all duration-300",
+  "rounded-xl border text-card-foreground transition-all duration-200",
   {
     variants: {
       variant: {
-        default: "bg-card border-border shadow-soft",
-        elevated: "bg-card border-border shadow-medium hover:shadow-large",
-        glass: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-[var(--glass-shine)] before:pointer-events-none before:rounded-[inherit]",
-        interactive: "bg-[hsl(var(--glass-bg))] backdrop-blur-xl border-[hsl(var(--glass-border))] shadow-soft hover:shadow-card-hover hover:border-primary/25 hover:-translate-y-1 cursor-pointer",
-        feature: "bg-card border-border shadow-soft overflow-hidden relative",
-        gradient: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-mesh before:pointer-events-none",
-        premium: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass hover:shadow-card-hover hover:border-primary/30 relative overflow-hidden before:absolute before:inset-0 before:bg-[var(--glass-shine)] before:pointer-events-none",
-        spotlight: "bg-[hsl(var(--glass-bg))] backdrop-blur-2xl border-[hsl(var(--glass-border))] shadow-glass relative overflow-hidden before:absolute before:inset-0 before:bg-gradient-to-br before:from-primary/8 before:via-transparent before:to-accent/6 before:pointer-events-none",
+        default: "bg-card border-border shadow-sm",
+        elevated: "bg-card border-border shadow-md hover:shadow-lg",
+        interactive: "bg-card border-border shadow-sm hover:shadow-md hover:border-primary/20 cursor-pointer",
+        glass: "bg-card border-border shadow-sm",
+        gradient: "bg-card border-border shadow-sm",
+        premium: "bg-card border-border shadow-sm hover:shadow-md",
+        spotlight: "bg-card border-border shadow-sm",
+        feature: "bg-card border-border shadow-sm overflow-hidden relative",
       },
     },
     defaultVariants: {
@@ -44,7 +44,7 @@ const CardHeader = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex flex-col space-y-1.5 p-6", className)}
+    className={cn("flex flex-col space-y-1.5 p-5", className)}
     {...props}
   />
 ));
@@ -56,7 +56,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h3
     ref={ref}
-    className={cn("font-display text-xl font-semibold leading-none tracking-tight", className)}
+    className={cn("font-display text-lg font-semibold leading-none tracking-tight", className)}
     {...props}
   />
 ));
@@ -78,7 +78,7 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
-  <div ref={ref} className={cn("p-6 pt-0", className)} {...props} />
+  <div ref={ref} className={cn("p-5 pt-0", className)} {...props} />
 ));
 CardContent.displayName = "CardContent";
 
@@ -88,7 +88,7 @@ const CardFooter = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("flex items-center p-6 pt-0", className)}
+    className={cn("flex items-center p-5 pt-0", className)}
     {...props}
   />
 ));

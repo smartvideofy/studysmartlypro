@@ -31,11 +31,11 @@ interface FlashcardDeckCardProps {
 }
 
 const deckColors = [
-  { bg: "bg-primary/12", text: "text-primary", gradient: "from-primary/25 via-primary/10 to-transparent", glow: "shadow-[0_0_20px_-4px_hsl(var(--primary)/0.3)]" },
-  { bg: "bg-success/12", text: "text-success", gradient: "from-success/25 via-success/10 to-transparent", glow: "shadow-[0_0_20px_-4px_hsl(var(--success)/0.3)]" },
-  { bg: "bg-accent/12", text: "text-accent", gradient: "from-accent/25 via-accent/10 to-transparent", glow: "shadow-[0_0_20px_-4px_hsl(var(--accent)/0.3)]" },
-  { bg: "bg-[hsl(280,60%,55%)]/12", text: "text-[hsl(280,60%,55%)]", gradient: "from-[hsl(280,60%,55%)]/25 via-[hsl(280,60%,55%)]/10 to-transparent", glow: "shadow-[0_0_20px_-4px_hsl(280,60%,55%,0.3)]" },
-  { bg: "bg-[hsl(190,70%,45%)]/12", text: "text-[hsl(190,70%,45%)]", gradient: "from-[hsl(190,70%,45%)]/25 via-[hsl(190,70%,45%)]/10 to-transparent", glow: "shadow-[0_0_20px_-4px_hsl(190,70%,45%,0.3)]" },
+  { bg: "bg-primary/10", text: "text-primary" },
+  { bg: "bg-success/10", text: "text-success" },
+  { bg: "bg-accent/10", text: "text-accent" },
+  { bg: "bg-purple-500/10", text: "text-purple-600 dark:text-purple-400" },
+  { bg: "bg-cyan-500/10", text: "text-cyan-600 dark:text-cyan-400" },
 ];
 
 export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDeckCardProps) {
@@ -43,45 +43,29 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
 
   return (
     <motion.div
-      whileHover={{ y: -6, scale: 1.01 }}
-      whileTap={{ scale: 0.98, y: 0 }}
+      whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="group"
       onClick={() => haptics.selection()}
     >
       <div className={cn(
-        "relative overflow-hidden rounded-2xl bg-card/80 backdrop-blur-sm border border-border/40 transition-all duration-300",
-        "hover:border-primary/25 hover:shadow-lg"
+        "relative overflow-hidden rounded-xl bg-card border border-border transition-all duration-200",
+        "hover:shadow-md hover:border-primary/20"
       )}>
-        {/* Stacked cards effect */}
-        <div className="absolute -bottom-1 left-2 right-2 h-2 rounded-b-xl bg-card/40 border-x border-b border-border/20 -z-10" />
-        <div className="absolute -bottom-2 left-4 right-4 h-2 rounded-b-xl bg-card/20 border-x border-b border-border/10 -z-20" />
+        {/* Color accent bar */}
+        <div className={cn("h-1 w-full", colorScheme.bg.replace('/10', '/30'))} />
         
-        {/* Gradient accent bar with glow */}
-        <div className={cn("relative h-1.5 w-full bg-gradient-to-r", colorScheme.gradient)}>
-          <div className={cn("absolute inset-0 blur-sm", colorScheme.gradient)} />
-        </div>
-        
-        {/* Decorative gradient orb */}
-        <div className={cn("absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/4 pointer-events-none bg-gradient-to-br", colorScheme.gradient)} />
-        
-        <div className="relative p-5">
+        <div className="p-5">
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
-            <Link to={`/flashcards/${deck.id}`} className="flex items-center gap-3.5 flex-1 min-w-0">
-              <motion.div 
-                className={cn(
-                  "relative w-13 h-13 rounded-xl flex items-center justify-center shrink-0 transition-shadow duration-300",
-                  colorScheme.bg,
-                  "group-hover:" + colorScheme.glow
-                )}
-                whileHover={{ rotate: [0, -5, 5, 0] }}
-                transition={{ duration: 0.4 }}
-              >
-                <Layers className={cn("w-6 h-6", colorScheme.text)} />
-              </motion.div>
+            <Link to={`/flashcards/${deck.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+              <div className={cn(
+                "w-11 h-11 rounded-lg flex items-center justify-center shrink-0",
+                colorScheme.bg
+              )}>
+                <Layers className={cn("w-5 h-5", colorScheme.text)} />
+              </div>
               <div className="min-w-0 flex-1">
-                <h3 className="font-display font-semibold text-lg truncate group-hover:text-primary transition-colors duration-200">
+                <h3 className="font-semibold text-base truncate hover:text-primary transition-colors">
                   {deck.name}
                 </h3>
                 <p className="text-sm text-muted-foreground truncate">
@@ -94,8 +78,8 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
               <DropdownMenuTrigger asChild>
                 <Button 
                   variant="ghost" 
-                  size="icon-sm" 
-                  className="shrink-0 min-w-[44px] min-h-[44px] opacity-100 rounded-xl"
+                  size="sm" 
+                  className="shrink-0 h-9 w-9"
                   onClick={(e) => {
                     e.stopPropagation();
                     haptics.selection();
@@ -104,7 +88,7 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
                   <MoreHorizontal className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
+              <DropdownMenuContent align="end" className="w-44">
                 <DropdownMenuItem onClick={() => onEdit(deck)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Deck
@@ -127,7 +111,7 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
             </DropdownMenu>
           </div>
 
-          {/* Description if exists */}
+          {/* Description */}
           {deck.description && (
             <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
               {deck.description}
@@ -152,16 +136,15 @@ export function FlashcardDeckCard({ deck, index, onEdit, onDelete }: FlashcardDe
           </div>
           
           {/* Footer */}
-          <div className="flex items-center justify-between pt-4 border-t border-border/40">
+          <div className="flex items-center justify-between pt-4 border-t border-border">
             <span className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Clock className="w-3.5 h-3.5" />
               {formatDistanceToNow(new Date(deck.updated_at), { addSuffix: true })}
             </span>
             
             <Button 
-              variant="default" 
               size="sm" 
-              className="gap-1.5 rounded-xl shadow-sm"
+              className="gap-1.5"
               asChild
               onClick={(e) => {
                 e.stopPropagation();
