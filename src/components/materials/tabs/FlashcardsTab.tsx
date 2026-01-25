@@ -282,23 +282,29 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         </div>
 
         {/* Difficulty Breakdown */}
-        <div className="flex gap-4 mb-6">
+        <div className="flex flex-wrap gap-2 sm:gap-4 mb-6">
           {easyCount > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-sm text-muted-foreground">{easyCount} Easy</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {easyCount} <span className="hidden sm:inline">Easy</span>
+              </span>
             </div>
           )}
           {mediumCount > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-yellow-500" />
-              <span className="text-sm text-muted-foreground">{mediumCount} Medium</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {mediumCount} <span className="hidden sm:inline">Medium</span>
+              </span>
             </div>
           )}
           {hardCount > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-red-500" />
-              <span className="text-sm text-muted-foreground">{hardCount} Hard</span>
+              <span className="text-xs sm:text-sm text-muted-foreground">
+                {hardCount} <span className="hidden sm:inline">Hard</span>
+              </span>
             </div>
           )}
         </div>

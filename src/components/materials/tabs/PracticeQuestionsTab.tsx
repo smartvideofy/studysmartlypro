@@ -282,15 +282,15 @@ function QuestionCard({
                 key={optIndex}
                 onClick={() => onSelectAnswer(option)}
                 className={cn(
-                  "w-full flex items-center gap-3 p-3 rounded-lg border text-left transition-all",
+                  "w-full flex items-center gap-3 p-4 rounded-lg border text-left transition-all min-h-[52px]",
                   isSelected && !isRevealed && "border-primary bg-primary/5",
                   isRevealed && isCorrectOption && "border-success bg-success/10",
                   isRevealed && isSelected && !isCorrectOption && "border-destructive bg-destructive/10",
-                  !isSelected && !isRevealed && "border-border hover:border-primary/50"
+                  !isSelected && !isRevealed && "border-border hover:border-primary/50 active:bg-secondary/50"
                 )}
               >
                 <span className={cn(
-                  "w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium shrink-0",
+                  "w-7 h-7 rounded-full flex items-center justify-center text-xs font-medium shrink-0",
                   isSelected && !isRevealed && "bg-primary text-primary-foreground",
                   isRevealed && isCorrectOption && "bg-success text-success-foreground",
                   isRevealed && isSelected && !isCorrectOption && "bg-destructive text-destructive-foreground",
@@ -312,13 +312,14 @@ function QuestionCard({
       )}
 
       {/* Actions */}
-      <div className="flex items-center gap-2 pl-9">
+      <div className="flex items-center gap-2 pl-9 flex-wrap">
         <Button 
           variant="outline" 
           size="sm"
           onClick={onToggleReveal}
+          className="h-9 min-h-[36px]"
         >
-          {isRevealed ? "Hide Answer" : "Reveal Answer"}
+          {isRevealed ? "Hide" : "Reveal"}
         </Button>
         
         {question.explanation && (
@@ -326,10 +327,10 @@ function QuestionCard({
             variant="ghost" 
             size="sm"
             onClick={onToggleExplanation}
-            className="gap-2"
+            className="gap-1.5 h-9 min-h-[36px]"
           >
             <HelpCircle className="w-4 h-4" />
-            Explain
+            <span className="hidden sm:inline">Explain</span>
             {isExplanationExpanded ? (
               <ChevronUp className="w-4 h-4" />
             ) : (

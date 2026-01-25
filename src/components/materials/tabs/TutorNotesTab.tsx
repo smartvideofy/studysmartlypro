@@ -128,9 +128,9 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
 
   const NotesContent = ({ inDialog = false }: { inDialog?: boolean }) => (
     <ScrollArea className={inDialog ? "h-[80vh]" : "h-full"}>
-      <div className="p-6 space-y-4">
+      <div className="p-4 sm:p-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between mb-6">
           <div>
             <h3 className="font-semibold flex items-center gap-2">
               <BookOpen className="w-5 h-5 text-primary" />
@@ -140,29 +140,30 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
               {topicCount} topics • {subtopicCount} subtopics
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button 
               variant="ghost" 
               size="sm"
+              className="h-9 min-h-[36px]"
               onClick={expandedTopics.size > 0 ? collapseAll : expandAll}
             >
-              {expandedTopics.size > 0 ? 'Collapse All' : 'Expand All'}
+              {expandedTopics.size > 0 ? 'Collapse' : 'Expand'}
             </Button>
             {!inDialog && (
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="gap-2"
+                className="gap-2 h-9 min-h-[36px] hidden sm:flex"
                 onClick={() => setIsFullscreen(true)}
               >
                 <Maximize2 className="w-4 h-4" />
-                Fullscreen
+                <span className="hidden md:inline">Fullscreen</span>
               </Button>
             )}
             <Button 
               variant="outline" 
               size="sm" 
-              className="gap-2"
+              className="gap-2 h-9 min-h-[36px]"
               onClick={handleRegenerate}
               disabled={regenerate.isPending}
             >
@@ -171,7 +172,7 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
               ) : (
                 <RefreshCw className="w-4 h-4" />
               )}
-              Regenerate
+              <span className="hidden sm:inline">Regenerate</span>
             </Button>
           </div>
         </div>

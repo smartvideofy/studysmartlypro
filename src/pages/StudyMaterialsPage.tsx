@@ -113,24 +113,24 @@ export default function StudyMaterialsPage() {
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-background p-8 border border-border/50"
+            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 via-accent/5 to-background p-5 sm:p-8 border border-border/50"
           >
             <div className="relative z-10">
-              <h2 className="text-2xl font-display font-bold mb-2">
+              <h2 className="text-xl sm:text-2xl font-display font-bold mb-2">
                 Upload & Learn
               </h2>
-              <p className="text-muted-foreground max-w-lg mb-6">
-                Upload your study materials and let AI generate structured notes, flashcards, and practice questions automatically.
+              <p className="text-muted-foreground max-w-lg mb-5 sm:mb-6 text-sm sm:text-base">
+                Upload your study materials and let AI generate structured notes, flashcards, and practice questions.
               </p>
-              <div className="flex gap-3">
-                <Button onClick={() => setUploadModalOpen(true)} className="gap-2">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button onClick={() => setUploadModalOpen(true)} className="gap-2 w-full sm:w-auto h-11">
                   <Upload className="w-4 h-4" />
                   Upload Material
                 </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => setFolderModalOpen(true)}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto h-11"
                 >
                   <FolderPlus className="w-4 h-4" />
                   New Folder

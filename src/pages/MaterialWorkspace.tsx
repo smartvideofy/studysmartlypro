@@ -89,23 +89,21 @@ export default function MaterialWorkspace() {
         activeStudyTab={activeTab}
         onStudyTabChange={setActiveTab}
       >
-        <div className="flex flex-col h-[calc(100vh-10rem)] -mx-4 overflow-hidden">
+        <div className="flex flex-col h-[calc(100dvh-9rem)] -mx-4 overflow-hidden pb-safe">
           {/* Mobile Panel Toggle */}
-          <div className="flex items-center gap-2 px-4 pb-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
             <Button
               variant={mobilePanel === "viewer" ? "default" : "outline"}
-              size="sm"
               onClick={() => setMobilePanel("viewer")}
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 h-11 min-h-[44px]"
             >
               <Eye className="w-4 h-4" />
               Material
             </Button>
             <Button
               variant={mobilePanel === "tools" ? "default" : "outline"}
-              size="sm"
               onClick={() => setMobilePanel("tools")}
-              className="flex-1 gap-2"
+              className="flex-1 gap-2 h-11 min-h-[44px]"
             >
               <PenTool className="w-4 h-4" />
               Study Tools
@@ -113,18 +111,18 @@ export default function MaterialWorkspace() {
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-9 w-9 shrink-0" 
+              className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0" 
               onClick={() => setShowExportModal(true)}
             >
-              <Download className="w-4 h-4" />
+              <Download className="w-5 h-5" />
             </Button>
             <Button 
               variant="ghost" 
               size="icon" 
-              className="h-9 w-9 shrink-0" 
+              className="h-11 w-11 min-h-[44px] min-w-[44px] shrink-0" 
               onClick={() => navigate(`/materials/${material.id}/settings`)}
             >
-              <Settings className="w-4 h-4" />
+              <Settings className="w-5 h-5" />
             </Button>
           </div>
 

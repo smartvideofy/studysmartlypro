@@ -39,7 +39,26 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Keyboard avoidance for mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.visualViewport) {
+        const heightDiff = window.innerHeight - window.visualViewport.height;
+        setKeyboardHeight(heightDiff > 100 ? heightDiff : 0);
+      }
+    };
+
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.visualViewport?.addEventListener('scroll', handleResize);
+    
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.visualViewport?.removeEventListener('scroll', handleResize);
+    };
+  }, []);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -301,21 +320,24 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
       </ScrollArea>
 
       {/* Input */}
-      <div className="p-4 border-t border-border">
+      <div 
+        className="p-4 border-t border-border pb-safe"
+        style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
+      >
         <div className="flex gap-2">
           <Textarea
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask a question..."
-            className="min-h-[44px] max-h-32 resize-none text-sm"
+            className="min-h-[44px] max-h-32 resize-none text-base sm:text-sm"
             rows={1}
           />
           <Button 
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
             size="icon"
-            className="shrink-0"
+            className="shrink-0 h-11 w-11 min-h-[44px] min-w-[44px]"
           >
             {isLoading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
