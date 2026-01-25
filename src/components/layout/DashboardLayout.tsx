@@ -77,11 +77,11 @@ export default function DashboardLayout({
   const location = useLocation();
   const navigate = useNavigate();
   const { data: profile } = useProfile();
+  const isMobile = useIsMobile();
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
 
-  // CSS-first approach: render both layouts, CSS controls visibility
   return (
     <div className="min-h-screen bg-background bg-gradient-mesh">
       {/* Floating orbs */}
@@ -91,22 +91,23 @@ export default function DashboardLayout({
         <div className="hidden md:block orb orb-success w-64 h-64 bottom-20 left-1/4 animate-orb" style={{ animationDelay: '-2s' }} />
       </div>
 
-      {/* Mobile Header - hidden on md+ */}
-      <div className="md:hidden">
+      {/* Mobile Header - Only render on mobile */}
+      {isMobile && (
         <MobileHeader 
           title={title || "Studily"}
           onMenuClick={() => setMenuOpen(true)}
           onSearchOpen={() => setSearchOpen(true)}
           onUploadClick={() => navigate('/materials')}
         />
-      </div>
+      )}
 
-      {/* Desktop Sidebar - hidden on mobile */}
-      <motion.aside
-        initial={false}
-        animate={{ width: collapsed ? 72 : 260 }}
-        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden md:flex fixed left-0 top-0 bottom-0 z-40 flex-col glass-panel"
+      {/* Desktop Sidebar - Only render on desktop */}
+      {!isMobile && (
+        <motion.aside
+          initial={false}
+          animate={{ width: collapsed ? 72 : 260 }}
+          transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+          className="flex fixed left-0 top-0 bottom-0 z-40 flex-col glass-panel"
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-border/30">
@@ -329,7 +330,8 @@ export default function DashboardLayout({
             <ChevronRight className="w-3.5 h-3.5" />
           </motion.div>
         </motion.button>
-      </motion.aside>
+        </motion.aside>
+      )}
 
       {/* Main Content - Responsive margins */}
       <main
@@ -341,49 +343,51 @@ export default function DashboardLayout({
           collapsed ? "md:ml-[72px]" : "md:ml-[260px]"
         )}
       >
-        {/* Desktop Header - hidden on mobile */}
-        <header className="hidden md:flex sticky top-0 z-30 h-16 items-center px-6 glass-panel border-b border-border/30">
-          <div className="flex-1 flex items-center gap-4">
-            {title && (
-              <h1 className="font-display text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{title}</h1>
-            )}
-          </div>
-          
-          <div className="flex items-center gap-3">
-            {/* Search Button */}
-            <motion.button
-              onClick={() => setSearchOpen(true)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl glass-input text-sm text-muted-foreground hover:border-primary/30 transition-all"
-            >
-              <Search className="w-4 h-4" />
-              <span className="flex-1 text-left">Search...</span>
-              <kbd className="px-2 py-1 bg-secondary/80 rounded-md text-[10px] font-mono font-medium">⌘K</kbd>
-            </motion.button>
+        {/* Desktop Header - Only render on desktop */}
+        {!isMobile && (
+          <header className="flex sticky top-0 z-30 h-16 items-center px-6 glass-panel border-b border-border/30">
+            <div className="flex-1 flex items-center gap-4">
+              {title && (
+                <h1 className="font-display text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{title}</h1>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-3">
+              {/* Search Button */}
+              <motion.button
+                onClick={() => setSearchOpen(true)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl glass-input text-sm text-muted-foreground hover:border-primary/30 transition-all"
+              >
+                <Search className="w-4 h-4" />
+                <span className="flex-1 text-left">Search...</span>
+                <kbd className="px-2 py-1 bg-secondary/80 rounded-md text-[10px] font-mono font-medium">⌘K</kbd>
+              </motion.button>
 
-            {/* Quick Upload */}
-            <Button variant="hero" size="sm" onClick={() => navigate('/materials')} className="shadow-glow-sm">
-              <Upload className="w-4 h-4" />
-              <span>Upload</span>
-            </Button>
+              {/* Quick Upload */}
+              <Button variant="hero" size="sm" onClick={() => navigate('/materials')} className="shadow-glow-sm">
+                <Upload className="w-4 h-4" />
+                <span>Upload</span>
+              </Button>
 
-            {/* Notifications */}
-            <NotificationBell />
+              {/* Notifications */}
+              <NotificationBell />
 
-            {/* Avatar */}
-            <Link to="/settings">
-              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
-                <Avatar className="w-9 h-9 ring-2 ring-border/50 hover:ring-primary/40 transition-all">
-                  <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
-                  <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
-                    {userInitial}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
-            </Link>
-          </div>
-        </header>
+              {/* Avatar */}
+              <Link to="/settings">
+                <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                  <Avatar className="w-9 h-9 ring-2 ring-border/50 hover:ring-primary/40 transition-all">
+                    <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
+                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                      {userInitial}
+                    </AvatarFallback>
+                  </Avatar>
+                </motion.div>
+              </Link>
+            </div>
+          </header>
+        )}
 
         {/* Page Content - Responsive padding */}
         <div className="p-4 md:p-6 relative">
@@ -391,10 +395,8 @@ export default function DashboardLayout({
         </div>
       </main>
 
-      {/* Mobile Bottom Navigation - hidden on md+ */}
-      <div className="md:hidden">
-        <MobileBottomNav />
-      </div>
+      {/* Mobile Bottom Navigation - Only render on mobile */}
+      {isMobile && <MobileBottomNav />}
 
       {/* Mobile Menu Drawer */}
       <MobileMenuDrawer open={menuOpen} onOpenChange={setMenuOpen} />
