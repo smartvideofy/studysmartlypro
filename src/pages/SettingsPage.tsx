@@ -14,7 +14,7 @@ import {
   HelpCircle,
   FileText,
   ExternalLink,
-  Trash2,
+  
   ChevronRight,
   Key,
   ChevronDown,
@@ -80,9 +80,7 @@ export default function SettingsPage() {
   const [preferredTime, setPreferredTime] = useState("morning");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [hasChanges, setHasChanges] = useState(false);
-  const [deletingAccount, setDeletingAccount] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
@@ -110,27 +108,6 @@ export default function SettingsPage() {
     navigate("/auth");
   };
 
-  const handleDeleteAccount = async () => {
-    setDeletingAccount(true);
-    try {
-      // Delete user data from profiles
-      const { error } = await supabase
-        .from('profiles')
-        .delete()
-        .eq('user_id', user?.id);
-      
-      if (error) throw error;
-      
-      // Sign out (actual account deletion requires admin API)
-      toast.success("Account data deleted. Please contact support to complete account deletion.");
-      await signOut();
-      navigate("/auth");
-    } catch (error: any) {
-      toast.error("Failed to delete account: " + error.message);
-    } finally {
-      setDeletingAccount(false);
-    }
-  };
 
   const isDark = theme === "dark";
   const planInfo = subscription ? PLAN_LABELS[subscription.plan] : PLAN_LABELS.free;
@@ -407,31 +384,6 @@ export default function SettingsPage() {
           />
         </Section>
 
-        {/* Danger Zone */}
-        <Section title="Danger Zone">
-          <div className="px-4 py-3 min-h-[48px]">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-destructive">Delete Account</p>
-                <p className="text-xs text-muted-foreground">
-                  Permanently delete your account and all data
-                </p>
-              </div>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-destructive border-destructive/50 hover:bg-destructive/10"
-                onClick={() => {
-                  haptics.warning();
-                  setDeleteDialogOpen(true);
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </div>
-        </Section>
 
         {/* Cancel Subscription Modal */}
         <ResponsiveModal open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
@@ -464,36 +416,6 @@ export default function SettingsPage() {
           </ResponsiveModalFooter>
         </ResponsiveModal>
 
-        {/* Delete Account Modal */}
-        <ResponsiveModal open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <ResponsiveModalHeader>
-            <ResponsiveModalTitle>Delete Account?</ResponsiveModalTitle>
-            <ResponsiveModalDescription>
-              This action cannot be undone. All your notes, flashcards, study materials, 
-              and progress will be permanently deleted.
-            </ResponsiveModalDescription>
-          </ResponsiveModalHeader>
-          <ResponsiveModalFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => {
-                haptics.error();
-                handleDeleteAccount();
-                setDeleteDialogOpen(false);
-              }}
-              disabled={deletingAccount}
-            >
-              {deletingAccount ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                "Delete Account"
-              )}
-            </Button>
-          </ResponsiveModalFooter>
-        </ResponsiveModal>
 
         {/* Save Button */}
         {hasChanges && (
