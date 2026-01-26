@@ -534,10 +534,10 @@ export default function SettingsPage() {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+      <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3 px-1">
         {title}
       </h3>
-      <div className="rounded-xl border border-border bg-card overflow-hidden">
+      <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
         {children}
       </div>
     </div>
@@ -553,9 +553,13 @@ interface SettingRowProps {
 
 function SettingRow({ icon, label, description, children }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 min-h-[48px]">
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5 min-h-[52px]">
       <div className="flex items-center gap-3 min-w-0">
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+        {icon && (
+          <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+            <span className="text-muted-foreground">{icon}</span>
+          </div>
+        )}
         <div className="min-w-0">
           <p className="text-sm font-medium">{label}</p>
           {description && (
@@ -579,9 +583,13 @@ interface LinkRowProps {
 
 function LinkRow({ icon, label, description, onClick, href, external }: LinkRowProps) {
   const content = (
-    <div className="flex items-center justify-between gap-4 px-4 py-3 min-h-[48px] hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted/70">
+    <div className="flex items-center justify-between gap-4 px-4 py-3.5 min-h-[52px] hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted/70">
       <div className="flex items-center gap-3">
-        {icon && <span className="text-muted-foreground">{icon}</span>}
+        {icon && (
+          <div className="w-8 h-8 rounded-lg bg-muted/50 flex items-center justify-center shrink-0">
+            <span className="text-muted-foreground">{icon}</span>
+          </div>
+        )}
         <div>
           <p className="text-sm font-medium">{label}</p>
           {description && (

@@ -83,13 +83,7 @@ export default function DashboardLayout({
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
 
   return (
-    <div className="min-h-screen bg-background bg-gradient-mesh">
-      {/* Floating orbs */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="orb orb-primary w-64 h-64 md:w-96 md:h-96 -top-32 md:-top-48 -left-32 md:-left-48 animate-orb opacity-50 md:opacity-100" />
-        <div className="orb orb-accent w-48 h-48 md:w-80 md:h-80 bottom-20 -right-24 md:top-1/4 md:-right-40 animate-orb opacity-50 md:opacity-100" style={{ animationDelay: '-4s' }} />
-        <div className="hidden md:block orb orb-success w-64 h-64 bottom-20 left-1/4 animate-orb" style={{ animationDelay: '-2s' }} />
-      </div>
+    <div className="min-h-screen bg-background">
 
       {/* Mobile Header - Only render on mobile */}
       {isMobile && (
@@ -107,7 +101,7 @@ export default function DashboardLayout({
           initial={false}
           animate={{ width: collapsed ? 72 : 260 }}
           transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-          className="flex fixed left-0 top-0 bottom-0 z-40 flex-col glass-panel"
+          className="flex fixed left-0 top-0 bottom-0 z-40 flex-col bg-card border-r border-border"
       >
         {/* Logo */}
         <div className="h-16 flex items-center px-4 border-b border-border/30">
@@ -115,7 +109,7 @@ export default function DashboardLayout({
             <motion.div 
               whileHover={{ scale: 1.05, rotate: 5 }}
               whileTap={{ scale: 0.95 }}
-              className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-glow-sm"
+              className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md"
             >
               <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
             </motion.div>
@@ -125,7 +119,7 @@ export default function DashboardLayout({
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
-                  className="font-display text-xl font-bold gradient-text"
+                  className="font-display text-xl font-bold text-foreground"
                 >
                   Studily
                 </motion.span>
@@ -160,7 +154,7 @@ export default function DashboardLayout({
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-primary to-primary/60"
+                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
                       transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                     />
                   )}
@@ -171,7 +165,7 @@ export default function DashboardLayout({
                   >
                     <Icon className={cn(
                       "w-5 h-5 shrink-0 transition-all duration-300",
-                      isActive ? "text-primary icon-glow" : "group-hover:text-primary"
+                      isActive ? "text-primary" : "group-hover:text-primary"
                     )} />
                   </motion.div>
                   <AnimatePresence>
@@ -206,14 +200,14 @@ export default function DashboardLayout({
                 )}
               >
                 <motion.div
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-gradient-to-b from-primary to-primary/60"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
                 />
                 <motion.div
                   whileHover={{ scale: 1.15 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <Brain className="w-5 h-5 shrink-0 text-primary icon-glow" />
+                  <Brain className="w-5 h-5 shrink-0 text-primary" />
                 </motion.div>
                 <AnimatePresence>
                   {!collapsed && (
@@ -318,7 +312,7 @@ export default function DashboardLayout({
         {/* Collapse Button */}
         <motion.button
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-20 w-6 h-6 bg-background/90 backdrop-blur-md border border-border/50 rounded-full flex items-center justify-center hover:bg-primary/10 hover:border-primary/30 transition-all shadow-md"
+          className="absolute -right-3 top-20 w-6 h-6 bg-background border border-border rounded-full flex items-center justify-center hover:bg-primary/10 hover:border-primary/30 transition-all shadow-md"
           whileHover={{ scale: 1.2 }}
           whileTap={{ scale: 0.85 }}
           transition={{ type: "spring", stiffness: 400, damping: 17 }}
@@ -345,7 +339,7 @@ export default function DashboardLayout({
       >
         {/* Desktop Header - Only render on desktop */}
         {!isMobile && (
-          <header className="flex sticky top-0 z-30 h-16 items-center px-6 glass-panel border-b border-border/30">
+          <header className="flex sticky top-0 z-30 h-16 items-center px-6 bg-card border-b border-border">
             <div className="flex-1 flex items-center gap-4">
               {title && (
                 <h1 className="font-display text-xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text">{title}</h1>
@@ -358,7 +352,7 @@ export default function DashboardLayout({
                 onClick={() => setSearchOpen(true)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl glass-input text-sm text-muted-foreground hover:border-primary/30 transition-all"
+                className="flex items-center gap-2 h-10 w-64 pl-4 pr-3 rounded-xl bg-secondary border border-border text-sm text-muted-foreground hover:border-primary/30 transition-all"
               >
                 <Search className="w-4 h-4" />
                 <span className="flex-1 text-left">Search...</span>
@@ -366,7 +360,7 @@ export default function DashboardLayout({
               </motion.button>
 
               {/* Quick Upload */}
-              <Button variant="hero" size="sm" onClick={() => navigate('/materials')} className="shadow-glow-sm">
+              <Button size="sm" onClick={() => navigate('/materials')}>
                 <Upload className="w-4 h-4" />
                 <span>Upload</span>
               </Button>
@@ -379,7 +373,7 @@ export default function DashboardLayout({
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                   <Avatar className="w-9 h-9 ring-2 ring-border/50 hover:ring-primary/40 transition-all">
                     <AvatarImage src={profile?.avatar_url || undefined} alt={profile?.full_name || "User"} />
-                    <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-primary font-semibold text-sm">
+                    <AvatarFallback className="bg-primary/15 text-primary font-semibold text-sm">
                       {userInitial}
                     </AvatarFallback>
                   </Avatar>
