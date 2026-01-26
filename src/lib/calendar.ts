@@ -17,7 +17,7 @@ export function generateICS(event: CalendarEvent): string {
   };
 
   const endDate = new Date(event.start.getTime() + event.durationMinutes * 60 * 1000);
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@studysmartly.app`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@studily.app`;
   
   const escapeText = (text: string) => {
     return text
@@ -30,7 +30,7 @@ export function generateICS(event: CalendarEvent): string {
   const lines = [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',
-    'PRODID:-//StudySmartly//Study Session//EN',
+    'PRODID:-//Studily//Study Session//EN',
     'CALSCALE:GREGORIAN',
     'METHOD:PUBLISH',
     'BEGIN:VEVENT',

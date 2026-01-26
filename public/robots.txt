@@ -14,4 +14,4 @@ User-agent: *
 Allow: /
 
 # Sitemap
-Sitemap: https://studysmartlypro.lovable.app/sitemap.xml
+Sitemap: https://getstudily.com/sitemap.xml

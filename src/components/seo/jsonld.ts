@@ -1,4 +1,4 @@
-const SITE_URL = "https://studysmartlypro.lovable.app";
+const SITE_URL = "https://getstudily.com";
 
 interface ArticleJsonLdProps {
   title: string;
