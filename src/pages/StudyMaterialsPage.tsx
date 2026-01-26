@@ -325,7 +325,7 @@ export default function StudyMaterialsPage() {
                 exit={{ opacity: 0 }}
                 className="flex flex-col items-center justify-center py-16 text-center"
               >
-                <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <div className="w-14 h-14 rounded-xl bg-primary/20 flex items-center justify-center mb-4">
                   <BookOpen className="w-7 h-7 text-primary" />
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No materials yet</h3>

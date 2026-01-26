@@ -8,7 +8,7 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default: "border-transparent bg-primary text-primary-foreground shadow-sm hover:bg-primary-hover",
-        secondary: "border-border/50 bg-secondary/80 backdrop-blur-sm text-secondary-foreground hover:bg-secondary",
+        secondary: "border-border/50 bg-secondary/80 backdrop-blur-sm text-foreground/80 hover:bg-secondary",
         destructive: "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90",
         outline: "text-foreground border-border/50 bg-background/50 backdrop-blur-sm",
         success: "border-transparent bg-gradient-to-r from-success to-success/90 text-success-foreground shadow-sm",
@@ -21,6 +21,7 @@ const badgeVariants = cva(
         "outline-accent": "border-accent/30 bg-accent/10 text-accent backdrop-blur-sm",
         glow: "border-transparent bg-primary text-primary-foreground shadow-glow-sm animate-pulse-soft",
         glass: "border-[hsl(var(--glass-border))] bg-[hsl(var(--glass-bg))] backdrop-blur-xl text-foreground",
+        "primary-soft": "border-transparent bg-primary/15 text-primary font-medium",
       },
     },
     defaultVariants: {

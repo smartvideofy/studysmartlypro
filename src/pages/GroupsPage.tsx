@@ -318,7 +318,7 @@ export default function GroupsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <CardTitle className="flex items-center gap-2 text-xl">
-                    <div className="w-10 h-10 rounded-xl bg-success/15 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center">
                       <Globe className="w-5 h-5 text-success" />
                     </div>
                     Discover Study Groups

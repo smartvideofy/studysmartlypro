@@ -246,10 +246,10 @@ export default function Dashboard() {
           className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
         >
           {[
-            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/15", path: "/materials", isTime: false },
-            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/15", path: "/flashcards", isTime: false },
-            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/15", path: "/progress", isTime: false },
-            { icon: Clock, label: "Study Time", value: stats?.totalTimeMinutes || 0, color: "text-primary", bg: "bg-primary/15", path: "/progress", isTime: true },
+            { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/20", path: "/materials", isTime: false },
+            { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/20", path: "/flashcards", isTime: false },
+            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/20", path: "/progress", isTime: false },
+            { icon: Clock, label: "Study Time", value: stats?.totalTimeMinutes || 0, color: "text-primary", bg: "bg-primary/20", path: "/progress", isTime: true },
           ].map((stat) => (
             <motion.div
               key={stat.label}
@@ -283,9 +283,9 @@ export default function Dashboard() {
             {quickActions.map((action) => {
               const Icon = action.icon;
               const colorMap: Record<string, { bg: string; text: string }> = {
-                primary: { bg: "bg-primary/15", text: "text-primary" },
-                accent: { bg: "bg-accent/15", text: "text-accent" },
-                success: { bg: "bg-success/15", text: "text-success" },
+                primary: { bg: "bg-primary/20", text: "text-primary" },
+                accent: { bg: "bg-accent/20", text: "text-accent" },
+                success: { bg: "bg-success/20", text: "text-success" },
               };
               const colors = colorMap[action.color];
               return (
@@ -348,7 +348,7 @@ export default function Dashboard() {
                             )}
                           </div>
                         </div>
-                        <div className="w-8 h-8 rounded-lg bg-primary/15 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
                           <BookOpen className="w-4 h-4 text-primary" />
                         </div>
                       </div>
@@ -386,7 +386,7 @@ export default function Dashboard() {
                       key={review.id}
                       className="flex items-center gap-4 p-3 rounded-lg bg-secondary/50"
                     >
-                      <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center">
+                      <div className="w-9 h-9 rounded-lg bg-primary/20 flex items-center justify-center">
                         <Layers className="w-4 h-4 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">

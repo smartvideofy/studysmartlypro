@@ -157,7 +157,7 @@ export default function AuthPage() {
   return (
     <div className="min-h-screen flex bg-background">
       {/* Left Panel - Branding & Features */}
-      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-primary">
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/85">
         <div className="relative z-10 flex flex-col justify-between w-full p-12 text-white">
           {/* Logo */}
           <motion.div 
