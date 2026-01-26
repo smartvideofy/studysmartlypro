@@ -11,8 +11,8 @@
 
 @layer base {
   :root {
-    /* Clean Minimalist Theme */
-    --background: 0 0% 99%;
+    /* Vivid Violet Theme */
+    --background: 252 20% 98%;
     --foreground: 220 20% 14%;
     
     --card: 0 0% 100%;
@@ -21,27 +21,27 @@
     --popover: 0 0% 100%;
     --popover-foreground: 220 20% 14%;
     
-    /* Primary - Refined violet */
-    --primary: 265 75% 55%;
+    /* Primary - Refined violet with higher saturation */
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
-    --primary-muted: 265 50% 96%;
-    --primary-hover: 265 75% 48%;
+    --primary-muted: 262 60% 96%;
+    --primary-hover: 262 83% 52%;
     
     /* Secondary - Subtle neutral */
     --secondary: 220 14% 96%;
     --secondary-foreground: 220 20% 20%;
     
-    /* Muted - Clean grays */
-    --muted: 220 12% 94%;
-    --muted-foreground: 220 10% 46%;
+    /* Muted - With violet undertone */
+    --muted: 252 14% 94%;
+    --muted-foreground: 252 12% 42%;
     
-    /* Accent - Warm coral */
-    --accent: 15 85% 55%;
+    /* Accent - Rich coral */
+    --accent: 12 92% 58%;
     --accent-foreground: 0 0% 100%;
     --accent-muted: 15 60% 96%;
     
-    /* Success - Clean green */
-    --success: 162 65% 42%;
+    /* Success - Vibrant teal-green */
+    --success: 158 72% 40%;
     --success-foreground: 0 0% 100%;
     --success-muted: 162 45% 95%;
     
@@ -53,21 +53,21 @@
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 220 14% 90%;
+    --border: 252 14% 90%;
     --input: 220 14% 92%;
-    --ring: 265 75% 55%;
+    --ring: 262 83% 58%;
     
     --radius: 0.75rem;
     
     /* Sidebar - Clean */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 20% 20%;
-    --sidebar-primary: 265 75% 55%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 14% 96%;
     --sidebar-accent-foreground: 220 20% 14%;
     --sidebar-border: 220 14% 92%;
-    --sidebar-ring: 265 75% 55%;
+    --sidebar-ring: 262 83% 58%;
     
     /* Simplified glass tokens */
     --glass-bg: 0 0% 100% / 0.8;
@@ -88,16 +88,16 @@
   }
 
   .dark {
-    --background: 220 18% 7%;
+    --background: 252 18% 7%;
     --foreground: 0 0% 96%;
     
-    --card: 220 18% 10%;
+    --card: 252 16% 11%;
     --card-foreground: 0 0% 96%;
     
     --popover: 220 18% 9%;
     --popover-foreground: 0 0% 96%;
     
-    --primary: 265 70% 65%;
+    --primary: 262 85% 68%;
     --primary-foreground: 220 18% 7%;
     --primary-muted: 265 40% 15%;
     --primary-hover: 265 70% 72%;
@@ -105,14 +105,14 @@
     --secondary: 220 14% 14%;
     --secondary-foreground: 0 0% 92%;
     
-    --muted: 220 12% 18%;
+    --muted: 252 12% 16%;
     --muted-foreground: 220 8% 55%;
     
-    --accent: 15 80% 58%;
+    --accent: 12 88% 62%;
     --accent-foreground: 220 18% 7%;
     --accent-muted: 15 40% 14%;
     
-    --success: 162 60% 48%;
+    --success: 158 68% 52%;
     --success-foreground: 220 18% 7%;
     --success-muted: 162 30% 14%;
     
@@ -124,16 +124,16 @@
     
     --border: 220 14% 18%;
     --input: 220 14% 16%;
-    --ring: 265 70% 65%;
+    --ring: 262 85% 68%;
     
     --sidebar-background: 220 18% 9%;
     --sidebar-foreground: 0 0% 92%;
-    --sidebar-primary: 265 70% 65%;
+    --sidebar-primary: 262 85% 68%;
     --sidebar-primary-foreground: 220 18% 7%;
     --sidebar-accent: 220 14% 14%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 220 14% 16%;
-    --sidebar-ring: 265 70% 65%;
+    --sidebar-ring: 262 85% 68%;
     
     --glass-bg: 220 18% 10% / 0.9;
     --glass-border: 220 14% 20%;
@@ -298,13 +298,13 @@
     @apply bg-primary/5;
   }
   
-  /* Deck colors */
-  .deck-color-1 { --deck-color: hsl(265 75% 55%); }
-  .deck-color-2 { --deck-color: hsl(162 65% 42%); }
-  .deck-color-3 { --deck-color: hsl(15 85% 55%); }
-  .deck-color-4 { --deck-color: hsl(290 70% 55%); }
-  .deck-color-5 { --deck-color: hsl(200 80% 50%); }
-  .deck-color-6 { --deck-color: hsl(340 75% 55%); }
+  /* Deck colors - Vibrant palette */
+  .deck-color-1 { --deck-color: hsl(262 85% 58%); }
+  .deck-color-2 { --deck-color: hsl(158 75% 42%); }
+  .deck-color-3 { --deck-color: hsl(12 92% 58%); }
+  .deck-color-4 { --deck-color: hsl(280 80% 58%); }
+  .deck-color-5 { --deck-color: hsl(198 88% 48%); }
+  .deck-color-6 { --deck-color: hsl(338 82% 58%); }
   
   /* === FOCUS RING === */
   .focus-ring {

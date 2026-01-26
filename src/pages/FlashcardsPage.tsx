@@ -155,10 +155,10 @@ export default function FlashcardsPage() {
             className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
           >
             {[
-              { icon: Layers, label: "Total Cards", value: totalCards, color: "text-primary", bg: "bg-primary/15" },
-              { icon: CheckCircle2, label: "Mastered", value: totalMastered, color: "text-success", bg: "bg-success/15" },
-              { icon: Target, label: "Due Today", value: totalDue, color: "text-accent", bg: "bg-accent/15" },
-              { icon: Brain, label: "Decks", value: decks?.length || 0, color: "text-primary", bg: "bg-primary/15" },
+              { icon: Layers, label: "Total Cards", value: totalCards, color: "text-primary", bg: "bg-primary/20" },
+              { icon: CheckCircle2, label: "Mastered", value: totalMastered, color: "text-success", bg: "bg-success/20" },
+              { icon: Target, label: "Due Today", value: totalDue, color: "text-accent", bg: "bg-accent/20" },
+              { icon: Brain, label: "Decks", value: decks?.length || 0, color: "text-primary", bg: "bg-primary/20" },
             ].map((stat) => (
               <motion.div
                 key={stat.label}
