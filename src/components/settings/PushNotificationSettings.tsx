@@ -1,6 +1,7 @@
 import { Bell, BellOff, BellRing, Loader2, Send, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { cn } from "@/lib/utils";
 
@@ -48,14 +49,26 @@ export function PushNotificationSettings() {
     }
   };
 
-  if (!isSupported || !isConfigured) {
+  if (!isSupported) {
     return (
       <SettingRow
         icon={<BellOff className="w-4 h-4" />}
         label="Push Notifications"
-        description={!isSupported ? "Not supported in this browser" : "Not configured"}
+        description="Not supported in this browser"
       >
         <span className="text-xs text-muted-foreground">Unavailable</span>
+      </SettingRow>
+    );
+  }
+
+  if (!isConfigured) {
+    return (
+      <SettingRow
+        icon={<Bell className="w-4 h-4" />}
+        label="Push Notifications"
+        description="Receive alerts even when the app is closed"
+      >
+        <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
       </SettingRow>
     );
   }
