@@ -72,8 +72,8 @@ export function MobileHeader({
         className={cn(
           "sticky top-0 z-40 md:hidden transition-all duration-300",
           scrolled 
-            ? "bg-background/95 backdrop-blur-xl shadow-soft border-b border-border/50" 
-            : "bg-background/80 backdrop-blur-md"
+            ? "bg-background/95 backdrop-blur-sm border-b border-border" 
+            : "bg-background"
         )}
         initial={false}
         animate={{
@@ -114,7 +114,7 @@ export function MobileHeader({
                   <motion.div whileTap={{ scale: 0.95 }}>
                     <Avatar className="w-9 h-9 ring-2 ring-primary/20 ring-offset-2 ring-offset-background">
                       <AvatarImage src={profile?.avatar_url || undefined} />
-                      <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-sm font-semibold">
+                      <AvatarFallback className="bg-primary text-primary-foreground text-sm font-semibold">
                         {initials}
                       </AvatarFallback>
                     </Avatar>

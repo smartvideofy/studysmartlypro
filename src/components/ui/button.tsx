@@ -13,25 +13,25 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-soft hover:shadow-medium hover:bg-primary-hover",
         destructive:
-          "bg-destructive text-destructive-foreground shadow-soft hover:shadow-medium hover:brightness-110",
+          "bg-destructive text-destructive-foreground shadow-soft hover:shadow-medium hover:brightness-105",
         outline:
-          "border border-border bg-background/50 backdrop-blur-sm hover:bg-secondary/80 hover:border-primary/30",
+          "border border-border bg-background hover:bg-secondary hover:border-primary/20",
         secondary:
           "bg-secondary text-secondary-foreground hover:bg-secondary/80",
         ghost: 
-          "hover:bg-secondary/70 hover:text-secondary-foreground backdrop-blur-sm",
+          "hover:bg-secondary hover:text-secondary-foreground",
         link: 
           "text-primary underline-offset-4 hover:underline",
         hero:
-          "bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-glow-sm hover:shadow-glow hover:brightness-110 font-semibold",
+          "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-primary-hover font-semibold",
         accent:
-          "bg-gradient-to-r from-accent to-accent/90 text-accent-foreground shadow-soft hover:shadow-glow-accent hover:brightness-105",
+          "bg-accent text-accent-foreground shadow-soft hover:shadow-medium hover:brightness-105",
         success:
-          "bg-gradient-to-r from-success to-success/90 text-success-foreground shadow-soft hover:shadow-medium hover:brightness-105",
+          "bg-success text-success-foreground shadow-soft hover:shadow-medium hover:brightness-105",
         glass:
-          "bg-[hsl(var(--glass-bg))] backdrop-blur-xl border border-[hsl(var(--glass-border))] text-foreground hover:bg-[hsl(0_0%_100%/0.8)] hover:border-primary/30 shadow-glass",
+          "bg-card border border-border hover:bg-secondary hover:border-primary/20",
         premium:
-          "relative overflow-hidden bg-gradient-to-r from-primary via-primary to-primary/90 text-primary-foreground shadow-glow font-semibold before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/25 before:to-transparent before:-translate-x-full hover:before:translate-x-full before:transition-transform before:duration-700 hover:shadow-lg",
+          "bg-primary text-primary-foreground shadow-md hover:shadow-lg hover:bg-primary-hover font-semibold",
         "outline-primary":
           "border-2 border-primary text-primary bg-transparent hover:bg-primary hover:text-primary-foreground",
       },
