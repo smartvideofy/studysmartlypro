@@ -1,152 +1,114 @@
 
-
-# Fix Dark Mode & Push Notifications Settings
+# Consistent "Studily" Branding Plan
 
 ## Problem Summary
 
-Two settings on the Settings page appear inactive:
-
-1. **Dark Mode Toggle**: Does nothing when clicked because `next-themes` ThemeProvider is missing
-2. **Push Notifications**: Shows "Unavailable" because VAPID key is not configured
+The app has inconsistent branding throughout the codebase. Several legacy references to **"StudySmartly"** and **"Studyly"** need to be updated to the approved brand name **"Studily"**.
 
 ---
 
-## Phase 1: Fix Dark Mode (Code Change Required)
+## Files to Update
 
-### Issue
-The `useTheme` hook from `next-themes` requires a `ThemeProvider` wrapper at the application root. Currently, `App.tsx` is missing this provider.
+### 1. Unsubscribe Page (`src/pages/UnsubscribePage.tsx`)
 
-### Solution
-Wrap the app with `ThemeProvider` from `next-themes` in `App.tsx`:
-
-```tsx
-import { ThemeProvider } from "next-themes";
-
-const App = () => {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        {/* ... existing providers */}
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
-};
-```
-
-### Files to Modify
-- `src/App.tsx` - Add ThemeProvider wrapper
+| Line | Current | New |
+|------|---------|-----|
+| 147 | `title="Invalid Link \| StudySmartly"` | `title="Invalid Link \| Studily"` |
+| 178-179 | `title="Unsubscribed \| StudySmartly"` + description with StudySmartly | `title="Unsubscribed \| Studily"` + description with Studily |
+| 213-214 | `title="Email Preferences \| StudySmartly"` + description with StudySmartly | `title="Email Preferences \| Studily"` + description with Studily |
+| 224 | `receive from StudySmartly` | `receive from Studily` |
 
 ---
 
-## Phase 2: Fix Push Notifications (Requires User Action)
+### 2. Settings Page (`src/pages/SettingsPage.tsx`)
 
-### Issue
-The `VAPID_PUBLIC_KEY` constant in `usePushNotifications.tsx` is empty, making the feature appear unavailable.
-
-### Solution Options
-
-**Option A: Leave as "Not configured" (Recommended for now)**
-Push notifications require server-side infrastructure (VAPID keys, service worker, edge function). If you don't need this feature yet, we can improve the UI to make it clearer that setup is required rather than showing "Unavailable".
-
-**Option B: Full Push Notification Setup**
-If you want push notifications enabled, here's what's needed:
-1. Generate VAPID key pair at https://web-push-codelab.glitch.me/
-2. Add public key to `usePushNotifications.tsx`
-3. Add private key to Supabase secrets (VAPID_PRIVATE_KEY)
-4. Create a service worker file (`public/sw-push.js`) for handling push events
-5. Update the `send-push-notification` edge function to use VAPID keys
-
-### Recommendation
-For Phase 2, I'll improve the UI to show a "Setup Required" message with helpful guidance rather than a confusing "Unavailable" label. This makes it clear that the feature exists but needs configuration.
+| Line | Current | New |
+|------|---------|-----|
+| 448 | `StudySmartly Pro v{APP_VERSION}` | `Studily v{APP_VERSION}` |
 
 ---
 
-## Implementation Details
+### 3. SEO Head Component (`src/components/seo/SEOHead.tsx`)
 
-### Change 1: App.tsx - Add ThemeProvider
-
-```tsx
-// Add import
-import { ThemeProvider } from "next-themes";
-
-// Wrap existing content with ThemeProvider
-const App = () => {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-        <HelmetProvider>
-          <QueryClientProvider client={queryClient}>
-            <AuthProvider>
-              <TooltipProvider>
-                <Toaster />
-                <Sonner />
-                <BrowserRouter>
-                  <AnimatedRoutes />
-                </BrowserRouter>
-              </TooltipProvider>
-            </AuthProvider>
-          </QueryClientProvider>
-        </HelmetProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
-};
-```
-
-### Change 2: PushNotificationSettings.tsx - Better UX for Unconfigured State
-
-Replace the "Unavailable" message with a more informative UI:
-
-```tsx
-if (!isSupported) {
-  return (
-    <SettingRow
-      icon={<BellOff className="w-4 h-4" />}
-      label="Push Notifications"
-      description="Not supported in this browser"
-    >
-      <span className="text-xs text-muted-foreground">Unavailable</span>
-    </SettingRow>
-  );
-}
-
-if (!isConfigured) {
-  return (
-    <SettingRow
-      icon={<Bell className="w-4 h-4" />}
-      label="Push Notifications"
-      description="Receive alerts even when the app is closed"
-    >
-      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
-    </SettingRow>
-  );
-}
-```
+| Line | Current | New |
+|------|---------|-----|
+| 3 | `SITE_URL = "https://studysmartlypro.lovable.app"` | `SITE_URL = "https://getstudily.com"` |
 
 ---
 
-## Files to Modify
+### 4. JSON-LD Utilities (`src/components/seo/jsonld.ts`)
 
-| File | Change |
-|------|--------|
-| `src/App.tsx` | Add `ThemeProvider` from `next-themes` wrapping the app |
-| `src/components/settings/PushNotificationSettings.tsx` | Improve UI for unconfigured state to show "Coming Soon" |
+| Line | Current | New |
+|------|---------|-----|
+| 1 | `SITE_URL = "https://studysmartlypro.lovable.app"` | `SITE_URL = "https://getstudily.com"` |
+
+---
+
+### 5. Sitemap Redirect (`src/pages/SitemapRedirect.tsx`)
+
+| Line | Current | New |
+|------|---------|-----|
+| 3 | `SITEMAP_URL = 'https://studysmartlypro.lovable.app/functions/v1/generate-sitemap'` | `SITEMAP_URL = 'https://getstudily.com/functions/v1/generate-sitemap'` |
+
+---
+
+### 6. Robots.txt (`public/robots.txt`)
+
+| Line | Current | New |
+|------|---------|-----|
+| 17 | `Sitemap: https://studysmartlypro.lovable.app/sitemap.xml` | `Sitemap: https://getstudily.com/sitemap.xml` |
+
+---
+
+### 7. Calendar Integration (`src/lib/calendar.ts`)
+
+| Line | Current | New |
+|------|---------|-----|
+| 20 | `@studysmartly.app` | `@studily.app` |
+| 33 | `PRODID:-//StudySmartly//Study Session//EN` | `PRODID:-//Studily//Study Session//EN` |
+
+---
+
+### 8. Push Notification Edge Function (`supabase/functions/send-push-notification/index.ts`)
+
+These already use "studily" correctly:
+- Line 47: `mailto:notifications@studily.app` ✓
+- Line 257: `studily-notification` ✓
+
+No changes needed here.
+
+---
+
+## Summary of Changes
+
+| File | Priority | Instances |
+|------|----------|-----------|
+| `src/pages/UnsubscribePage.tsx` | High | 5 occurrences |
+| `src/pages/SettingsPage.tsx` | High | 1 occurrence |
+| `src/components/seo/SEOHead.tsx` | High | 1 URL |
+| `src/components/seo/jsonld.ts` | High | 1 URL |
+| `src/pages/SitemapRedirect.tsx` | Medium | 1 URL |
+| `public/robots.txt` | Medium | 1 URL |
+| `src/lib/calendar.ts` | Low | 2 occurrences |
+
+---
+
+## Database Content (Help Center Articles)
+
+The Help Center articles stored in the database via migrations contain "Studyly" references. These are already in the database, so changing them requires either:
+
+1. **Run a SQL UPDATE query** - Update the content in the `help_articles` table to replace "Studyly" with "Studily"
+2. **Create a new migration** - Add a migration that fixes the content
+
+I will create a SQL migration to fix the database content as well.
 
 ---
 
 ## Expected Outcome
 
 After implementation:
-- **Dark Mode Toggle**: Will work immediately, theme persists across sessions
-- **Push Notifications**: Shows "Coming Soon" badge instead of confusing "Unavailable"
-
----
-
-## Future Enhancement (Optional)
-
-If you want full push notification support later, let me know and I can create a complete implementation plan including:
-- VAPID key generation and setup
-- Service worker creation
-- Edge function updates
-- Testing flow
-
+- All UI text displays "Studily"
+- All SEO meta tags reference getstudily.com
+- Sitemap and robots.txt point to correct domain
+- Calendar exports show "Studily" branding
+- Help Center articles display correct "Studily" name
