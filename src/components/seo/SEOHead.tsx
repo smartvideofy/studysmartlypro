@@ -1,6 +1,6 @@
 import { Helmet } from "react-helmet-async";
 
-const SITE_URL = "https://studysmartlypro.lovable.app";
+const SITE_URL = "https://getstudily.com";
 const DEFAULT_TITLE = "Studily - Study Smarter, Not Harder";
 const DEFAULT_DESCRIPTION = "Studily is your AI-powered study companion. Create flashcards, organize notes, and master any subject with smart learning tools.";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;

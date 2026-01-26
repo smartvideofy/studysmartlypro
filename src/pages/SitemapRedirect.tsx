@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const SITEMAP_URL = 'https://studysmartlypro.lovable.app/functions/v1/generate-sitemap';
+const SITEMAP_URL = 'https://getstudily.com/functions/v1/generate-sitemap';
 
 export default function SitemapRedirect() {
   useEffect(() => {
