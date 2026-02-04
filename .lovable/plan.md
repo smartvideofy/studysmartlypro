@@ -1,235 +1,355 @@
 
-# Reorganize Desktop Sidebar for Better Navigation
+# Implement Annual Pricing with Monthly/Annual Toggle
 
 ## Overview
 
-Restructure the desktop sidebar to improve discoverability, visual hierarchy, and user experience. The reorganization will group related items, add missing navigation options, and improve the overall layout.
+Add a billing cycle toggle to the pricing page allowing users to switch between monthly and annual pricing. Annual plans offer 2 months free (10x monthly instead of 12x), with visual savings indicators to encourage yearly commitments.
 
 ---
 
-## Proposed Sidebar Structure
+## Pricing Configuration
+
+| Plan | Monthly | Yearly | Yearly PLN Code | Savings |
+|------|---------|--------|-----------------|---------|
+| Pro | $9/mo | $90/year | PLN_7mvshbtqgnmuygy | $18 (17% off) |
+| Team | $19/mo | $190/year | PLN_lgfih0x6mwrycyf | $38 (17% off) |
+
+---
+
+## UI Design
 
 ```text
-┌─────────────────────────────┐
-│  [Logo] Studily             │
-├─────────────────────────────┤
-│  MAIN                       │
-│  ├─ Dashboard               │
-│  ├─ Study Materials         │
-│  └─ Flashcards              │
-├─────────────────────────────┤
-│  COMMUNITY                  │
-│  └─ Groups                  │
-├─────────────────────────────┤
-│  INSIGHTS                   │
-│  ├─ Progress                │
-│  └─ Achievements            │
-├─────────────────────────────┤
-│  [Study Tools Submenu]      │ ← Only when in material workspace
-│  ├─ Tutor Notes             │
-│  ├─ Summaries               │
-│  ├─ Flashcards              │
-│  ├─ Questions               │
-│  ├─ Concept Map             │
-│  └─ AI Chat                 │
-├─────────────────────────────┤
-│                             │
-│  ┌─────────────────────────┐│
-│  │ ⭐ Upgrade to Pro       ││ ← CTA card for free users
-│  │ Unlock all features     ││
-│  └─────────────────────────┘│
-│                             │
-├─────────────────────────────┤
-│  Settings                   │
-│  Help                       │
-└─────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│              Simple, transparent pricing                        │
+│       Start free, upgrade when you need more. No hidden fees.   │
+│                                                                 │
+│           ┌─────────────────────────────────────┐               │
+│           │   Monthly    [====○]    Annually    │               │
+│           │                        Save up to 17%               │
+│           └─────────────────────────────────────┘               │
+│                                                                 │
+│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐        │
+│  │     Free     │   │     Pro      │   │     Team     │        │
+│  │              │   │  ★ Popular   │   │              │        │
+│  │     $0       │   │    $9/mo     │   │   $19/mo     │        │
+│  │   /forever   │   │  or $90/yr   │   │  or $190/yr  │        │
+│  │              │   │  SAVE $18    │   │  SAVE $38    │        │
+│  │   [Start]    │   │  [Upgrade]   │   │  [Contact]   │        │
+│  └──────────────┘   └──────────────┘   └──────────────┘        │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
 ```
-
----
-
-## Changes Summary
-
-| Change | Description |
-|--------|-------------|
-| **Add section labels** | Group items under "MAIN", "COMMUNITY", "INSIGHTS" headers |
-| **Add Achievements** | Include `/achievements` in the sidebar (currently mobile-only) |
-| **Add Premium CTA** | Show upgrade card for free users (like mobile drawer) |
-| **Move Pricing** | Remove from bottom nav, integrate as CTA card |
-| **Improve collapsed state** | Show tooltips when sidebar is collapsed |
-| **Add active state to bottom nav** | Bottom items don't show active indicators currently |
 
 ---
 
 ## Implementation Details
 
-### File to Modify
-**`src/components/layout/DashboardLayout.tsx`**
+### 1. Update Edge Function Plans Configuration
 
-### 1. Update Navigation Items Structure
+**File:** `supabase/functions/paystack/index.ts`
 
-Define grouped navigation with section labels:
+Add billing interval support to the PLANS object:
 
 ```typescript
-const mainNavItems = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
-  { icon: FileText, label: "Study Materials", path: "/materials" },
-  { icon: Layers, label: "Flashcards", path: "/flashcards" },
-];
+type BillingInterval = 'monthly' | 'yearly';
 
-const communityNavItems = [
-  { icon: Users, label: "Groups", path: "/groups" },
-];
-
-const insightsNavItems = [
-  { icon: BarChart3, label: "Progress", path: "/progress" },
-  { icon: Trophy, label: "Achievements", path: "/achievements" },
-];
-
-const bottomNavItems = [
-  { icon: Settings, label: "Settings", path: "/settings" },
-  { icon: HelpCircle, label: "Help", path: "/help" },
-];
+const PLANS = {
+  pro: {
+    monthly: {
+      code: 'PLN_4e8hpv8om2lbhta',
+      name: 'Studily Pro (Monthly)',
+      amount: 9,
+      interval: 'monthly',
+      periodDays: 30,
+    },
+    yearly: {
+      code: 'PLN_7mvshbtqgnmuygy',
+      name: 'Studily Pro (Yearly)',
+      amount: 90,
+      interval: 'yearly',
+      periodDays: 365,
+    },
+  },
+  team: {
+    monthly: {
+      code: 'PLN_tmqbbw7lu7rzv5i',
+      name: 'Studily Team (Monthly)',
+      amount: 19,
+      interval: 'monthly',
+      periodDays: 30,
+    },
+    yearly: {
+      code: 'PLN_lgfih0x6mwrycyf',
+      name: 'Studily Team (Yearly)',
+      amount: 190,
+      interval: 'yearly',
+      periodDays: 365,
+    },
+  },
+};
 ```
 
-### 2. Add Section Label Component
+### 2. Update Initialize Transaction Handler
 
-Create a reusable section label that hides when collapsed:
+Modify `initializeTransaction` to accept billing interval:
 
 ```typescript
-function SidebarSection({ label, collapsed }: { label: string; collapsed: boolean }) {
-  if (collapsed) return null;
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="px-3 pt-4 pb-1"
-    >
-      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/60">
-        {label}
-      </span>
-    </motion.div>
-  );
+async function initializeTransaction(
+  user: { id: string; email: string },
+  body: { plan: string; interval?: BillingInterval; callback_url?: string },
+  supabase: any
+) {
+  const { plan, interval = 'monthly', callback_url } = body;
+  
+  const planConfig = PLANS[plan as keyof typeof PLANS];
+  if (!planConfig) {
+    return new Response(JSON.stringify({ error: 'Invalid plan' }), { ... });
+  }
+  
+  const selectedPlan = planConfig[interval];
+  // ... rest of initialization with selectedPlan
 }
 ```
 
-### 3. Add Premium CTA Card
+### 3. Update Verify Transaction Handler
 
-Add upgrade card above bottom navigation for free users:
+Modify `verifyTransaction` to handle yearly periods:
 
 ```typescript
-{subscription?.plan === 'free' && !collapsed && (
-  <motion.div className="mx-3 mb-3">
-    <Link
-      to="/pricing"
-      className="block p-3 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20 hover:border-primary/40 transition-all"
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <Sparkles className="w-4 h-4 text-primary" />
-        <span className="text-sm font-semibold">Go Pro</span>
-      </div>
-      <p className="text-xs text-muted-foreground">
-        Unlock all features
-      </p>
-    </Link>
+// Calculate period based on interval from metadata
+const interval = txData.metadata?.interval || 'monthly';
+const periodDays = interval === 'yearly' ? 365 : 30;
+
+const periodEnd = new Date();
+periodEnd.setDate(periodEnd.getDate() + periodDays);
+
+// Store billing_interval in subscription record
+await supabase.from('subscriptions').upsert({
+  // ... existing fields
+  billing_interval: interval,
+  // ...
+});
+```
+
+### 4. Update Subscription Type
+
+**File:** `src/hooks/useSubscription.tsx`
+
+Add billing interval to Subscription interface:
+
+```typescript
+export type BillingInterval = 'monthly' | 'yearly';
+
+export interface Subscription {
+  // ... existing fields
+  billing_interval?: BillingInterval;
+}
+```
+
+### 5. Update useInitializePayment Hook
+
+Add interval parameter:
+
+```typescript
+export function useInitializePayment() {
+  return useMutation({
+    mutationFn: async ({
+      plan,
+      interval = 'monthly',
+      callback_url,
+    }: {
+      plan: PlanType;
+      interval?: BillingInterval;
+      callback_url?: string;
+    }) => {
+      // ... existing auth check
+      
+      const { data, error } = await supabase.functions.invoke('paystack/initialize', {
+        body: { plan, interval, callback_url },
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      
+      // ... rest unchanged
+    },
+  });
+}
+```
+
+### 6. Update Pricing Page
+
+**File:** `src/pages/PricingPage.tsx`
+
+#### Add Billing Toggle Component
+
+```typescript
+import { Switch } from '@/components/ui/switch';
+
+// State for billing interval
+const [billingInterval, setBillingInterval] = useState<'monthly' | 'yearly'>('monthly');
+
+// Update plans configuration with both prices
+const plans = [
+  {
+    name: 'Free',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    planType: 'free',
+    // ...
+  },
+  {
+    name: 'Pro',
+    monthlyPrice: 9,
+    yearlyPrice: 90,
+    yearlySavings: 18,
+    planType: 'pro',
+    popular: true,
+    // ...
+  },
+  {
+    name: 'Team',
+    monthlyPrice: 19,
+    yearlyPrice: 190,
+    yearlySavings: 38,
+    planType: 'team',
+    // ...
+  },
+];
+```
+
+#### Add Toggle UI
+
+```typescript
+<motion.div
+  initial={{ opacity: 0, y: 10 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.1 }}
+  className="flex items-center justify-center gap-4 mb-10"
+>
+  <span className={cn(
+    "text-sm font-medium transition-colors",
+    billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+  )}>
+    Monthly
+  </span>
+  
+  <Switch
+    checked={billingInterval === 'yearly'}
+    onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
+    className="data-[state=checked]:bg-primary"
+  />
+  
+  <span className={cn(
+    "text-sm font-medium transition-colors",
+    billingInterval === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
+  )}>
+    Annually
+  </span>
+  
+  {billingInterval === 'yearly' && (
+    <Badge variant="secondary" className="bg-green-500/10 text-green-600 border-green-500/20">
+      Save up to 17%
+    </Badge>
+  )}
+</motion.div>
+```
+
+#### Update Price Display
+
+Dynamic pricing with smooth animations:
+
+```typescript
+<AnimatePresence mode="wait">
+  <motion.div
+    key={billingInterval}
+    initial={{ opacity: 0, y: -10 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: 10 }}
+    className="mt-4"
+  >
+    <span className="text-4xl font-bold text-primary">
+      ${billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice}
+    </span>
+    <span className="text-muted-foreground">
+      {plan.monthlyPrice === 0 
+        ? '/forever' 
+        : billingInterval === 'monthly' 
+          ? '/month' 
+          : '/year'}
+    </span>
+  </motion.div>
+</AnimatePresence>
+
+{/* Savings badge for yearly */}
+{billingInterval === 'yearly' && plan.yearlySavings > 0 && (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="mt-2"
+  >
+    <Badge className="bg-green-500/10 text-green-600 border border-green-500/20">
+      Save ${plan.yearlySavings}/year
+    </Badge>
   </motion.div>
 )}
 ```
 
-### 4. Add Tooltips for Collapsed State
+#### Update handleSelectPlan
 
-Wrap nav items in Tooltip when collapsed:
-
-```typescript
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-// When collapsed, show tooltip on hover
-{collapsed ? (
-  <TooltipProvider delayDuration={0}>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Link to={item.path} className="...">
-          <Icon className="w-5 h-5" />
-        </Link>
-      </TooltipTrigger>
-      <TooltipContent side="right">
-        {item.label}
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-) : (
-  <Link to={item.path} className="...">
-    <Icon className="w-5 h-5" />
-    <span>{item.label}</span>
-  </Link>
-)}
-```
-
-### 5. Add Active State to Bottom Nav Items
-
-Update bottom nav to show active indicator:
+Pass interval to payment initialization:
 
 ```typescript
-{bottomNavItems.map((item) => {
-  const Icon = item.icon;
-  const isActive = location.pathname === item.path;
+const handleSelectPlan = async (plan: PlanConfig) => {
+  // ... existing validation
   
-  return (
-    <Link
-      key={item.path}
-      to={item.path}
-      className={cn(
-        "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
-        isActive
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-      )}
-    >
-      {isActive && (
-        <motion.div
-          layoutId="bottomNavActive"
-          className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
-        />
-      )}
-      <Icon className="w-5 h-5" />
-      {!collapsed && <span className="text-sm">{item.label}</span>}
-    </Link>
-  );
-})}
+  const result = await initPayment.mutateAsync({
+    plan: plan.planType,
+    interval: billingInterval, // Pass selected interval
+    callback_url: window.location.origin + '/pricing?verify=true',
+  });
+  
+  // ... rest unchanged
+};
+```
+
+### 7. Add Database Column (Optional Enhancement)
+
+Add `billing_interval` column to track subscription type:
+
+```sql
+ALTER TABLE subscriptions 
+ADD COLUMN IF NOT EXISTS billing_interval TEXT DEFAULT 'monthly';
 ```
 
 ---
 
-## Additional Imports Required
+## Files to Modify
 
-```typescript
-import { Trophy, Sparkles } from "lucide-react";
-import { useSubscription } from "@/hooks/useSubscription";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-```
-
----
-
-## Visual Before & After
-
-**Before:**
-- Flat list of 5 main items
-- 3 bottom items (including Pricing)
-- No visual grouping
-- No Achievements link
-- No upgrade CTA
-
-**After:**
-- 3 grouped sections with labels
-- Achievements added to Insights section
-- Premium CTA card for free users
-- Tooltips in collapsed state
-- Active states on all nav items
+| File | Changes |
+|------|---------|
+| `supabase/functions/paystack/index.ts` | Update PLANS config, add interval handling |
+| `src/hooks/useSubscription.tsx` | Add BillingInterval type, update mutation |
+| `src/pages/PricingPage.tsx` | Add toggle, dynamic pricing, animations |
 
 ---
 
-## Mobile Considerations
+## User Experience Flow
 
-No changes needed for mobile - the MobileBottomNav and MobileMenuDrawer already have:
-- Achievements link in drawer
-- Premium CTA card in drawer
-- 5-item bottom navigation (Home, Materials, Flashcards, Groups, Settings)
+1. User lands on pricing page (defaults to monthly)
+2. Toggle between Monthly/Annually with smooth animations
+3. See savings badge when annual is selected
+4. Each plan card shows the current interval's price
+5. "Save $X/year" badge appears on Pro/Team for yearly
+6. Click upgrade sends correct plan code to Paystack
+7. After payment, subscription shows correct renewal period
+
+---
+
+## Testing Considerations
+
+- Verify monthly Pro upgrade flow works
+- Verify annual Pro upgrade flow works
+- Check price animations are smooth
+- Confirm correct Paystack plan codes are sent
+- Verify subscription period (30 days vs 365 days) is set correctly
+- Test toggle state persistence during page interactions
