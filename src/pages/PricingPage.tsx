@@ -1,20 +1,24 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Sparkles, Users, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription, useInitializePayment, useVerifyPayment, PlanType } from '@/hooks/useSubscription';
+import { useSubscription, useInitializePayment, useVerifyPayment, PlanType, BillingInterval } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { createSoftwareApplicationJsonLd } from '@/components/seo/jsonld';
+import { cn } from '@/lib/utils';
 
 interface PlanConfig {
   name: string;
-  price: number;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  yearlySavings: number;
   description: string;
   features: string[];
   popular?: boolean;
@@ -25,7 +29,9 @@ interface PlanConfig {
 const plans: PlanConfig[] = [
   {
     name: 'Free',
-    price: 0,
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    yearlySavings: 0,
     description: 'Perfect for getting started',
     planType: 'free',
     cta: 'Get Started Free',
@@ -38,7 +44,9 @@ const plans: PlanConfig[] = [
   },
   {
     name: 'Pro',
-    price: 9,
+    monthlyPrice: 9,
+    yearlyPrice: 90,
+    yearlySavings: 18,
     description: 'For serious students',
     planType: 'pro',
     popular: true,
@@ -55,7 +63,9 @@ const plans: PlanConfig[] = [
   },
   {
     name: 'Team',
-    price: 19,
+    monthlyPrice: 19,
+    yearlyPrice: 190,
+    yearlySavings: 38,
     description: 'For study groups',
     planType: 'team',
     cta: 'Contact Sales',
@@ -78,6 +88,7 @@ export default function PricingPage() {
   const initPayment = useInitializePayment();
   const verifyPayment = useVerifyPayment();
   const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
+  const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
   // Handle payment verification callback
   useEffect(() => {
@@ -124,6 +135,7 @@ export default function PricingPage() {
     try {
       const result = await initPayment.mutateAsync({
         plan: plan.planType,
+        interval: billingInterval,
         callback_url: window.location.origin + '/pricing?verify=true',
       });
 
@@ -141,10 +153,20 @@ export default function PricingPage() {
 
   const pricingOffers = plans.map(plan => ({
     name: plan.name,
-    price: plan.price,
+    price: billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice,
     description: plan.description,
     features: plan.features,
   }));
+
+  const getDisplayPrice = (plan: PlanConfig) => {
+    if (plan.monthlyPrice === 0) return 0;
+    return billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+  };
+
+  const getPriceSuffix = (plan: PlanConfig) => {
+    if (plan.monthlyPrice === 0) return '/forever';
+    return billingInterval === 'monthly' ? '/month' : '/year';
+  };
 
   return (
     <DashboardLayout>
@@ -158,7 +180,7 @@ export default function PricingPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Simple, transparent{' '}
@@ -167,6 +189,50 @@ export default function PricingPage() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Start free, upgrade when you need more. No hidden fees.
           </p>
+        </motion.div>
+
+        {/* Billing Toggle */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10"
+        >
+          <div className="flex items-center gap-4">
+            <span className={cn(
+              "text-sm font-medium transition-colors",
+              billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Monthly
+            </span>
+            
+            <Switch
+              checked={billingInterval === 'yearly'}
+              onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
+            />
+            
+            <span className={cn(
+              "text-sm font-medium transition-colors",
+              billingInterval === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
+            )}>
+              Annually
+            </span>
+          </div>
+          
+          <AnimatePresence mode="wait">
+            {billingInterval === 'yearly' && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                animate={{ opacity: 1, scale: 1, x: 0 }}
+                exit={{ opacity: 0, scale: 0.8, x: -10 }}
+                transition={{ duration: 0.2 }}
+              >
+                <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 whitespace-nowrap">
+                  Save up to 17%
+                </Badge>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {verifyPayment.isPending && (
@@ -195,11 +261,10 @@ export default function PricingPage() {
               >
                 <Card
                   variant={plan.popular ? 'premium' : 'elevated'}
-                  className={`relative h-full flex flex-col ${
-                    plan.popular
-                      ? 'border-primary shadow-lg shadow-primary/20 scale-105'
-                      : ''
-                  }`}
+                  className={cn(
+                    "relative h-full flex flex-col",
+                    plan.popular && "border-primary shadow-lg shadow-primary/20 scale-105"
+                  )}
                 >
                   {plan.popular && (
                     <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
@@ -210,14 +275,43 @@ export default function PricingPage() {
 
                   <CardHeader className="text-center pb-2">
                     <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold text-primary">
-                        ${plan.price}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {plan.price === 0 ? '/forever' : '/per month'}
-                      </span>
-                    </div>
+                    
+                    {/* Animated Price Display */}
+                    <AnimatePresence mode="wait">
+                      <motion.div
+                        key={`${plan.name}-${billingInterval}`}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 10 }}
+                        transition={{ duration: 0.2 }}
+                        className="mt-4"
+                      >
+                        <span className="text-4xl font-bold text-primary">
+                          ${getDisplayPrice(plan)}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {getPriceSuffix(plan)}
+                        </span>
+                      </motion.div>
+                    </AnimatePresence>
+
+                    {/* Savings Badge for Yearly */}
+                    <AnimatePresence mode="wait">
+                      {billingInterval === 'yearly' && plan.yearlySavings > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.8, height: 0 }}
+                          animate={{ opacity: 1, scale: 1, height: 'auto' }}
+                          exit={{ opacity: 0, scale: 0.8, height: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="mt-2"
+                        >
+                          <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
+                            Save ${plan.yearlySavings}/year
+                          </Badge>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
                     <CardDescription className="mt-2">
                       {plan.description}
                     </CardDescription>
