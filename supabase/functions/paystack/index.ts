@@ -336,6 +336,7 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
       plan_code: selectedPlan?.code,
       amount: selectedPlan ? selectedPlan.amount * 100 : null, // Store in cents
       currency: 'USD',
+      billing_interval: interval, // Store billing cycle
       current_period_start: periodStart.toISOString(),
       current_period_end: periodEnd.toISOString(),
       updated_at: new Date().toISOString(),
