@@ -14,11 +14,11 @@ import {
   ChevronDown,
   Search,
   Upload,
-  CreditCard,
   BookOpen,
   Lightbulb,
   MessageSquare,
-  Network
+  Network,
+  Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,16 +28,25 @@ import { GlobalSearch } from "./GlobalSearch";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileHeader } from "./MobileHeader";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
+import { SidebarNavSection, SidebarNavItem, SidebarUpgradeCTA } from "./sidebar";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import logoImage from "@/assets/logo.png";
 
-const navItems = [
+// Grouped navigation items
+const mainNavItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: FileText, label: "Study Materials", path: "/materials" },
   { icon: Layers, label: "Flashcards", path: "/flashcards" },
+];
+
+const communityNavItems = [
   { icon: Users, label: "Groups", path: "/groups" },
+];
+
+const insightsNavItems = [
   { icon: BarChart3, label: "Progress", path: "/progress" },
+  { icon: Trophy, label: "Achievements", path: "/achievements" },
 ];
 
 const studySubItems = [
@@ -50,7 +59,6 @@ const studySubItems = [
 ];
 
 const bottomNavItems = [
-  { icon: CreditCard, label: "Pricing", path: "/pricing" },
   { icon: Settings, label: "Settings", path: "/settings" },
   { icon: HelpCircle, label: "Help", path: "/help" },
 ];
@@ -129,61 +137,48 @@ export default function DashboardLayout({
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-3 space-y-1.5 overflow-y-auto">
-          {navItems.map((item, index) => {
-            const isActive = location.pathname === item.path || 
-              (item.path === "/materials" && location.pathname.startsWith("/materials"));
-            const Icon = item.icon;
-            
-            return (
-              <motion.div
-                key={item.path}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-              >
-                <Link
-                  to={item.path}
-                  className={cn(
-                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
-                    isActive
-                      ? "bg-primary/10 text-primary font-medium"
-                      : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                  <motion.div
-                    whileHover={{ scale: 1.15, rotate: isActive ? 0 : 8 }}
-                    whileTap={{ scale: 0.9 }}
-                    transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  >
-                    <Icon className={cn(
-                      "w-5 h-5 shrink-0 transition-all duration-300",
-                      isActive ? "text-primary" : "group-hover:text-primary"
-                    )} />
-                  </motion.div>
-                  <AnimatePresence>
-                    {!collapsed && (
-                      <motion.span
-                        initial={{ opacity: 0, width: 0 }}
-                        animate={{ opacity: 1, width: 'auto' }}
-                        exit={{ opacity: 0, width: 0 }}
-                        className="text-sm whitespace-nowrap overflow-hidden"
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </Link>
-              </motion.div>
-            );
-          })}
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+          {/* MAIN Section */}
+          <SidebarNavSection label="Main" collapsed={collapsed} />
+          <div className="space-y-1">
+            {mainNavItems.map((item, index) => (
+              <SidebarNavItem 
+                key={item.path} 
+                item={item} 
+                collapsed={collapsed} 
+                index={index}
+                layoutId="activeNavMain"
+              />
+            ))}
+          </div>
+
+          {/* COMMUNITY Section */}
+          <SidebarNavSection label="Community" collapsed={collapsed} />
+          <div className="space-y-1">
+            {communityNavItems.map((item, index) => (
+              <SidebarNavItem 
+                key={item.path} 
+                item={item} 
+                collapsed={collapsed} 
+                index={index}
+                layoutId="activeNavCommunity"
+              />
+            ))}
+          </div>
+
+          {/* INSIGHTS Section */}
+          <SidebarNavSection label="Insights" collapsed={collapsed} />
+          <div className="space-y-1">
+            {insightsNavItems.map((item, index) => (
+              <SidebarNavItem 
+                key={item.path} 
+                item={item} 
+                collapsed={collapsed} 
+                index={index}
+                layoutId="activeNavInsights"
+              />
+            ))}
+          </div>
 
           {/* Study Menu with Submenus - Shows when in material workspace */}
           {isInMaterialWorkspace && (
@@ -192,6 +187,7 @@ export default function DashboardLayout({
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.3 }}
             >
+              <SidebarNavSection label="Study Tools" collapsed={collapsed} />
               <button
                 onClick={() => setStudyMenuOpen(!studyMenuOpen)}
                 className={cn(
@@ -218,7 +214,7 @@ export default function DashboardLayout({
                         exit={{ opacity: 0, width: 0 }}
                         className="flex-1 text-sm whitespace-nowrap overflow-hidden text-left"
                       >
-                        Study Tools
+                        Tools
                       </motion.span>
                       <motion.div
                         animate={{ rotate: studyMenuOpen ? 180 : 0 }}
@@ -275,22 +271,42 @@ export default function DashboardLayout({
           )}
         </nav>
 
+        {/* Premium CTA for free users */}
+        <SidebarUpgradeCTA collapsed={collapsed} />
+
         {/* Bottom Navigation */}
-        <div className="p-3 border-t border-border/30 space-y-1.5">
+        <div className="p-3 border-t border-border/30 space-y-1">
           {bottomNavItems.map((item) => {
             const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            
             return (
               <Link
                 key={item.path}
                 to={item.path}
-                className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary/50 transition-all duration-300"
+                className={cn(
+                  "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-300",
+                  isActive
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                )}
               >
+                {isActive && (
+                  <motion.div
+                    layoutId="bottomNavActive"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 rounded-r-full bg-primary"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
                 <motion.div
                   whileHover={{ scale: 1.15, rotate: 8 }}
                   whileTap={{ scale: 0.9 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                 >
-                  <Icon className="w-5 h-5 shrink-0 group-hover:text-primary transition-colors" />
+                  <Icon className={cn(
+                    "w-5 h-5 shrink-0 transition-colors",
+                    isActive ? "text-primary" : "group-hover:text-primary"
+                  )} />
                 </motion.div>
                 <AnimatePresence>
                   {!collapsed && (
