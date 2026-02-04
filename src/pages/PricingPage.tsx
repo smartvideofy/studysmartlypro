@@ -379,10 +379,16 @@ export default function PricingPage() {
                 {subscription.plan}
               </span>{' '}
               plan
+              {subscription.billing_interval && (
+                <Badge variant="outline" className="ml-2 capitalize">
+                  {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
+                </Badge>
+              )}
               {subscription.current_period_end && (
                 <>
                   {' '}
-                  · Renews on{' '}
+                  · Renews{' '}
+                  {subscription.billing_interval === 'yearly' ? 'annually' : 'monthly'} on{' '}
                   {new Date(subscription.current_period_end).toLocaleDateString()}
                 </>
               )}

@@ -171,10 +171,19 @@ export default function SettingsPage() {
               <SettingRow 
                 icon={<Crown className="w-4 h-4" />}
                 label="Current Plan" 
-                description={subscription?.status === 'active' ? 'Your subscription is active' : 'Upgrade for more features'}
+                description={
+                  subscription?.status === 'active' 
+                    ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
+                    : 'Upgrade for more features'
+                }
               >
                 <div className="flex items-center gap-2">
                   <Badge className={planInfo.color}>{planInfo.label}</Badge>
+                  {subscription?.billing_interval && subscription?.plan !== 'free' && (
+                    <Badge variant="outline" className="capitalize text-xs">
+                      {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
+                    </Badge>
+                  )}
                   {subscription?.plan === 'free' && (
                     <Button 
                       size="sm" 
