@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 
 export type PlanType = 'free' | 'pro' | 'team';
+export type BillingInterval = 'monthly' | 'yearly';
 
 export interface Subscription {
   id?: string;
@@ -20,6 +21,7 @@ export interface Subscription {
   cancelled_at?: string;
   created_at?: string;
   updated_at?: string;
+  billing_interval?: BillingInterval;
 }
 
 export interface PlanFeatures {
@@ -120,13 +122,21 @@ export function useInitializePayment() {
   const { session } = useAuth();
 
   return useMutation({
-    mutationFn: async ({ plan, callback_url }: { plan: PlanType; callback_url?: string }) => {
+    mutationFn: async ({ 
+      plan, 
+      interval = 'monthly',
+      callback_url 
+    }: { 
+      plan: PlanType; 
+      interval?: BillingInterval;
+      callback_url?: string;
+    }) => {
       if (!session?.access_token) {
         throw new Error('Not authenticated');
       }
 
       const { data, error } = await supabase.functions.invoke('paystack/initialize', {
-        body: { plan, callback_url },
+        body: { plan, interval, callback_url },
         headers: {
           Authorization: `Bearer ${session.access_token}`,
         },

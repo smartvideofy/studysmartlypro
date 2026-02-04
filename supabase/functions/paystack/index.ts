@@ -11,17 +11,41 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY');
 
-// Plan configuration - amounts in USD (will be converted to cents for Paystack)
+type BillingInterval = 'monthly' | 'yearly';
+
+// Plan configuration with monthly and yearly options
 const PLANS = {
   pro: {
-    code: 'PLN_4e8hpv8om2lbhta',
-    name: 'Studily Pro',
-    amount: 9, // $9 USD
+    monthly: {
+      code: 'PLN_4e8hpv8om2lbhta',
+      name: 'Studily Pro (Monthly)',
+      amount: 9, // $9 USD
+      interval: 'monthly' as BillingInterval,
+      periodDays: 30,
+    },
+    yearly: {
+      code: 'PLN_7mvshbtqgnmuygy',
+      name: 'Studily Pro (Yearly)',
+      amount: 90, // $90 USD (2 months free)
+      interval: 'yearly' as BillingInterval,
+      periodDays: 365,
+    },
   },
   team: {
-    code: 'PLN_tmqbbw7lu7rzv5i',
-    name: 'Studily Team',
-    amount: 19, // $19 USD
+    monthly: {
+      code: 'PLN_tmqbbw7lu7rzv5i',
+      name: 'Studily Team (Monthly)',
+      amount: 19, // $19 USD
+      interval: 'monthly' as BillingInterval,
+      periodDays: 30,
+    },
+    yearly: {
+      code: 'PLN_lgfih0x6mwrycyf',
+      name: 'Studily Team (Yearly)',
+      amount: 190, // $190 USD (2 months free)
+      interval: 'yearly' as BillingInterval,
+      periodDays: 365,
+    },
   },
 };
 
@@ -183,17 +207,28 @@ serve(async (req) => {
   }
 });
 
-async function initializeTransaction(user: { id: string; email: string }, body: { plan: string; callback_url?: string }, supabase: any) {
-  const { plan, callback_url } = body;
+async function initializeTransaction(
+  user: { id: string; email: string },
+  body: { plan: string; interval?: BillingInterval; callback_url?: string },
+  supabase: any
+) {
+  const { plan, interval = 'monthly', callback_url } = body;
   
-  if (!plan || !PLANS[plan as keyof typeof PLANS]) {
+  const planConfig = PLANS[plan as keyof typeof PLANS];
+  if (!planConfig) {
     return new Response(JSON.stringify({ error: 'Invalid plan' }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
-  const selectedPlan = PLANS[plan as keyof typeof PLANS];
+  const selectedPlan = planConfig[interval];
+  if (!selectedPlan) {
+    return new Response(JSON.stringify({ error: 'Invalid billing interval' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 
   // Initialize transaction with Paystack
   // Paystack expects amount in the smallest currency unit (kobo for NGN, cents for USD)
@@ -213,11 +248,17 @@ async function initializeTransaction(user: { id: string; email: string }, body: 
       metadata: {
         user_id: user.id,
         plan: plan,
+        interval: interval,
         custom_fields: [
           {
             display_name: "Plan",
             variable_name: "plan",
             value: selectedPlan.name
+          },
+          {
+            display_name: "Billing",
+            variable_name: "billing",
+            value: interval === 'yearly' ? 'Annual' : 'Monthly'
           }
         ]
       }
@@ -272,12 +313,16 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
 
   const txData = data.data;
   const plan = txData.metadata?.plan || 'pro';
-  const selectedPlan = PLANS[plan as keyof typeof PLANS];
+  const interval: BillingInterval = txData.metadata?.interval || 'monthly';
+  
+  const planConfig = PLANS[plan as keyof typeof PLANS];
+  const selectedPlan = planConfig?.[interval];
 
-  // Calculate period end (30 days from now for monthly)
+  // Calculate period end based on interval
   const periodStart = new Date();
   const periodEnd = new Date();
-  periodEnd.setDate(periodEnd.getDate() + 30);
+  const periodDays = interval === 'yearly' ? 365 : 30;
+  periodEnd.setDate(periodEnd.getDate() + periodDays);
 
   // Upsert subscription - store amount in cents for consistency
   const { error: subError } = await supabase
@@ -288,8 +333,8 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
       status: 'active',
       paystack_customer_code: txData.customer?.customer_code,
       paystack_subscription_code: txData.authorization?.authorization_code,
-      plan_code: selectedPlan.code,
-      amount: selectedPlan.amount * 100, // Store in cents
+      plan_code: selectedPlan?.code,
+      amount: selectedPlan ? selectedPlan.amount * 100 : null, // Store in cents
       currency: 'USD',
       current_period_start: periodStart.toISOString(),
       current_period_end: periodEnd.toISOString(),
@@ -308,13 +353,15 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
 
   // Send welcome email for new subscription
   await sendSubscriptionEmail(supabase, user.id, 'subscription_welcome', {
-    planName: selectedPlan.name,
+    planName: selectedPlan?.name || plan,
+    billingCycle: interval === 'yearly' ? 'annual' : 'monthly',
   });
 
   return new Response(JSON.stringify({
     success: true,
     plan: plan,
-    message: `Successfully subscribed to ${selectedPlan.name}`,
+    interval: interval,
+    message: `Successfully subscribed to ${selectedPlan?.name || plan}`,
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
@@ -483,13 +530,16 @@ async function handleWebhook(req: Request) {
       case 'charge.success': {
         const userId = data.metadata?.user_id;
         const plan = data.metadata?.plan || 'pro';
+        const interval: BillingInterval = data.metadata?.interval || 'monthly';
         
         if (userId) {
           const periodStart = new Date();
           const periodEnd = new Date();
-          periodEnd.setDate(periodEnd.getDate() + 30);
+          const periodDays = interval === 'yearly' ? 365 : 30;
+          periodEnd.setDate(periodEnd.getDate() + periodDays);
 
           const planConfig = PLANS[plan as keyof typeof PLANS];
+          const selectedPlan = planConfig?.[interval];
           
           const { error } = await supabase
             .from('subscriptions')
@@ -500,8 +550,8 @@ async function handleWebhook(req: Request) {
               paystack_customer_code: data.customer?.customer_code,
               paystack_subscription_code: data.subscription_code || data.authorization?.authorization_code,
               paystack_email_token: data.email_token,
-              plan_code: planConfig?.code,
-              amount: planConfig ? planConfig.amount * 100 : null, // Store in cents
+              plan_code: selectedPlan?.code,
+              amount: selectedPlan ? selectedPlan.amount * 100 : null, // Store in cents
               currency: 'USD',
               current_period_start: periodStart.toISOString(),
               current_period_end: periodEnd.toISOString(),
@@ -515,7 +565,8 @@ async function handleWebhook(req: Request) {
           } else {
             // Send welcome email for new/renewed subscription
             await sendSubscriptionEmail(supabase, userId, 'subscription_welcome', {
-              planName: planConfig?.name || 'Pro',
+              planName: selectedPlan?.name || 'Pro',
+              billingCycle: interval === 'yearly' ? 'annual' : 'monthly',
             });
           }
         }
