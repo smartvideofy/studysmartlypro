@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription, useInitializePayment, useVerifyPayment, PlanType, BillingInterval } from '@/hooks/useSubscription';
+import { useSubscription, useInitializePayment, useVerifyPayment, useStartTrial, useTrialStatus, PlanType, BillingInterval } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { createSoftwareApplicationJsonLd } from '@/components/seo/jsonld';
@@ -87,6 +87,8 @@ export default function PricingPage() {
   const { data: subscription, isLoading: subLoading } = useSubscription();
   const initPayment = useInitializePayment();
   const verifyPayment = useVerifyPayment();
+  const startTrial = useStartTrial();
+  const { isOnTrial, trialDaysRemaining, trialExpired } = useTrialStatus();
   const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
 
@@ -149,7 +151,9 @@ export default function PricingPage() {
     }
   };
 
-  const currentPlan = subscription?.plan || 'free';
+  // If on trial, show as 'pro' for display but allow upgrading still
+  const currentPlan = subscription?.is_trial ? 'pro' : (subscription?.plan || 'free');
+  const canStartTrial = !subscription?.trial_used && !subscription?.is_trial && subscription?.plan === 'free';
 
   const pricingOffers = plans.map(plan => ({
     name: plan.name,
@@ -337,23 +341,43 @@ export default function PricingPage() {
                         subLoading ||
                         processingPlan !== null ||
                         verifyPayment.isPending ||
-                        isCurrentPlan
+                        startTrial.isPending ||
+                        (isCurrentPlan && !subscription?.is_trial)
                       }
-                      onClick={() => handleSelectPlan(plan)}
+                      onClick={() => {
+                        // If user clicks Pro and can start trial, start trial instead
+                        if (plan.planType === 'pro' && canStartTrial) {
+                          startTrial.mutate();
+                        } else {
+                          handleSelectPlan(plan);
+                        }
+                      }}
                     >
                       {processingPlan === plan.planType ? (
                         <>
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           Processing...
                         </>
-                      ) : isCurrentPlan ? (
-                        'Current Plan'
+                      ) : startTrial.isPending && plan.planType === 'pro' ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Starting Trial...
+                        </>
+                      ) : subscription?.is_trial && plan.planType === 'pro' ? (
+                        'On Trial'
+                      ) : isCurrentPlan && !subscription?.is_trial ? (
+                        plan.planType === 'free' ? 'Current Plan' : 'Current Plan'
                       ) : isDowngrade ? (
                         'Downgrade'
                       ) : plan.planType === 'team' ? (
                         <>
                           <Users className="h-4 w-4 mr-2" />
                           Contact Sales
+                        </>
+                      ) : plan.planType === 'pro' && canStartTrial ? (
+                        <>
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          Start 7-Day Free Trial
                         </>
                       ) : (
                         plan.cta

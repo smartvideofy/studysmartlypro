@@ -73,6 +73,101 @@ serve(async (req) => {
 
     console.log(`Running subscription check at ${nowISO}`);
 
+  // ============ TRIAL EXPIRY HANDLING ============
+  
+  // Find trials expiring in 2 days (for reminder emails)
+  const twoDaysFromNow = new Date(now);
+  twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
+  const twoDaysStart = new Date(twoDaysFromNow);
+  twoDaysStart.setHours(0, 0, 0, 0);
+  const twoDaysEnd = new Date(twoDaysFromNow);
+  twoDaysEnd.setHours(23, 59, 59, 999);
+
+  const { data: expiringTrials, error: expiringTrialsError } = await supabase
+    .from('subscriptions')
+    .select('id, user_id, trial_end_date')
+    .eq('status', 'trial')
+    .gte('trial_end_date', twoDaysStart.toISOString())
+    .lte('trial_end_date', twoDaysEnd.toISOString());
+
+  if (expiringTrialsError) {
+    console.error('Error fetching expiring trials:', expiringTrialsError);
+  } else if (expiringTrials && expiringTrials.length > 0) {
+    console.log(`Found ${expiringTrials.length} trials expiring in 2 days`);
+
+    for (const trial of expiringTrials) {
+      // Check if we already sent a trial ending reminder
+      const { data: existingLog } = await supabase
+        .from('email_logs')
+        .select('id')
+        .eq('user_id', trial.user_id)
+        .eq('email_type', 'trial_ending')
+        .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .single();
+
+      if (!existingLog) {
+        await sendSubscriptionEmail(trial.user_id, 'trial_ending' as any, {
+          daysRemaining: 2,
+          trialEndDate: new Date(trial.trial_end_date).toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        });
+      } else {
+        console.log(`Trial ending reminder already sent to user ${trial.user_id}`);
+      }
+    }
+  }
+
+  // Find and expire all ended trials
+  const { data: expiredTrials, error: expiredTrialsError } = await supabase
+    .from('subscriptions')
+    .select('id, user_id')
+    .eq('status', 'trial')
+    .lt('trial_end_date', nowISO);
+
+  if (expiredTrialsError) {
+    console.error('Error fetching expired trials:', expiredTrialsError);
+  } else if (expiredTrials && expiredTrials.length > 0) {
+    console.log(`Found ${expiredTrials.length} expired trials`);
+
+    for (const trial of expiredTrials) {
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update({
+          plan: 'free',
+          status: 'expired',
+          updated_at: nowISO,
+        })
+        .eq('id', trial.id);
+
+      if (updateError) {
+        console.error(`Failed to expire trial ${trial.id}:`, updateError);
+      } else {
+        console.log(`Expired trial for user ${trial.user_id}`);
+        
+        await sendSubscriptionEmail(trial.user_id, 'trial_expired' as any, {});
+
+        // Also send in-app notification
+        try {
+          await supabase.from('notifications').insert({
+            user_id: trial.user_id,
+            type: 'trial_expired',
+            title: 'Trial Ended',
+            message: 'Your Pro trial has ended. Subscribe now to continue using premium features.',
+            data: {},
+          });
+        } catch (notifError) {
+          console.error('Failed to send trial expiry notification:', notifError);
+        }
+      }
+    }
+  }
+
+  // ============ SUBSCRIPTION EXPIRY HANDLING ============
+
     // 1. Find subscriptions expiring in 3 days (for reminder emails)
     const threeDaysFromNow = new Date(now);
     threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
@@ -207,6 +302,8 @@ serve(async (req) => {
       expired_count: expiredSubscriptions.length,
       succeeded,
       failed,
+      trials_expiring_soon: expiringTrials?.length || 0,
+      trials_expired: expiredTrials?.length || 0,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
