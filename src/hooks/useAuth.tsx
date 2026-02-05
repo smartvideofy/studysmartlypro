@@ -1,6 +1,7 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthContextType {
   user: User | null;
@@ -19,6 +20,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const prevUserId = useRef<string | null>(null);
+  const queryClient = useQueryClient();
+
+  // Clear cache when user changes (login/logout/switch accounts)
+  useEffect(() => {
+    if (user?.id !== prevUserId.current) {
+      // User changed - clear all cached queries
+      if (prevUserId.current !== null || user === null) {
+        queryClient.clear();
+      }
+      prevUserId.current = user?.id ?? null;
+    }
+  }, [user?.id, queryClient]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -92,6 +106,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signOut = async () => {
+    // Clear React Query cache first
+    queryClient.clear();
+    
+    // Clear user-specific localStorage
+    const keysToRemove = ['sidebar-collapsed'];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    
+    // Then sign out from Supabase
     await supabase.auth.signOut();
   };
 

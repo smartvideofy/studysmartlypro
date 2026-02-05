@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -78,7 +78,11 @@ export default function DashboardLayout({
   activeStudyTab,
   onStudyTabChange
 }: DashboardLayoutProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    // Read from localStorage on initial mount
+    const stored = localStorage.getItem('sidebar-collapsed');
+    return stored === 'true';
+  });
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [studyMenuOpen, setStudyMenuOpen] = useState(!!materialId);
@@ -86,6 +90,11 @@ export default function DashboardLayout({
   const navigate = useNavigate();
   const { data: profile } = useProfile();
   const isMobile = useIsMobile();
+
+  // Persist sidebar collapsed state
+  useEffect(() => {
+    localStorage.setItem('sidebar-collapsed', String(collapsed));
+  }, [collapsed]);
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
