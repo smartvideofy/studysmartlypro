@@ -1,205 +1,51 @@
 
-# Remove Free Tier and Implement Full Access Block After Trial
+
+# Rebrand App Theme to Match Logo Colors
 
 ## Overview
 
-Transform the subscription model from a freemium approach (Free/Pro/Team) to a trial-gated model where users get full Pro access for 7 days, then must subscribe to continue using the app. This creates a cleaner conversion funnel and stronger urgency.
+Transform the app's color scheme from the current "cool violet" (blue-purple) to a "warm magenta-purple" that matches the logo. This will create visual cohesion between the logo and the entire app experience.
 
 ---
 
-## Current vs. New Model
+## Current vs. New Color Palette
 
 ```text
-CURRENT MODEL:
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Signup    │ ──► │  7-Day Pro  │ ──► │  Free Tier  │ (limited features)
-│             │     │   Trial     │     │  Limbo      │
-└─────────────┘     └─────────────┘     └─────────────┘
-                                              │
-                                              ▼ (optional)
-                                        ┌─────────────┐
-                                        │  Subscribe  │
-                                        └─────────────┘
+CURRENT THEME:                      NEW THEME (Logo-Matched):
+┌────────────────────────┐          ┌────────────────────────┐
+│  Cool Violet           │          │  Warm Magenta-Purple   │
+│  HSL(262°, 83%, 58%)   │    ──►   │  HSL(285°, 75%, 55%)   │
+│  Blue-purple tone      │          │  Pink-purple tone      │
+└────────────────────────┘          └────────────────────────┘
 
-NEW MODEL:
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│   Signup    │ ──► │  7-Day Pro  │ ──► │   BLOCKED   │
-│             │     │   Trial     │     │ Subscribe   │
-└─────────────┘     └─────────────┘     │ to Continue │
-                                        └─────────────┘
+The logo has a gradient from ~HSL(285°) magenta to ~HSL(320°) pink
 ```
 
 ---
 
-## Changes Required
+## Color Scheme Changes
 
-### 1. Remove Free Plan from Pricing Page
+### Primary Color (Main Brand Color)
 
-**File:** `src/pages/PricingPage.tsx`
+| Property | Current | New |
+|----------|---------|-----|
+| Hue | 262° (blue-violet) | 285° (magenta-purple) |
+| Saturation | 83% | 75% |
+| Lightness | 58% | 55% |
+| Dark mode hue | 262° | 285° |
 
-- Remove the "Free" plan card entirely
-- Simplify to just Pro ($9/mo) and Team ($19/mo)
-- Update messaging to focus on trial-to-paid conversion
-- Show "Your trial has ended" state for expired users
+### Background Tints
 
-**New messaging:**
-- Header: "Choose your plan" or "Continue learning with Studily"
-- For trial users: "Your 7-day trial includes all Pro features"
-- For expired users: "Subscribe to continue where you left off"
+Update subtle violet tints in backgrounds to use the warmer hue:
+- Background: 252° → 290° (subtle magenta tint)
+- Muted colors: 252° → 285°
+- Ring/focus: Match primary
 
-### 2. Create Full-Screen Block for Expired Users
+### Accent Color
 
-**File:** `src/components/subscription/SubscriptionBlock.tsx` (New)
-
-Create a blocking overlay/page that shows when:
-- `subscription.status === 'expired'` AND
-- `subscription.plan === 'free'` AND
-- `subscription.trial_used === true`
-
-Features:
-- Friendly but clear messaging
-- Show what they accomplished during trial (if we have data)
-- Single CTA to pricing page
-- No way to bypass
-
-### 3. Update DashboardLayout to Block Expired Users
-
-**File:** `src/components/layout/DashboardLayout.tsx`
-
-Add a check that renders the SubscriptionBlock component instead of the main content when the user's trial has expired and they haven't subscribed.
-
-### 4. Update Onboarding Messaging
-
-**File:** `src/pages/OnboardingPage.tsx`
-
-Improve the final step to clearly communicate:
-- "You're starting your 7-day free trial"
-- "Full Pro access - no credit card required"
-- "After 7 days, choose a plan to continue"
-
-Add a visual indicator or step that highlights the trial.
-
-### 5. Update Subscription Hook
-
-**File:** `src/hooks/useSubscription.tsx`
-
-- Remove `PLAN_FEATURES.free` or make it identical to Pro (since no one should be on "free" anymore)
-- Add a new helper: `useIsBlocked()` that returns `true` when access should be blocked
-- Update `usePlanFeatures()` to handle blocked state
-
-### 6. Update SidebarUpgradeCTA
-
-**File:** `src/components/layout/sidebar/SidebarUpgradeCTA.tsx`
-
-- Update condition: Show for trial users (with urgency) AND expired users
-- Different messaging for each state
-- Trial: "X days left - Subscribe now"
-- Expired: "Subscribe to continue"
-
-### 7. Update Settings Page Subscription Section
-
-**File:** `src/pages/SettingsPage.tsx`
-
-- Update messaging for expired state
-- Remove "free plan" references
-- Clear CTA for expired users
-
-### 8. Update Email Templates
-
-**File:** `supabase/functions/send-email/index.ts`
-
-Update trial-related email templates:
-- `trial_started`: "You now have full access for 7 days"
-- `trial_ending`: "Don't lose access - subscribe now"
-- `trial_expired`: "Your access has been paused" (not "downgraded")
-
-### 9. Update PremiumGate Component
-
-**File:** `src/components/subscription/PremiumGate.tsx`
-
-Update the messaging from "Upgrade to Pro" to "Subscribe to Access" for expired trial users.
-
----
-
-## Detailed Implementation
-
-### SubscriptionBlock Component
-
-```text
-┌────────────────────────────────────────────────────────────┐
-│                                                            │
-│                      [Studily Logo]                        │
-│                                                            │
-│              Your trial has ended                          │
-│                                                            │
-│   Thanks for trying Studily! To continue accessing         │
-│   your notes, flashcards, and AI study tools,              │
-│   choose a plan below.                                     │
-│                                                            │
-│   ┌─────────────────────────────────────────────────┐     │
-│   │  Your progress is safe:                          │     │
-│   │  • 12 notes created                              │     │
-│   │  • 45 flashcards studied                         │     │
-│   │  • 3 hours of study time                         │     │
-│   └─────────────────────────────────────────────────┘     │
-│                                                            │
-│              [Choose a Plan - Button]                      │
-│                                                            │
-│              Questions? Contact support                    │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-### Pricing Page Updates
-
-**Remove Free tier card. New structure:**
-
-```text
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│                Choose your plan to continue                     │
-│      All plans include everything you loved during your trial   │
-│                                                                 │
-│        [Monthly]  ─────○  [Annually] Save 17%                   │
-│                                                                 │
-│   ┌─────────────────────────┐  ┌─────────────────────────┐     │
-│   │       PRO ⭐             │  │       TEAM              │     │
-│   │       $9/month           │  │       $19/month         │     │
-│   │                          │  │                         │     │
-│   │  For individual          │  │  For study groups       │     │
-│   │  students                │  │  (5 members)            │     │
-│   │                          │  │                         │     │
-│   │  ✓ Unlimited documents   │  │  ✓ Everything in Pro   │     │
-│   │  ✓ AI summaries          │  │  ✓ Shared library      │     │
-│   │  ✓ Practice questions    │  │  ✓ Team analytics      │     │
-│   │  ✓ Concept maps          │  │  ✓ Admin dashboard     │     │
-│   │  ✓ Export to Anki        │  │                         │     │
-│   │                          │  │                         │     │
-│   │  [Subscribe]             │  │  [Contact Sales]       │     │
-│   └─────────────────────────┘  └─────────────────────────┘     │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Onboarding Final Step Enhancement
-
-Add a trial highlight card before the "Get Started" button:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                                                             │
-│   🎉 Your 7-day free trial starts now!                      │
-│                                                             │
-│   You'll get full access to:                                │
-│   • Unlimited document uploads                              │
-│   • AI-powered summaries & practice questions               │
-│   • Concept maps & advanced study tools                     │
-│   • Export to Anki                                          │
-│                                                             │
-│   No credit card required. Cancel anytime.                  │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-```
+Consider updating the accent from coral (12°) to a complementary color:
+- Option A: Keep coral (provides contrast)
+- Option B: Change to teal/cyan (complements magenta)
 
 ---
 
@@ -207,55 +53,127 @@ Add a trial highlight card before the "Get Started" button:
 
 | File | Changes |
 |------|---------|
-| `src/pages/PricingPage.tsx` | Remove Free tier, update messaging |
-| `src/components/subscription/SubscriptionBlock.tsx` | New full-screen block component |
-| `src/components/layout/DashboardLayout.tsx` | Add blocking logic |
-| `src/pages/OnboardingPage.tsx` | Add trial highlight messaging |
-| `src/hooks/useSubscription.tsx` | Add `useIsBlocked` hook |
-| `src/components/layout/sidebar/SidebarUpgradeCTA.tsx` | Update for expired state |
-| `src/pages/SettingsPage.tsx` | Update subscription section messaging |
-| `src/components/subscription/PremiumGate.tsx` | Update messaging for expired users |
-| `supabase/functions/send-email/index.ts` | Update email template copy |
+| `src/index.css` | Update all HSL hue values from 262/252 to 285/290 |
+| `tailwind.config.ts` | No changes needed (uses CSS variables) |
+
+### CSS Variable Updates
+
+```text
+Light Mode Changes:
+--background: 252 → 290 (subtle magenta tint)
+--primary: 262 → 285 (warm magenta-purple)
+--primary-muted: 262 → 285
+--primary-hover: 262 → 285
+--muted: 252 → 285
+--border: 252 → 285
+--ring: 262 → 285
+--sidebar-primary: 262 → 285
+--sidebar-ring: 262 → 285
+
+Dark Mode Changes:
+--background: 252 → 290
+--card: 252 → 285
+--primary: 262 → 285
+--primary-muted: 265 → 285
+--primary-hover: 265 → 285
+--muted: 252 → 285
+--ring: 262 → 285
+--sidebar-primary: 262 → 285
+--sidebar-ring: 262 → 285
+```
+
+### Deck Colors Update
+
+Update the flashcard deck color palette to match the new brand:
+
+```text
+Current deck-color-1: hsl(262 85% 58%)
+New deck-color-1: hsl(285 75% 55%)
+```
 
 ---
 
-## Messaging Improvements Summary
+## Visual Impact
 
-| Location | Current | New |
-|----------|---------|-----|
-| Pricing header | "Simple, transparent pricing" | "Continue learning with Studily" |
-| Free plan CTA | "Get Started Free" | (Removed) |
-| Pro plan CTA (trial available) | "Start 7-Day Free Trial" | "Start Free Trial" |
-| Pro plan CTA (trial expired) | "Start Pro Trial" | "Subscribe Now" |
-| Trial banner | "Subscribe Now" | "Continue Access" |
-| Onboarding finish | "Get Started" | "Start My Free Trial" |
-| Block screen | (none) | "Your trial has ended - Choose a plan to continue" |
-| Sidebar CTA | "Go Pro" | Trial: "X days left" / Expired: "Subscribe to continue" |
+### Before (Cool Violet)
+- Buttons appear blue-purple
+- Focus rings have blue tint
+- Active navigation has blue-purple accent
+- Overall "cool" temperature feeling
+
+### After (Warm Magenta-Purple)
+- Buttons match logo color exactly
+- Focus rings have pink-purple warmth
+- Active navigation feels cohesive with logo
+- Overall "warm" energetic feeling
 
 ---
 
-## Edge Cases to Handle
+## Component Color Classes
 
-1. **Existing free users**: Users who signed up before this change and never used trial
-   - Option A: Auto-start trial for them on next login
-   - Option B: Block them with message "Start your free trial"
+These CSS classes will automatically update when CSS variables change (no file edits needed):
+- `.text-primary` - Text color
+- `.bg-primary` - Button backgrounds
+- `.bg-primary/20` - Icon containers
+- `.border-primary` - Focus borders
+- `.ring-primary` - Focus rings
+- `.nav-link.active` - Active navigation
 
-2. **Users mid-trial**: No change, they continue normally
+---
 
-3. **Expired trial users**: Show block screen, redirect to pricing
+## Implementation Details
 
-4. **Active subscribers**: No change, full access
+### Light Mode Primary
 
-5. **Cancelled subscribers**: Show block screen when subscription period ends
+```css
+/* Current */
+--primary: 262 83% 58%;  /* Cool blue-violet */
+
+/* New */
+--primary: 285 75% 55%;  /* Warm magenta-purple matching logo */
+```
+
+### Dark Mode Primary
+
+```css
+/* Current */
+--primary: 262 85% 68%;  /* Lighter cool violet */
+
+/* New */
+--primary: 285 78% 65%;  /* Lighter warm magenta */
+```
+
+### Background Tints
+
+```css
+/* Light mode - very subtle magenta tint */
+--background: 290 18% 98%;
+
+/* Dark mode - deep magenta-tinted dark */
+--background: 285 20% 7%;
+```
 
 ---
 
 ## Testing Checklist
 
-- New user signup → Trial starts automatically → Full Pro access
-- Trial user on day 7 → Clear blocking when trial expires
-- Expired user clicks any nav → Redirected to block/pricing
-- Expired user's data preserved after subscribing
-- Settings page shows correct status for all states
-- Pricing page shows 2 plans (no Free tier)
-- Emails have updated messaging
+After implementing:
+- [ ] Splash screen logo and loading dots match
+- [ ] Auth page left panel gradient matches logo
+- [ ] All buttons are warm magenta-purple
+- [ ] Active navigation items match brand
+- [ ] Dark mode looks cohesive
+- [ ] Focus states are visible and on-brand
+- [ ] Flashcard decks have updated brand color
+- [ ] Progress bars and charts use new primary
+- [ ] Selection highlight uses new color
+
+---
+
+## Files Changed Summary
+
+Only **1 file** needs modification:
+- `src/index.css` - Update CSS custom property values
+
+The entire app will automatically reflect the new branding because all components use the CSS variables.
+
