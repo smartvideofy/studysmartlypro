@@ -403,25 +403,24 @@ function generateEmailContent(
 
     case "trial_expired":
       return {
-        subject: "Your Pro trial has ended 💜",
+        subject: "Your access has been paused 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Your trial has ended, ${userName} 💜</h1>
-            <p>Your 7-day Pro trial is now complete. We hope you enjoyed the premium experience!</p>
-            <p>You've been moved to the Free plan, but your study materials and progress are safe.</p>
+            <h1 style="color: #8b5cf6; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
+            <p>Your 7-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
+            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
             <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <p style="margin: 0 0 12px 0;"><strong>Features you're missing:</strong></p>
+              <p style="margin: 0 0 12px 0;"><strong>To continue, you'll need access to:</strong></p>
               <ul style="margin: 0; padding-left: 20px;">
-                <li>Unlimited document uploads</li>
+                <li>Your uploaded study materials</li>
+                <li>Your flashcard decks</li>
                 <li>Practice questions & concept maps</li>
                 <li>Advanced tutor notes</li>
-                <li>Anki export</li>
               </ul>
             </div>
-            <p>Ready to continue with Pro? Subscribe today and pick up right where you left off.</p>
-            <a href="${appUrl}/pricing" style="${buttonStyle}">Upgrade to Pro</a>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Subscribe Now</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              Thanks for trying Studily Pro – we'd love to have you back!
+              Thanks for trying Studily – we'd love to have you continue with us!
             </p>
             ${footer}
           </div>

@@ -29,6 +29,30 @@ export interface Subscription {
   trial_days_remaining?: number;
 }
 
+// Check if user should be blocked (expired trial, no active subscription)
+export function useIsBlocked() {
+  const { data: subscription, isLoading } = useSubscription();
+  
+  if (isLoading || !subscription) {
+    return { isBlocked: false, isLoading: true };
+  }
+  
+  // Active paid subscribers - not blocked
+  if (subscription.status === 'active' && subscription.plan !== 'free') {
+    return { isBlocked: false, isLoading: false };
+  }
+  
+  // Users on trial - not blocked
+  if (subscription.is_trial) {
+    return { isBlocked: false, isLoading: false };
+  }
+  
+  // Trial used and expired, or cancelled subscription - blocked
+  const isBlocked = subscription.trial_used === true && subscription.plan === 'free';
+  
+  return { isBlocked, isLoading: false };
+}
+
 export interface PlanFeatures {
   maxDocuments: number | 'unlimited';
   aiSummaries: boolean;
@@ -47,13 +71,13 @@ export interface PlanFeatures {
 
 export const PLAN_FEATURES: Record<PlanType, PlanFeatures> = {
   free: {
-    maxDocuments: 5,
+    maxDocuments: 'unlimited', // Same as Pro - trial model
     aiSummaries: true,
-    flashcards: true,
-    practiceQuestions: false,
-    conceptMaps: false,
-    tutorNotes: false,
-    exportAnki: false,
+    flashcards: 'unlimited',
+    practiceQuestions: true,
+    conceptMaps: true,
+    tutorNotes: 'advanced',
+    exportAnki: true,
     prioritySupport: false,
   },
   pro: {

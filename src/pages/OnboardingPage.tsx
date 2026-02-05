@@ -21,6 +21,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
 import { useUpdateProfile } from "@/hooks/useProfile";
 import { useStartTrial } from "@/hooks/useSubscription";
 import { toast } from "sonner";
@@ -373,7 +374,30 @@ export default function OnboardingPage() {
 
       {/* Footer Actions */}
       <footer className="p-4 md:p-6 pb-safe">
-        <div className="max-w-lg mx-auto flex items-center justify-between gap-4">
+        <div className="max-w-lg mx-auto space-y-4">
+          {/* Trial highlight card - show on final step */}
+          {isPreferencesStep && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/20"
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                <span className="font-semibold">Your 7-day free trial starts now!</span>
+                <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border-green-500/20">
+                  No credit card
+                </Badge>
+              </div>
+              <ul className="text-sm text-muted-foreground space-y-1 ml-7">
+                <li>• Unlimited document uploads & AI tools</li>
+                <li>• Practice questions & concept maps</li>
+                <li>• Full access to all Pro features</li>
+              </ul>
+            </motion.div>
+          )}
+
+          <div className="flex items-center justify-between gap-4">
           <Button
             variant="ghost"
             onClick={handlePrevious}
@@ -398,8 +422,8 @@ export default function OnboardingPage() {
               </>
             ) : currentStep === TOTAL_STEPS - 1 ? (
               <>
-                <span>Get Started</span>
-                <CheckCircle2 className="w-4 h-4 ml-2" />
+                <Sparkles className="w-4 h-4 mr-2" />
+                <span>Start My Free Trial</span>
               </>
             ) : (
               <>
@@ -408,6 +432,7 @@ export default function OnboardingPage() {
               </>
             )}
           </Button>
+        </div>
         </div>
       </footer>
     </div>

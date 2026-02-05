@@ -76,6 +76,9 @@ export default function SettingsPage() {
   const updateProfile = useUpdateProfile();
   const { theme, setTheme } = useTheme();
 
+  // Determine display state
+  const isExpiredUser = trialExpired || (subscription?.trial_used && subscription?.plan === 'free');
+
   const [fullName, setFullName] = useState("");
   const [studyGoal, setStudyGoal] = useState("general");
   const [dailyMinutes, setDailyMinutes] = useState(30);
@@ -178,11 +181,11 @@ export default function SettingsPage() {
                 description={
                   isOnTrial
                     ? `Pro trial - ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} remaining`
-                    : trialExpired
-                    ? 'Your trial has ended. Upgrade to continue.'
+                    : isExpiredUser
+                    ? 'Your trial has ended. Subscribe to continue.'
                     : subscription?.status === 'active' 
                       ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
-                      : 'Upgrade for more features'
+                      : 'Start your free trial'
                 }
               >
                 <div className="flex items-center gap-2">
@@ -192,18 +195,23 @@ export default function SettingsPage() {
                       Trial
                     </Badge>
                   )}
+                  {isExpiredUser && (
+                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
+                      Expired
+                    </Badge>
+                  )}
                   {subscription?.billing_interval && subscription?.plan !== 'free' && (
                     <Badge variant="outline" className="capitalize text-xs">
                       {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
                     </Badge>
                   )}
-                  {(subscription?.plan === 'free' || isOnTrial || trialExpired) && (
+                  {(subscription?.plan === 'free' || isOnTrial || isExpiredUser) && (
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={() => navigate('/pricing')}
                     >
-                      {isOnTrial ? 'Subscribe' : 'Upgrade'}
+                      {isExpiredUser ? 'Subscribe Now' : isOnTrial ? 'Subscribe' : 'Start Trial'}
                     </Button>
                   )}
                 </div>
