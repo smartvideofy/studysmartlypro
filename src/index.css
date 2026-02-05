@@ -11,14 +11,14 @@
 
 @layer base {
   :root {
-    /* Warm Magenta-Purple Theme (Logo-Matched) */
-    --background: 290 18% 98%;
+    /* Warm Magenta-Purple Theme - Reduced White */
+    --background: 290 25% 97%;
     --foreground: 220 20% 14%;
     
-    --card: 0 0% 100%;
+    --card: 290 20% 99%;
     --card-foreground: 220 20% 14%;
     
-    --popover: 0 0% 100%;
+    --popover: 290 18% 99%;
     --popover-foreground: 220 20% 14%;
     
     /* Primary - Warm magenta-purple matching logo */
@@ -27,12 +27,12 @@
     --primary-muted: 285 60% 96%;
     --primary-hover: 285 75% 48%;
     
-    /* Secondary - Subtle neutral */
-    --secondary: 220 14% 96%;
+    /* Secondary - Brand tint */
+    --secondary: 285 16% 95%;
     --secondary-foreground: 220 20% 20%;
     
-    /* Muted - With magenta undertone */
-    --muted: 285 14% 94%;
+    /* Muted - Stronger brand presence */
+    --muted: 285 18% 93%;
     --muted-foreground: 285 12% 42%;
     
     /* Accent - Teal (complements magenta) */
@@ -53,25 +53,25 @@
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 285 14% 90%;
-    --input: 220 14% 92%;
+    --border: 285 16% 88%;
+    --input: 285 14% 94%;
     --ring: 285 75% 55%;
     
     --radius: 0.75rem;
     
-    /* Sidebar - Clean */
-    --sidebar-background: 0 0% 100%;
+    /* Sidebar - Brand tinted */
+    --sidebar-background: 290 22% 98%;
     --sidebar-foreground: 220 20% 20%;
     --sidebar-primary: 285 75% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
+    --sidebar-accent: 285 16% 95%;
     --sidebar-accent-foreground: 220 20% 14%;
-    --sidebar-border: 220 14% 92%;
+    --sidebar-border: 285 14% 90%;
     --sidebar-ring: 285 75% 55%;
     
-    /* Simplified glass tokens */
-    --glass-bg: 0 0% 100% / 0.8;
-    --glass-border: 220 14% 90%;
+    /* Glass - Warmer */
+    --glass-bg: 290 20% 99% / 0.85;
+    --glass-border: 285 14% 88%;
     --glass-blur: 8px;
     
     /* Enhanced shadows for depth */
