@@ -1,79 +1,204 @@
 
-# Fix Caching Issues Causing Old Layout Display
+# Remove Free Tier and Implement Full Access Block After Trial
 
-## Problem Summary
+## Overview
 
-The app sometimes displays old layouts due to:
-1. React Query cache not being cleared on logout/user switch
-2. Sidebar collapsed state not persisted (resets on refresh)
-3. No mechanism to detect and clear stale cached data
-4. Missing version-based cache busting
+Transform the subscription model from a freemium approach (Free/Pro/Team) to a trial-gated model where users get full Pro access for 7 days, then must subscribe to continue using the app. This creates a cleaner conversion funnel and stronger urgency.
 
 ---
 
-## Implementation Plan
-
-### Step 1: Clear React Query Cache on Auth Changes
-
-**File:** `src/hooks/useAuth.tsx`
-
-Update the `signOut` function to clear all cached data:
+## Current vs. New Model
 
 ```text
-Before signing out:
-├─ Clear React Query cache
-├─ Clear any localStorage user data
-└─ Then sign out from Supabase
-```
+CURRENT MODEL:
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Signup    │ ──► │  7-Day Pro  │ ──► │  Free Tier  │ (limited features)
+│             │     │   Trial     │     │  Limbo      │
+└─────────────┘     └─────────────┘     └─────────────┘
+                                              │
+                                              ▼ (optional)
+                                        ┌─────────────┐
+                                        │  Subscribe  │
+                                        └─────────────┘
 
-Also add a hook to detect user ID changes and clear cache when users switch accounts.
+NEW MODEL:
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│   Signup    │ ──► │  7-Day Pro  │ ──► │   BLOCKED   │
+│             │     │   Trial     │     │ Subscribe   │
+└─────────────┘     └─────────────┘     │ to Continue │
+                                        └─────────────┘
+```
 
 ---
 
-### Step 2: Persist Sidebar Collapsed State
+## Changes Required
+
+### 1. Remove Free Plan from Pricing Page
+
+**File:** `src/pages/PricingPage.tsx`
+
+- Remove the "Free" plan card entirely
+- Simplify to just Pro ($9/mo) and Team ($19/mo)
+- Update messaging to focus on trial-to-paid conversion
+- Show "Your trial has ended" state for expired users
+
+**New messaging:**
+- Header: "Choose your plan" or "Continue learning with Studily"
+- For trial users: "Your 7-day trial includes all Pro features"
+- For expired users: "Subscribe to continue where you left off"
+
+### 2. Create Full-Screen Block for Expired Users
+
+**File:** `src/components/subscription/SubscriptionBlock.tsx` (New)
+
+Create a blocking overlay/page that shows when:
+- `subscription.status === 'expired'` AND
+- `subscription.plan === 'free'` AND
+- `subscription.trial_used === true`
+
+Features:
+- Friendly but clear messaging
+- Show what they accomplished during trial (if we have data)
+- Single CTA to pricing page
+- No way to bypass
+
+### 3. Update DashboardLayout to Block Expired Users
 
 **File:** `src/components/layout/DashboardLayout.tsx`
 
-Save the sidebar collapsed preference to localStorage so it persists across page refreshes:
+Add a check that renders the SubscriptionBlock component instead of the main content when the user's trial has expired and they haven't subscribed.
+
+### 4. Update Onboarding Messaging
+
+**File:** `src/pages/OnboardingPage.tsx`
+
+Improve the final step to clearly communicate:
+- "You're starting your 7-day free trial"
+- "Full Pro access - no credit card required"
+- "After 7 days, choose a plan to continue"
+
+Add a visual indicator or step that highlights the trial.
+
+### 5. Update Subscription Hook
+
+**File:** `src/hooks/useSubscription.tsx`
+
+- Remove `PLAN_FEATURES.free` or make it identical to Pro (since no one should be on "free" anymore)
+- Add a new helper: `useIsBlocked()` that returns `true` when access should be blocked
+- Update `usePlanFeatures()` to handle blocked state
+
+### 6. Update SidebarUpgradeCTA
+
+**File:** `src/components/layout/sidebar/SidebarUpgradeCTA.tsx`
+
+- Update condition: Show for trial users (with urgency) AND expired users
+- Different messaging for each state
+- Trial: "X days left - Subscribe now"
+- Expired: "Subscribe to continue"
+
+### 7. Update Settings Page Subscription Section
+
+**File:** `src/pages/SettingsPage.tsx`
+
+- Update messaging for expired state
+- Remove "free plan" references
+- Clear CTA for expired users
+
+### 8. Update Email Templates
+
+**File:** `supabase/functions/send-email/index.ts`
+
+Update trial-related email templates:
+- `trial_started`: "You now have full access for 7 days"
+- `trial_ending`: "Don't lose access - subscribe now"
+- `trial_expired`: "Your access has been paused" (not "downgraded")
+
+### 9. Update PremiumGate Component
+
+**File:** `src/components/subscription/PremiumGate.tsx`
+
+Update the messaging from "Upgrade to Pro" to "Subscribe to Access" for expired trial users.
+
+---
+
+## Detailed Implementation
+
+### SubscriptionBlock Component
 
 ```text
-┌─────────────────────────────────────────┐
-│  Current: useState(false)               │
-│  → Resets to expanded on every refresh  │
-├─────────────────────────────────────────┤
-│  Fixed: Read from localStorage          │
-│  → Remembers user's preference          │
-└─────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────┐
+│                                                            │
+│                      [Studily Logo]                        │
+│                                                            │
+│              Your trial has ended                          │
+│                                                            │
+│   Thanks for trying Studily! To continue accessing         │
+│   your notes, flashcards, and AI study tools,              │
+│   choose a plan below.                                     │
+│                                                            │
+│   ┌─────────────────────────────────────────────────┐     │
+│   │  Your progress is safe:                          │     │
+│   │  • 12 notes created                              │     │
+│   │  • 45 flashcards studied                         │     │
+│   │  • 3 hours of study time                         │     │
+│   └─────────────────────────────────────────────────┘     │
+│                                                            │
+│              [Choose a Plan - Button]                      │
+│                                                            │
+│              Questions? Contact support                    │
+│                                                            │
+└────────────────────────────────────────────────────────────┘
 ```
 
----
+### Pricing Page Updates
 
-### Step 3: Add User-Change Detection Hook
-
-**File:** `src/hooks/useAuth.tsx`
-
-Create a mechanism that:
-- Tracks the previous user ID
-- When user changes (login/logout/switch), clears all React Query caches
-- Prevents stale data from previous user showing up
-
----
-
-### Step 4: Add App Version Cache Busting
-
-**File:** `src/App.tsx`
-
-Add a simple version check that clears localStorage and caches when the app is updated:
+**Remove Free tier card. New structure:**
 
 ```text
-On App Mount:
-├─ Read stored app version from localStorage
-├─ Compare with current version
-├─ If different:
-│   ├─ Clear React Query cache
-│   ├─ Clear user-specific localStorage keys
-│   └─ Store new version
-└─ Continue normal app loading
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│                Choose your plan to continue                     │
+│      All plans include everything you loved during your trial   │
+│                                                                 │
+│        [Monthly]  ─────○  [Annually] Save 17%                   │
+│                                                                 │
+│   ┌─────────────────────────┐  ┌─────────────────────────┐     │
+│   │       PRO ⭐             │  │       TEAM              │     │
+│   │       $9/month           │  │       $19/month         │     │
+│   │                          │  │                         │     │
+│   │  For individual          │  │  For study groups       │     │
+│   │  students                │  │  (5 members)            │     │
+│   │                          │  │                         │     │
+│   │  ✓ Unlimited documents   │  │  ✓ Everything in Pro   │     │
+│   │  ✓ AI summaries          │  │  ✓ Shared library      │     │
+│   │  ✓ Practice questions    │  │  ✓ Team analytics      │     │
+│   │  ✓ Concept maps          │  │  ✓ Admin dashboard     │     │
+│   │  ✓ Export to Anki        │  │                         │     │
+│   │                          │  │                         │     │
+│   │  [Subscribe]             │  │  [Contact Sales]       │     │
+│   └─────────────────────────┘  └─────────────────────────┘     │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Onboarding Final Step Enhancement
+
+Add a trial highlight card before the "Get Started" button:
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                                                             │
+│   🎉 Your 7-day free trial starts now!                      │
+│                                                             │
+│   You'll get full access to:                                │
+│   • Unlimited document uploads                              │
+│   • AI-powered summaries & practice questions               │
+│   • Concept maps & advanced study tools                     │
+│   • Export to Anki                                          │
+│                                                             │
+│   No credit card required. Cancel anytime.                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -82,92 +207,55 @@ On App Mount:
 
 | File | Changes |
 |------|---------|
-| `src/hooks/useAuth.tsx` | Add cache clearing on signOut, add user change detection |
-| `src/components/layout/DashboardLayout.tsx` | Persist sidebar collapsed state in localStorage |
-| `src/App.tsx` | Add version-based cache busting logic |
+| `src/pages/PricingPage.tsx` | Remove Free tier, update messaging |
+| `src/components/subscription/SubscriptionBlock.tsx` | New full-screen block component |
+| `src/components/layout/DashboardLayout.tsx` | Add blocking logic |
+| `src/pages/OnboardingPage.tsx` | Add trial highlight messaging |
+| `src/hooks/useSubscription.tsx` | Add `useIsBlocked` hook |
+| `src/components/layout/sidebar/SidebarUpgradeCTA.tsx` | Update for expired state |
+| `src/pages/SettingsPage.tsx` | Update subscription section messaging |
+| `src/components/subscription/PremiumGate.tsx` | Update messaging for expired users |
+| `supabase/functions/send-email/index.ts` | Update email template copy |
 
 ---
 
-## Technical Details
+## Messaging Improvements Summary
 
-### Auth Hook Updates
-
-```typescript
-// Add to useAuth.tsx
-import { useQueryClient } from '@tanstack/react-query';
-
-// In signOut function:
-const signOut = async () => {
-  // Clear React Query cache first
-  queryClient.clear();
-  
-  // Clear any user-specific localStorage
-  const keysToRemove = ['sidebar-collapsed'];
-  keysToRemove.forEach(key => localStorage.removeItem(key));
-  
-  // Then sign out
-  await supabase.auth.signOut();
-};
-
-// Add user change detection effect
-useEffect(() => {
-  // When user ID changes, clear cached queries
-  if (user?.id !== prevUserId.current) {
-    queryClient.clear();
-    prevUserId.current = user?.id ?? null;
-  }
-}, [user?.id]);
-```
-
-### Sidebar Persistence
-
-```typescript
-// In DashboardLayout.tsx
-const [collapsed, setCollapsed] = useState(() => {
-  // Read from localStorage on initial mount
-  const stored = localStorage.getItem('sidebar-collapsed');
-  return stored === 'true';
-});
-
-// Save when it changes
-useEffect(() => {
-  localStorage.setItem('sidebar-collapsed', String(collapsed));
-}, [collapsed]);
-```
-
-### Version Cache Busting
-
-```typescript
-// In App.tsx - add before providers
-const APP_VERSION = '1.0.1'; // Increment when deploying layout changes
-
-useEffect(() => {
-  const storedVersion = localStorage.getItem('app-version');
-  if (storedVersion !== APP_VERSION) {
-    // Version changed - clear caches
-    queryClient.clear();
-    localStorage.setItem('app-version', APP_VERSION);
-    console.log('App updated, caches cleared');
-  }
-}, []);
-```
+| Location | Current | New |
+|----------|---------|-----|
+| Pricing header | "Simple, transparent pricing" | "Continue learning with Studily" |
+| Free plan CTA | "Get Started Free" | (Removed) |
+| Pro plan CTA (trial available) | "Start 7-Day Free Trial" | "Start Free Trial" |
+| Pro plan CTA (trial expired) | "Start Pro Trial" | "Subscribe Now" |
+| Trial banner | "Subscribe Now" | "Continue Access" |
+| Onboarding finish | "Get Started" | "Start My Free Trial" |
+| Block screen | (none) | "Your trial has ended - Choose a plan to continue" |
+| Sidebar CTA | "Go Pro" | Trial: "X days left" / Expired: "Subscribe to continue" |
 
 ---
 
-## Expected Outcome
+## Edge Cases to Handle
 
-After these changes:
+1. **Existing free users**: Users who signed up before this change and never used trial
+   - Option A: Auto-start trial for them on next login
+   - Option B: Block them with message "Start your free trial"
 
-1. **Logout/User Switch**: All cached data is immediately cleared, new user sees fresh data
-2. **Sidebar State**: Persists user's collapse preference across sessions
-3. **App Updates**: When you deploy new versions, users' caches are automatically cleared
-4. **No More "Old Layout"**: Stale React Query data won't persist incorrectly
+2. **Users mid-trial**: No change, they continue normally
+
+3. **Expired trial users**: Show block screen, redirect to pricing
+
+4. **Active subscribers**: No change, full access
+
+5. **Cancelled subscribers**: Show block screen when subscription period ends
 
 ---
 
-## Immediate Workaround for Users
+## Testing Checklist
 
-Until this fix is deployed, users experiencing the old layout can:
-1. Hard refresh: `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
-2. Clear site data in browser settings
-3. Open in incognito/private browsing mode
+- New user signup → Trial starts automatically → Full Pro access
+- Trial user on day 7 → Clear blocking when trial expires
+- Expired user clicks any nav → Redirected to block/pricing
+- Expired user's data preserved after subscribing
+- Settings page shows correct status for all states
+- Pricing page shows 2 plans (no Free tier)
+- Emails have updated messaging
