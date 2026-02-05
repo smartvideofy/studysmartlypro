@@ -11,29 +11,29 @@
 
 @layer base {
   :root {
-    /* Warm Magenta-Purple Theme - Reduced White */
-    --background: 290 25% 97%;
+    /* Bold Pink Theme - Brand Dominant */
+    --background: 285 40% 92%;
     --foreground: 220 20% 14%;
     
-    --card: 290 20% 99%;
+    --card: 0 0% 100%;
     --card-foreground: 220 20% 14%;
     
-    --popover: 290 18% 99%;
+    --popover: 0 0% 100%;
     --popover-foreground: 220 20% 14%;
     
     /* Primary - Warm magenta-purple matching logo */
     --primary: 285 75% 55%;
     --primary-foreground: 0 0% 100%;
-    --primary-muted: 285 60% 96%;
+    --primary-muted: 285 50% 94%;
     --primary-hover: 285 75% 48%;
     
-    /* Secondary - Brand tint */
-    --secondary: 285 16% 95%;
+    /* Secondary - Lighter for contrast on pink bg */
+    --secondary: 285 25% 96%;
     --secondary-foreground: 220 20% 20%;
     
-    /* Muted - Stronger brand presence */
-    --muted: 285 18% 93%;
-    --muted-foreground: 285 12% 42%;
+    /* Muted - More saturated pink */
+    --muted: 285 30% 88%;
+    --muted-foreground: 285 15% 35%;
     
     /* Accent - Teal (complements magenta) */
     --accent: 175 70% 42%;
@@ -53,25 +53,25 @@
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
     
-    --border: 285 16% 88%;
-    --input: 285 14% 94%;
+    --border: 285 20% 85%;
+    --input: 0 0% 100%;
     --ring: 285 75% 55%;
     
     --radius: 0.75rem;
     
-    /* Sidebar - Brand tinted */
-    --sidebar-background: 290 22% 98%;
+    /* Sidebar - Deeper pink */
+    --sidebar-background: 285 35% 94%;
     --sidebar-foreground: 220 20% 20%;
     --sidebar-primary: 285 75% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 285 16% 95%;
+    --sidebar-accent: 285 30% 90%;
     --sidebar-accent-foreground: 220 20% 14%;
-    --sidebar-border: 285 14% 90%;
+    --sidebar-border: 285 25% 88%;
     --sidebar-ring: 285 75% 55%;
     
-    /* Glass - Warmer */
-    --glass-bg: 290 20% 99% / 0.85;
-    --glass-border: 285 14% 88%;
+    /* Glass - Pink tinted */
+    --glass-bg: 285 30% 95% / 0.9;
+    --glass-border: 285 20% 85%;
     --glass-blur: 8px;
     
     /* Enhanced shadows for depth */
