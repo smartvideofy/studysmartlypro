@@ -28,7 +28,7 @@ import { GlobalSearch } from "./GlobalSearch";
 import { MobileBottomNav } from "./MobileBottomNav";
 import { MobileHeader } from "./MobileHeader";
 import { MobileMenuDrawer } from "./MobileMenuDrawer";
-import { SidebarNavSection, SidebarNavItem, SidebarUpgradeCTA } from "./sidebar";
+ import { SidebarNavSection, SidebarNavItem } from "./sidebar";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsBlocked } from "@/hooks/useSubscription";
@@ -288,9 +288,6 @@ export default function DashboardLayout({
             </motion.div>
           )}
         </nav>
-
-        {/* Premium CTA for free users */}
-        <SidebarUpgradeCTA collapsed={collapsed} />
 
         {/* Bottom Navigation */}
         <div className="p-3 border-t border-border/30 space-y-1">
