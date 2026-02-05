@@ -28,35 +28,21 @@ interface PlanConfig {
 
 const plans: PlanConfig[] = [
   {
-    name: 'Free',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    yearlySavings: 0,
-    description: 'Perfect for getting started',
-    planType: 'free',
-    cta: 'Get Started Free',
-    features: [
-      'Upload up to 5 documents',
-      'AI-generated summaries',
-      'Basic flashcards',
-      'Community support',
-    ],
-  },
-  {
     name: 'Pro',
     monthlyPrice: 9,
     yearlyPrice: 90,
     yearlySavings: 18,
-    description: 'For serious students',
+    description: 'Everything you need to study smarter',
     planType: 'pro',
     popular: true,
-    cta: 'Start Pro Trial',
+    cta: 'Subscribe Now',
     features: [
       'Unlimited documents',
       'Advanced tutor notes',
       'Unlimited flashcards',
       'Practice questions',
       'Concept maps',
+      'AI chat with materials',
       'Priority support',
       'Export to Anki',
     ],
@@ -66,7 +52,7 @@ const plans: PlanConfig[] = [
     monthlyPrice: 19,
     yearlyPrice: 190,
     yearlySavings: 38,
-    description: 'For study groups',
+    description: 'Perfect for study groups',
     planType: 'team',
     cta: 'Contact Sales',
     features: [
@@ -91,6 +77,10 @@ export default function PricingPage() {
   const { isOnTrial, trialDaysRemaining, trialExpired } = useTrialStatus();
   const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
+  
+  // Determine user state for messaging
+  const isExpiredUser = trialExpired || (subscription?.trial_used && subscription?.plan === 'free');
+  const canStartTrial = !subscription?.trial_used && !subscription?.is_trial && subscription?.plan === 'free';
 
   // Handle payment verification callback
   useEffect(() => {
@@ -114,11 +104,6 @@ export default function PricingPage() {
   const handleSelectPlan = async (plan: PlanConfig) => {
     if (!user) {
       navigate('/auth');
-      return;
-    }
-
-    if (plan.planType === 'free') {
-      toast.info('You are already on the Free plan');
       return;
     }
 
@@ -151,9 +136,8 @@ export default function PricingPage() {
     }
   };
 
-  // If on trial, show as 'pro' for display but allow upgrading still
-  const currentPlan = subscription?.is_trial ? 'pro' : (subscription?.plan || 'free');
-  const canStartTrial = !subscription?.trial_used && !subscription?.is_trial && subscription?.plan === 'free';
+  // Current plan for display
+  const currentPlan = subscription?.is_trial ? 'pro' : subscription?.plan;
 
   const pricingOffers = plans.map(plan => ({
     name: plan.name,
@@ -168,7 +152,6 @@ export default function PricingPage() {
   };
 
   const getPriceSuffix = (plan: PlanConfig) => {
-    if (plan.monthlyPrice === 0) return '/forever';
     return billingInterval === 'monthly' ? '/month' : '/year';
   };
 
@@ -187,11 +170,23 @@ export default function PricingPage() {
           className="text-center mb-8"
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Simple, transparent{' '}
-            <span className="text-primary">pricing</span>
+            {isExpiredUser ? (
+              <>Continue learning with <span className="text-primary">Studily</span></>
+            ) : isOnTrial ? (
+              <>Keep your <span className="text-primary">Pro access</span></>
+            ) : (
+              <>Choose your <span className="text-primary">plan</span></>
+            )}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start free, upgrade when you need more. No hidden fees.
+            {isExpiredUser 
+              ? 'Your trial has ended. Subscribe to access all your materials and study tools.'
+              : isOnTrial 
+                ? `You have ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left. Subscribe now to keep full access.`
+                : canStartTrial
+                  ? 'Start with a 7-day free trial. No credit card required.'
+                  : 'All plans include everything you need to study smarter.'
+            }
           </p>
         </motion.div>
 
@@ -246,15 +241,10 @@ export default function PricingPage() {
           </div>
         )}
 
-        <div className="grid md:grid-cols-3 gap-6 lg:gap-8">
+        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto">
           {plans.map((plan, index) => {
             const isCurrentPlan = currentPlan === plan.planType;
-            const isUpgrade = 
-              (currentPlan === 'free' && (plan.planType === 'pro' || plan.planType === 'team')) ||
-              (currentPlan === 'pro' && plan.planType === 'team');
-            const isDowngrade =
-              (currentPlan === 'team' && (plan.planType === 'pro' || plan.planType === 'free')) ||
-              (currentPlan === 'pro' && plan.planType === 'free');
+            const isActiveSubscriber = subscription?.status === 'active' && subscription?.plan !== 'free' && !subscription?.is_trial;
 
             return (
               <motion.div
@@ -296,6 +286,11 @@ export default function PricingPage() {
                         <span className="text-muted-foreground">
                           {getPriceSuffix(plan)}
                         </span>
+                    {billingInterval === 'monthly' && (
+                      <span className="text-xs text-muted-foreground ml-1">
+                        (billed monthly)
+                      </span>
+                    )}
                       </motion.div>
                     </AnimatePresence>
 
@@ -335,14 +330,14 @@ export default function PricingPage() {
                   <CardFooter>
                     <Button
                       className="w-full"
-                      variant={plan.popular ? 'default' : 'outline'}
+                      variant={plan.popular ? 'hero' : 'outline'}
                       size="lg"
                       disabled={
                         subLoading ||
                         processingPlan !== null ||
                         verifyPayment.isPending ||
                         startTrial.isPending ||
-                        (isCurrentPlan && !subscription?.is_trial)
+                        (isActiveSubscriber && isCurrentPlan)
                       }
                       onClick={() => {
                         // If user clicks Pro and can start trial, start trial instead
@@ -363,12 +358,8 @@ export default function PricingPage() {
                           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                           Starting Trial...
                         </>
-                      ) : subscription?.is_trial && plan.planType === 'pro' ? (
-                        'On Trial'
-                      ) : isCurrentPlan && !subscription?.is_trial ? (
-                        plan.planType === 'free' ? 'Current Plan' : 'Current Plan'
-                      ) : isDowngrade ? (
-                        'Downgrade'
+                    ) : isActiveSubscriber && isCurrentPlan ? (
+                      'Current Plan'
                       ) : plan.planType === 'team' ? (
                         <>
                           <Users className="h-4 w-4 mr-2" />
@@ -379,6 +370,10 @@ export default function PricingPage() {
                           <Sparkles className="h-4 w-4 mr-2" />
                           Start 7-Day Free Trial
                         </>
+                    ) : isOnTrial && plan.planType === 'pro' ? (
+                      'Subscribe Now'
+                    ) : isExpiredUser && plan.planType === 'pro' ? (
+                      'Subscribe Now'
                       ) : (
                         plan.cta
                       )}

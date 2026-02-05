@@ -1,10 +1,10 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Crown, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { useCanAccessFeature, usePlanFeatures, type PlanFeatures } from '@/hooks/useSubscription';
+import { useCanAccessFeature, usePlanFeatures, useSubscription, type PlanFeatures } from '@/hooks/useSubscription';
 
 interface PremiumGateProps {
   feature: keyof PlanFeatures;
@@ -14,36 +14,42 @@ interface PremiumGateProps {
   featureDescription?: string;
 }
 
-const FEATURE_INFO: Record<keyof PlanFeatures, { title: string; description: string; benefits: string[] }> = {
+const FEATURE_INFO: Record<keyof PlanFeatures, { title: string; description: string; benefits: string[]; expiredDescription?: string }> = {
   maxDocuments: {
     title: 'Unlimited Documents',
     description: 'Upload and process unlimited study materials',
     benefits: ['No document limits', 'Process any file size', 'Store all your materials'],
+    expiredDescription: 'Subscribe to access your uploaded study materials',
   },
   aiSummaries: {
     title: 'AI Summaries',
     description: 'Get AI-generated summaries of your materials',
     benefits: ['Quick summaries', 'Detailed breakdowns', 'Key points extraction'],
+    expiredDescription: 'Subscribe to continue using AI summaries',
   },
   flashcards: {
     title: 'Unlimited Flashcards',
     description: 'Create and study unlimited flashcard decks',
     benefits: ['Spaced repetition', 'AI-generated cards', 'Unlimited decks'],
+    expiredDescription: 'Subscribe to access your flashcard decks',
   },
   practiceQuestions: {
     title: 'Practice Questions',
     description: 'AI-generated practice questions for self-testing',
     benefits: ['Multiple choice questions', 'Short answer questions', 'Case-based scenarios', 'Quiz mode with scoring'],
+    expiredDescription: 'Subscribe to access practice questions',
   },
   conceptMaps: {
     title: 'Interactive Concept Maps',
     description: 'Visualize relationships between concepts',
     benefits: ['Visual learning aids', 'Interactive navigation', 'See how ideas connect'],
+    expiredDescription: 'Subscribe to access concept maps',
   },
   tutorNotes: {
     title: 'Advanced Tutor Notes',
     description: 'Comprehensive AI-generated study notes',
     benefits: ['Detailed explanations', 'Key definitions', 'Exam tips', 'Real-world examples'],
+    expiredDescription: 'Subscribe to access tutor notes',
   },
   exportAnki: {
     title: 'Export to Anki',
@@ -91,6 +97,12 @@ export function PremiumGate({
 }: PremiumGateProps) {
   const navigate = useNavigate();
   const canAccess = useCanAccessFeature(feature);
+  const { data: subscription } = useSubscription();
+  
+  // Check if user is in expired state
+  const isExpiredUser = useMemo(() => {
+    return subscription?.trial_used === true && subscription?.plan === 'free';
+  }, [subscription]);
   
   if (canAccess) {
     return <>{children}</>;
@@ -125,11 +137,13 @@ export function PremiumGate({
               <div className="flex items-center justify-center gap-2">
                 <Crown className="w-4 h-4 text-amber-500" />
                 <span className="text-xs font-medium text-amber-600 uppercase tracking-wider">
-                  Pro Feature
+                  {isExpiredUser ? 'Subscription Required' : 'Pro Feature'}
                 </span>
               </div>
               <h3 className="text-xl font-bold">{info.title}</h3>
-              <p className="text-muted-foreground text-sm">{info.description}</p>
+              <p className="text-muted-foreground text-sm">
+                {isExpiredUser && info.expiredDescription ? info.expiredDescription : info.description}
+              </p>
             </div>
 
             {/* Benefits */}
@@ -151,11 +165,14 @@ export function PremiumGate({
               className="w-full"
             >
               <Crown className="w-4 h-4 mr-2" />
-              Upgrade to Pro
+              {isExpiredUser ? 'Subscribe to Access' : 'Subscribe Now'}
             </Button>
             
             <p className="text-xs text-muted-foreground">
-              Starting at $9/month • Cancel anytime
+              {isExpiredUser 
+                ? 'Your trial has ended • Subscribe to continue'
+                : 'Starting at $9/month • Cancel anytime'
+              }
             </p>
           </div>
         </CardContent>
