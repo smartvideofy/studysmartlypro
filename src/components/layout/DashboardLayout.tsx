@@ -32,7 +32,6 @@ import { SidebarNavSection, SidebarNavItem, SidebarUpgradeCTA } from "./sidebar"
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import logoImage from "@/assets/logo.png";
-import { TrialBanner } from "@/components/subscription/TrialBanner";
 
 // Grouped navigation items
 const mainNavItems = [
@@ -93,9 +92,6 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Trial Banner - Shows for users on trial */}
-      <TrialBanner />
-
       {/* Mobile Header - Only render on mobile */}
       {isMobile && (
         <MobileHeader 
