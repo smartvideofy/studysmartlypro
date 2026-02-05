@@ -10,7 +10,7 @@ export interface Subscription {
   id?: string;
   user_id?: string;
   plan: PlanType;
-  status: 'active' | 'cancelled' | 'expired' | 'pending';
+  status: 'active' | 'cancelled' | 'expired' | 'pending' | 'trial';
   paystack_customer_code?: string;
   paystack_subscription_code?: string;
   plan_code?: string;
@@ -22,6 +22,11 @@ export interface Subscription {
   created_at?: string;
   updated_at?: string;
   billing_interval?: BillingInterval;
+  trial_start_date?: string;
+  trial_end_date?: string;
+  trial_used?: boolean;
+  is_trial?: boolean;
+  trial_days_remaining?: number;
 }
 
 export interface PlanFeatures {
@@ -215,11 +220,62 @@ export function useCancelSubscription() {
 
 export function usePlanFeatures() {
   const { data: subscription } = useSubscription();
-  const plan = subscription?.plan || 'free';
+  // If on trial, treat as 'pro' for feature access
+  const plan = subscription?.is_trial ? 'pro' : (subscription?.plan || 'free');
   return PLAN_FEATURES[plan];
 }
 
 export function useCanAccessFeature(feature: keyof PlanFeatures) {
   const features = usePlanFeatures();
   return !!features[feature];
+}
+
+export function useStartTrial() {
+  const { session } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      if (!session?.access_token) {
+        throw new Error('Not authenticated');
+      }
+
+      const { data, error } = await supabase.functions.invoke('paystack/start-trial', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.message || data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['subscription'] });
+      toast.success(data.message || 'Trial started! Enjoy 7 days of Pro features.');
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to start trial');
+    },
+  });
+}
+
+export function useTrialStatus() {
+  const { data: subscription } = useSubscription();
+
+  if (!subscription?.is_trial) {
+    return {
+      isOnTrial: false,
+      trialDaysRemaining: 0,
+      trialEndDate: undefined,
+      trialExpired: subscription?.trial_used && subscription?.plan === 'free',
+    };
+  }
+
+  return {
+    isOnTrial: true,
+    trialDaysRemaining: subscription.trial_days_remaining || 0,
+    trialEndDate: subscription.trial_end_date,
+    trialExpired: false,
+  };
 }

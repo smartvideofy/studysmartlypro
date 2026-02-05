@@ -26,6 +26,9 @@ type EmailTemplate =
   | "subscription_welcome"
   | "subscription_expiring"
   | "subscription_expired"
+  | "trial_started"
+  | "trial_ending"
+  | "trial_expired"
   | "reactivation";
 
 interface SendEmailRequest {
@@ -48,6 +51,9 @@ const templatePreferenceMap: Record<EmailTemplate, string | null> = {
   subscription_welcome: null, // Always send (transactional)
   subscription_expiring: null, // Always send (transactional)
   subscription_expired: null, // Always send (transactional)
+  trial_started: null, // Always send (transactional)
+  trial_ending: null, // Always send (transactional)
+  trial_expired: null, // Always send (transactional)
   reactivation: "product_updates",
 };
 
@@ -335,6 +341,88 @@ function generateEmailContent(
               </ul>
             </div>
             <a href="${appUrl}/pricing" style="${buttonStyle}">Reactivate Pro</a>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_started":
+      return {
+        subject: "Welcome to your 7-day Pro trial! 🎉",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Your Pro trial has started, ${userName}! 🚀</h1>
+            <p>You now have <strong>7 days of full Pro access</strong> – no credit card required.</p>
+            <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you can do now:</h3>
+              <ul style="margin: 0; padding-left: 20px; color: #1f2937;">
+                <li>Upload unlimited study materials</li>
+                <li>Generate AI flashcards & practice questions</li>
+                <li>Access interactive concept maps</li>
+                <li>Get advanced tutor notes</li>
+                <li>Export to Anki format</li>
+              </ul>
+            </div>
+            <p style="background: #fef3c7; padding: 12px 16px; border-radius: 8px; font-size: 14px;">
+              ⏰ <strong>Your trial ends:</strong> ${data.trialEndDate || "in 7 days"}
+            </p>
+            <a href="${appUrl}/materials" style="${buttonStyle}">Start Exploring Pro Features</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Questions? We're here to help at <a href="mailto:support@getstudily.com" style="color: #8b5cf6;">support@getstudily.com</a>
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_ending":
+      return {
+        subject: "Your Pro trial ends in 2 days ⏰",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #f59e0b; font-size: 24px;">Your trial ends soon, ${userName}! ⏰</h1>
+            <p>Just a heads up – your 7-day Pro trial expires in <strong>2 days</strong> (${data.trialEndDate || "soon"}).</p>
+            <div style="background: #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p style="margin: 0 0 12px 0;"><strong>Don't lose access to:</strong></p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Unlimited document uploads</li>
+                <li>AI-powered study tools</li>
+                <li>Practice questions & concept maps</li>
+                <li>Priority support</li>
+              </ul>
+            </div>
+            <p>Subscribe now to keep your Pro features – plans start at just $9/month.</p>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Subscribe & Keep Pro</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Have questions? Reply to this email – we'd love to help!
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_expired":
+      return {
+        subject: "Your Pro trial has ended 💜",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Your trial has ended, ${userName} 💜</h1>
+            <p>Your 7-day Pro trial is now complete. We hope you enjoyed the premium experience!</p>
+            <p>You've been moved to the Free plan, but your study materials and progress are safe.</p>
+            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p style="margin: 0 0 12px 0;"><strong>Features you're missing:</strong></p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Unlimited document uploads</li>
+                <li>Practice questions & concept maps</li>
+                <li>Advanced tutor notes</li>
+                <li>Anki export</li>
+              </ul>
+            </div>
+            <p>Ready to continue with Pro? Subscribe today and pick up right where you left off.</p>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Upgrade to Pro</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Thanks for trying Studily Pro – we'd love to have you back!
+            </p>
             ${footer}
           </div>
         `,

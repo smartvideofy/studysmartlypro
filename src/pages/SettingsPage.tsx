@@ -48,6 +48,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription, useCancelSubscription, type PlanType } from "@/hooks/useSubscription";
+import { useTrialStatus } from "@/hooks/useSubscription";
 import { useTheme } from "next-themes";
 import { AvatarUpload } from "@/components/settings/AvatarUpload";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
@@ -71,6 +72,7 @@ export default function SettingsPage() {
   const { data: profile, isLoading } = useProfile();
   const { data: subscription, isLoading: subLoading } = useSubscription();
   const cancelSubscription = useCancelSubscription();
+  const { isOnTrial, trialDaysRemaining, trialExpired } = useTrialStatus();
   const updateProfile = useUpdateProfile();
   const { theme, setTheme } = useTheme();
 
@@ -110,7 +112,9 @@ export default function SettingsPage() {
 
 
   const isDark = theme === "dark";
-  const planInfo = subscription ? PLAN_LABELS[subscription.plan] : PLAN_LABELS.free;
+  // Show Pro label if on trial
+  const displayPlan = isOnTrial ? 'pro' : (subscription?.plan || 'free');
+  const planInfo = PLAN_LABELS[displayPlan];
 
   if (isLoading) {
     return (
@@ -172,30 +176,39 @@ export default function SettingsPage() {
                 icon={<Crown className="w-4 h-4" />}
                 label="Current Plan" 
                 description={
-                  subscription?.status === 'active' 
-                    ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
-                    : 'Upgrade for more features'
+                  isOnTrial
+                    ? `Pro trial - ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} remaining`
+                    : trialExpired
+                    ? 'Your trial has ended. Upgrade to continue.'
+                    : subscription?.status === 'active' 
+                      ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
+                      : 'Upgrade for more features'
                 }
               >
                 <div className="flex items-center gap-2">
                   <Badge className={planInfo.color}>{planInfo.label}</Badge>
+                  {isOnTrial && (
+                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
+                      Trial
+                    </Badge>
+                  )}
                   {subscription?.billing_interval && subscription?.plan !== 'free' && (
                     <Badge variant="outline" className="capitalize text-xs">
                       {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
                     </Badge>
                   )}
-                  {subscription?.plan === 'free' && (
+                  {(subscription?.plan === 'free' || isOnTrial || trialExpired) && (
                     <Button 
                       size="sm" 
                       variant="outline"
                       onClick={() => navigate('/pricing')}
                     >
-                      Upgrade
+                      {isOnTrial ? 'Subscribe' : 'Upgrade'}
                     </Button>
                   )}
                 </div>
               </SettingRow>
-              {subscription?.plan !== 'free' && subscription?.current_period_end && (
+              {subscription?.plan !== 'free' && subscription?.current_period_end && !isOnTrial && (
                 <>
                   <Separator />
                   <SettingRow 

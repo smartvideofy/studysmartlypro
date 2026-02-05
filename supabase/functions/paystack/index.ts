@@ -191,6 +191,8 @@ serve(async (req) => {
         return await getSubscription(user, supabaseAdmin);
       case 'cancel':
         return await cancelSubscription(user, supabaseAdmin);
+      case 'start-trial':
+        return await startTrial(user, supabaseAdmin);
       default:
         return new Response(JSON.stringify({ error: 'Not found' }), {
           status: 404,
@@ -392,6 +394,40 @@ async function getSubscription(user: { id: string; email: string }, supabase: an
     });
   }
 
+    // Check if trial has expired
+    if (data.status === 'trial' && data.trial_end_date) {
+      const trialEnd = new Date(data.trial_end_date);
+      if (trialEnd < new Date()) {
+        // Trial expired - downgrade to free
+        await supabase
+          .from('subscriptions')
+          .update({
+            plan: 'free',
+            status: 'expired',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+
+        return new Response(JSON.stringify({
+          subscription: { ...data, plan: 'free', status: 'expired', trial_expired: true },
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+
+      // Trial still active - calculate days remaining
+      const daysRemaining = Math.ceil((trialEnd.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return new Response(JSON.stringify({
+        subscription: {
+          ...data,
+          is_trial: true,
+          trial_days_remaining: daysRemaining,
+        },
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
   // Check if subscription has expired
   if (data.status === 'active' && data.current_period_end) {
     const periodEnd = new Date(data.current_period_end);
@@ -435,6 +471,109 @@ async function getSubscription(user: { id: string; email: string }, supabase: an
 
   return new Response(JSON.stringify({
     subscription: data,
+  }), {
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+}
+
+async function startTrial(user: { id: string; email: string }, supabase: any) {
+  console.log(`Starting trial for user ${user.id}`);
+
+  // Check if user already has a subscription or used trial
+  const { data: existing, error: fetchError } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', user.id)
+    .single();
+
+  if (fetchError && fetchError.code !== 'PGRST116') {
+    console.error('Error fetching existing subscription:', fetchError);
+    return new Response(JSON.stringify({ error: 'Failed to check subscription status' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if trial already used
+  if (existing?.trial_used) {
+    console.log(`User ${user.id} has already used their trial`);
+    return new Response(JSON.stringify({
+      error: 'Trial already used',
+      message: 'You have already used your free trial. Subscribe to access Pro features.',
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Check if already on a paid plan
+  if (existing?.plan !== 'free' && existing?.status === 'active') {
+    console.log(`User ${user.id} already has an active subscription`);
+    return new Response(JSON.stringify({
+      error: 'Already subscribed',
+      message: 'You already have an active subscription.',
+    }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const trialStart = new Date();
+  const trialEnd = new Date();
+  trialEnd.setDate(trialEnd.getDate() + 7);
+
+  const { error: upsertError } = await supabase
+    .from('subscriptions')
+    .upsert({
+      user_id: user.id,
+      plan: 'pro',
+      status: 'trial',
+      trial_start_date: trialStart.toISOString(),
+      trial_end_date: trialEnd.toISOString(),
+      trial_used: true,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id' });
+
+  if (upsertError) {
+    console.error('Failed to start trial:', upsertError);
+    return new Response(JSON.stringify({ error: 'Failed to start trial' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  console.log(`Trial started for user ${user.id}, ends ${trialEnd.toISOString()}`);
+
+  // Send trial welcome email
+  try {
+    await fetch(`${SUPABASE_URL}/functions/v1/send-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+      },
+      body: JSON.stringify({
+        user_id: user.id,
+        template: 'trial_started',
+        data: {
+          trialEndDate: trialEnd.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        },
+        force: true,
+      }),
+    });
+  } catch (emailError) {
+    console.error('Failed to send trial email:', emailError);
+  }
+
+  return new Response(JSON.stringify({
+    success: true,
+    message: 'Trial started! Enjoy 7 days of Pro features.',
+    trial_end_date: trialEnd.toISOString(),
   }), {
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });

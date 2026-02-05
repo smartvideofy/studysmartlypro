@@ -1584,6 +1584,9 @@ export type Database = {
           plan: string
           plan_code: string | null
           status: string
+          trial_end_date: string | null
+          trial_start_date: string | null
+          trial_used: boolean | null
           updated_at: string
           user_id: string
         }
@@ -1602,6 +1605,9 @@ export type Database = {
           plan?: string
           plan_code?: string | null
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          trial_used?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -1620,6 +1626,9 @@ export type Database = {
           plan?: string
           plan_code?: string | null
           status?: string
+          trial_end_date?: string | null
+          trial_start_date?: string | null
+          trial_used?: boolean | null
           updated_at?: string
           user_id?: string
         }
