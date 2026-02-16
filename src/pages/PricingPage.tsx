@@ -54,7 +54,7 @@ const plans: PlanConfig[] = [
     yearlySavings: 38,
     description: 'Perfect for study groups',
     planType: 'team',
-    cta: 'Contact Sales',
+    cta: 'Subscribe Now',
     features: [
       'Everything in Pro',
       'Up to 5 team members',
