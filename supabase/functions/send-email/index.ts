@@ -29,7 +29,12 @@ type EmailTemplate =
   | "trial_started"
   | "trial_ending"
   | "trial_expired"
-  | "reactivation";
+  | "trial_day1"
+  | "trial_day3"
+  | "reactivation"
+  | "nudge_3day"
+  | "nudge_7day"
+  | "abandoned_checkout";
 
 interface SendEmailRequest {
   user_id: string;
@@ -54,7 +59,12 @@ const templatePreferenceMap: Record<EmailTemplate, string | null> = {
   trial_started: null, // Always send (transactional)
   trial_ending: null, // Always send (transactional)
   trial_expired: null, // Always send (transactional)
+  trial_day1: null, // Always send (transactional)
+  trial_day3: null, // Always send (transactional)
   reactivation: "product_updates",
+  nudge_3day: "streak_reminders",
+  nudge_7day: "streak_reminders",
+  abandoned_checkout: null, // Always send (transactional)
 };
 
 // Generate email content based on template
@@ -443,6 +453,128 @@ function generateEmailContent(
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Continue Learning</a>
             <p style="margin-top: 24px; color: #6b7280;">
               Just 10 minutes a day can make a big difference!
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_day1":
+      return {
+        subject: "Here's what to try first on your Pro trial 🎯",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Day 1 of Pro – let's make it count, ${userName}! 🎯</h1>
+            <p>You've got 6 days left on your trial. Here's the fastest way to see the value:</p>
+            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #7c3aed;">⚡ Quick-win in 2 minutes:</h3>
+              <ol style="margin: 0; padding-left: 20px;">
+                <li>Upload a PDF or paste a YouTube link</li>
+                <li>Watch AI generate flashcards, summaries & quizzes</li>
+                <li>Start a study session with spaced repetition</li>
+              </ol>
+            </div>
+            <a href="${appUrl}/materials" style="${buttonStyle}">Upload Your First Material</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Most students see results after uploading just one document!
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_day3":
+      return {
+        subject: "You're halfway through your trial – how's it going? 📊",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Halfway there, ${userName}! 📊</h1>
+            <p>You're 3 days into your Pro trial. Here's what you've accomplished so far:</p>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p style="margin: 0 0 8px 0;"><strong>📚 Materials uploaded:</strong> ${data.materialsCount || 0}</p>
+              <p style="margin: 0 0 8px 0;"><strong>🎴 Flashcards generated:</strong> ${data.flashcardsCount || 0}</p>
+              <p style="margin: 0;"><strong>⭐ XP earned:</strong> ${data.xpEarned || 0}</p>
+            </div>
+            ${(data.materialsCount || 0) === 0 ? `
+              <p style="background: #fef3c7; padding: 12px 16px; border-radius: 8px;">
+                💡 <strong>Tip:</strong> Upload your first material to see the magic! You have 4 days left.
+              </p>
+            ` : `
+              <p>Students who study with Studily Pro score <strong>23% higher</strong> on exams. Keep it up!</p>
+            `}
+            <a href="${appUrl}/dashboard" style="${buttonStyle}">Continue Studying</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              ⏰ Your trial ends ${data.trialEndDate || "in 4 days"}
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "nudge_3day":
+      return {
+        subject: "Quick 5-min session? Your materials are waiting 📖",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, quick check-in! 👋</h1>
+            <p>It's been 3 days since your last study session. A quick 5-minute review can make a big difference for retention!</p>
+            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <p style="font-size: 48px; margin: 0;">📖</p>
+              <p style="margin: 8px 0 0 0; color: #7c3aed; font-weight: 600;">Your materials are waiting for you</p>
+            </div>
+            <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Quick Review</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Just 5 minutes keeps your knowledge fresh!
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "nudge_7day":
+      return {
+        subject: "We saved your progress – come back anytime 💜",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, your progress is safe! 💜</h1>
+            <p>It's been a week since you last studied. Life gets busy – we get it!</p>
+            <p>Good news: all your notes, flashcards, and progress are exactly where you left them.</p>
+            <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <p style="margin: 0 0 8px 0;"><strong>Pick up where you left off:</strong></p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Review your flashcard decks</li>
+                <li>Check your study streaks</li>
+                <li>Upload new materials</li>
+              </ul>
+            </div>
+            <a href="${appUrl}/dashboard" style="${buttonStyle}">Come Back & Study</a>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "abandoned_checkout":
+      return {
+        subject: "You're one step away from Pro! 🚀",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #8b5cf6; font-size: 24px;">Almost there, ${userName}! 🚀</h1>
+            <p>We noticed you started upgrading to <strong>${data.planName || "Studily Pro"}</strong> but didn't finish.</p>
+            <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you'll unlock:</h3>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>Unlimited AI-powered study tools</li>
+                <li>Advanced analytics & insights</li>
+                <li>Priority support</li>
+                <li>Collaborative study groups</li>
+              </ul>
+              <p style="margin: 16px 0 0 0; font-size: 18px; font-weight: bold; color: #7c3aed;">
+                ${data.amount ? `Just ${data.billingInterval === 'yearly' ? '₦' + Math.round(data.amount / 100) + '/year' : '₦' + Math.round(data.amount / 100) + '/month'}` : "Starting at ₦3,500/month"}
+              </p>
+            </div>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Complete Your Purchase</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Questions? Reply to this email – we're happy to help!
             </p>
             ${footer}
           </div>

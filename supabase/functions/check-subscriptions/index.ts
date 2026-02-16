@@ -12,7 +12,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 // Helper function to send subscription lifecycle emails
 async function sendSubscriptionEmail(
   userId: string,
-  template: 'subscription_welcome' | 'subscription_expiring' | 'subscription_expired',
+  template: string,
   data: Record<string, any> = {}
 ) {
   try {
@@ -73,6 +73,73 @@ serve(async (req) => {
 
     console.log(`Running subscription check at ${nowISO}`);
 
+  // ============ TRIAL DRIP SEQUENCE ============
+
+  // Trial Day 1: started yesterday
+  const oneDayAgo = new Date(now);
+  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+  const oneDayStart = new Date(oneDayAgo); oneDayStart.setHours(0, 0, 0, 0);
+  const oneDayEnd = new Date(oneDayAgo); oneDayEnd.setHours(23, 59, 59, 999);
+
+  const { data: day1Trials } = await supabase
+    .from('subscriptions')
+    .select('id, user_id, trial_end_date')
+    .eq('status', 'trial')
+    .gte('trial_start_date', oneDayStart.toISOString())
+    .lte('trial_start_date', oneDayEnd.toISOString());
+
+  if (day1Trials && day1Trials.length > 0) {
+    console.log(`Found ${day1Trials.length} trials for day 1 email`);
+    for (const trial of day1Trials) {
+      const { data: existingLog } = await supabase
+        .from('email_logs').select('id')
+        .eq('user_id', trial.user_id).eq('template_name', 'trial_day1').limit(1).single();
+      if (!existingLog) {
+        await sendSubscriptionEmail(trial.user_id, 'trial_day1', {});
+      }
+    }
+  }
+
+  // Trial Day 3: started 3 days ago
+  const threeDaysAgo = new Date(now);
+  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+  const threeDayStart = new Date(threeDaysAgo); threeDayStart.setHours(0, 0, 0, 0);
+  const threeDayEnd = new Date(threeDaysAgo); threeDayEnd.setHours(23, 59, 59, 999);
+
+  const { data: day3Trials } = await supabase
+    .from('subscriptions')
+    .select('id, user_id, trial_end_date')
+    .eq('status', 'trial')
+    .gte('trial_start_date', threeDayStart.toISOString())
+    .lte('trial_start_date', threeDayEnd.toISOString());
+
+  if (day3Trials && day3Trials.length > 0) {
+    console.log(`Found ${day3Trials.length} trials for day 3 email`);
+    for (const trial of day3Trials) {
+      const { data: existingLog } = await supabase
+        .from('email_logs').select('id')
+        .eq('user_id', trial.user_id).eq('template_name', 'trial_day3').limit(1).single();
+      if (!existingLog) {
+        // Get user stats for personalization
+        const { data: materials } = await supabase
+          .from('study_materials').select('id').eq('user_id', trial.user_id);
+        const { data: flashcards } = await supabase
+          .from('material_flashcards').select('id').eq('user_id', trial.user_id);
+        const { data: profile } = await supabase
+          .from('profiles').select('xp').eq('user_id', trial.user_id).single();
+
+        await sendSubscriptionEmail(trial.user_id, 'trial_day3', {
+          materialsCount: materials?.length || 0,
+          flashcardsCount: flashcards?.length || 0,
+          xpEarned: profile?.xp || 0,
+          trialEndDate: trial.trial_end_date ? new Date(trial.trial_end_date).toLocaleDateString('en-US', {
+            weekday: 'long', month: 'long', day: 'numeric',
+          }) : 'in 4 days',
+        });
+      }
+    }
+  }
+
   // ============ TRIAL EXPIRY HANDLING ============
   
   // Find trials expiring in 2 days (for reminder emails)
@@ -96,7 +163,6 @@ serve(async (req) => {
     console.log(`Found ${expiringTrials.length} trials expiring in 2 days`);
 
     for (const trial of expiringTrials) {
-      // Check if we already sent a trial ending reminder
       const { data: existingLog } = await supabase
         .from('email_logs')
         .select('id')
@@ -106,7 +172,7 @@ serve(async (req) => {
         .single();
 
       if (!existingLog) {
-        await sendSubscriptionEmail(trial.user_id, 'trial_ending' as any, {
+        await sendSubscriptionEmail(trial.user_id, 'trial_ending', {
           daysRemaining: 2,
           trialEndDate: new Date(trial.trial_end_date).toLocaleDateString('en-US', {
             weekday: 'long',
