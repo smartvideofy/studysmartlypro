@@ -1077,6 +1077,42 @@ export type Database = {
         }
         Relationships: []
       }
+      payment_attempts: {
+        Row: {
+          amount: number | null
+          billing_interval: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          paystack_reference: string
+          plan: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number | null
+          billing_interval: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paystack_reference: string
+          plan: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number | null
+          billing_interval?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          paystack_reference?: string
+          plan?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       poll_options: {
         Row: {
           created_at: string

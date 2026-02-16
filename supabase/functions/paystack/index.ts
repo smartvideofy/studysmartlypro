@@ -277,6 +277,22 @@ async function initializeTransaction(
     });
   }
 
+  // Track payment attempt for abandoned checkout detection
+  const amountInCents = selectedPlan.amount * 100;
+  try {
+    await supabase.from('payment_attempts').insert({
+      user_id: user.id,
+      plan: plan,
+      billing_interval: interval,
+      paystack_reference: data.data.reference,
+      amount: amountInCents,
+      status: 'pending',
+    });
+    console.log('Payment attempt tracked:', data.data.reference);
+  } catch (trackError) {
+    console.error('Failed to track payment attempt (non-blocking):', trackError);
+  }
+
   return new Response(JSON.stringify({
     authorization_url: data.data.authorization_url,
     access_code: data.data.access_code,
@@ -352,6 +368,17 @@ async function verifyTransaction(user: { id: string; email: string }, body: { re
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
+  }
+
+  // Mark payment attempt as completed
+  try {
+    await supabase
+      .from('payment_attempts')
+      .update({ status: 'completed', completed_at: new Date().toISOString() })
+      .eq('paystack_reference', reference);
+    console.log('Payment attempt marked completed:', reference);
+  } catch (trackError) {
+    console.error('Failed to update payment attempt (non-blocking):', trackError);
   }
 
   // Send welcome email for new subscription

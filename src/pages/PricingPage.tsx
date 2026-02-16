@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Sparkles, Users, Loader2 } from 'lucide-react';
+import { Check, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -107,10 +107,6 @@ export default function PricingPage() {
       return;
     }
 
-    if (plan.planType === 'team') {
-      toast.info('Please contact our sales team for Team plans');
-      return;
-    }
 
     if (subscription?.plan === plan.planType && subscription?.status === 'active') {
       toast.info(`You are already subscribed to ${plan.name}`);
@@ -360,11 +356,6 @@ export default function PricingPage() {
                         </>
                     ) : isActiveSubscriber && isCurrentPlan ? (
                       'Current Plan'
-                      ) : plan.planType === 'team' ? (
-                        <>
-                          <Users className="h-4 w-4 mr-2" />
-                          Contact Sales
-                        </>
                       ) : plan.planType === 'pro' && canStartTrial ? (
                         <>
                           <Sparkles className="h-4 w-4 mr-2" />
