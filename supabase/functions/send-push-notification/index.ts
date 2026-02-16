@@ -213,6 +213,33 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
+    // Authenticate the caller
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication" }),
+        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const callerUserId = claimsData.claims.sub as string;
+
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
 
@@ -221,13 +248,23 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
+      supabaseUrl,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     const { userId, userIds, title, body, icon, badge, data, tag }: PushNotificationRequest = await req.json();
 
-    const targetUserIds = userIds || (userId ? [userId] : []);
+    // Authorization: users can only send notifications to themselves
+    const requestedUserIds = userIds || (userId ? [userId] : []);
+    const allTargetsSelf = requestedUserIds.every((id: string) => id === callerUserId);
+    if (!allTargetsSelf) {
+      return new Response(
+        JSON.stringify({ error: "You can only send notifications to yourself" }),
+        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+      );
+    }
+
+    const targetUserIds = requestedUserIds;
 
     if (targetUserIds.length === 0) {
       throw new Error("No user IDs provided");
