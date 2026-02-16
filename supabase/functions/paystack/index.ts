@@ -278,7 +278,6 @@ async function initializeTransaction(
   }
 
   // Track payment attempt for abandoned checkout detection
-  const amountInCents = selectedPlan.amount * 100;
   try {
     await supabase.from('payment_attempts').insert({
       user_id: user.id,
