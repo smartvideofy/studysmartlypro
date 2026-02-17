@@ -23,14 +23,16 @@ const typeIcons: Record<string, string> = {
   achievement: "🏆",
   group_invite: "👥",
   system: "ℹ️",
+  mention: "💬",
+  session_reminder: "📅",
+  level_up: "⬆️",
+  streak_lost: "💔",
+  daily_challenge: "🎯",
+  group_member_joined: "👋",
+  shared_note: "📝",
+  trial_expired: "⏰",
+  subscription: "💳",
   default: "🔔",
-};
-
-const typeRoutes: Record<string, string> = {
-  study_reminder: "/flashcards",
-  achievement: "/achievements",
-  group_invite: "/groups",
-  system: "/settings",
 };
 
 export default function NotificationBell() {
@@ -42,7 +44,8 @@ export default function NotificationBell() {
   const markAllAsRead = useMarkAllAsRead();
   const deleteNotification = useDeleteNotification();
 
-  const handleMarkAsRead = (id: string) => {
+  const handleMarkAsRead = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     markAsRead.mutate(id);
   };
 
@@ -50,19 +53,45 @@ export default function NotificationBell() {
     markAllAsRead.mutate();
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
     deleteNotification.mutate(id);
   };
 
-  const handleNotificationClick = (notification: { id: string; type: string; read: boolean | null }) => {
+  const getNotificationRoute = (notification: { type: string; data: any }) => {
+    const data = notification.data as Record<string, any> | null;
+    const groupId = data?.group_id;
+
+    switch (notification.type) {
+      case "group_invite":
+      case "group_member_joined":
+      case "shared_note":
+      case "mention":
+      case "session_reminder":
+        return groupId ? `/groups/${groupId}` : "/groups";
+      case "achievement":
+        return "/achievements";
+      case "level_up":
+      case "streak_lost":
+      case "daily_challenge":
+        return "/progress";
+      case "study_reminder":
+        return "/flashcards";
+      case "trial_expired":
+      case "subscription":
+        return "/pricing";
+      default:
+        return "/dashboard";
+    }
+  };
+
+  const handleNotificationClick = (notification: { id: string; type: string; read: boolean | null; data: any }) => {
     if (!notification.read) {
       markAsRead.mutate(notification.id);
     }
-    const route = typeRoutes[notification.type];
-    if (route) {
-      setOpen(false);
-      navigate(route);
-    }
+    const route = getNotificationRoute(notification);
+    setOpen(false);
+    navigate(route);
   };
 
   return (
@@ -154,9 +183,9 @@ export default function NotificationBell() {
 
                   {/* Actions */}
                   <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    {!notification.read && (
+                     {!notification.read && (
                       <button
-                        onClick={() => handleMarkAsRead(notification.id)}
+                        onClick={(e) => handleMarkAsRead(e, notification.id)}
                         className="p-1 rounded hover:bg-secondary"
                         title="Mark as read"
                       >
@@ -164,7 +193,7 @@ export default function NotificationBell() {
                       </button>
                     )}
                     <button
-                      onClick={() => handleDelete(notification.id)}
+                      onClick={(e) => handleDelete(e, notification.id)}
                       className="p-1 rounded hover:bg-destructive/10"
                       title="Delete"
                     >
