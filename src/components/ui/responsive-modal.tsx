@@ -59,10 +59,8 @@ function ResponsiveModal({ open, onOpenChange, children, className }: Responsive
     return (
       <ResponsiveModalContext.Provider value={{ isMobile: true }}>
         <Drawer open={open} onOpenChange={onOpenChange}>
-          <DrawerContent className={cn("max-h-[90vh]", className)}>
-            <div className="overflow-y-auto flex-1">
-              {children}
-            </div>
+          <DrawerContent className={cn("max-h-[85vh] flex flex-col", className)}>
+            {children}
           </DrawerContent>
         </Drawer>
       </ResponsiveModalContext.Provider>
@@ -72,7 +70,7 @@ function ResponsiveModal({ open, onOpenChange, children, className }: Responsive
   return (
     <ResponsiveModalContext.Provider value={{ isMobile: false }}>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className={cn("sm:max-w-md", className)}>
+        <DialogContent className={cn("sm:max-w-md max-h-[85vh] flex flex-col", className)}>
           {children}
         </DialogContent>
       </Dialog>
@@ -115,20 +113,20 @@ function ResponsiveModalFooter({ children, className }: ResponsiveModalFooterPro
 
   if (isMobile) {
     return (
-      <DrawerFooter className={cn("pb-8", className)}>
+      <DrawerFooter className={cn("pb-8 shrink-0", className)}>
         {children}
       </DrawerFooter>
     );
   }
 
-  return <DialogFooter className={className}>{children}</DialogFooter>;
+  return <DialogFooter className={cn("shrink-0", className)}>{children}</DialogFooter>;
 }
 
 function ResponsiveModalBody({ children, className }: ResponsiveModalBodyProps) {
   const { isMobile } = React.useContext(ResponsiveModalContext);
 
   return (
-    <div className={cn(isMobile ? "px-4" : "", className)}>
+    <div className={cn("overflow-y-auto flex-1 min-h-0", isMobile ? "px-4" : "", className)}>
       {children}
     </div>
   );
