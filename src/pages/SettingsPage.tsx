@@ -58,7 +58,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { haptics } from "@/lib/haptics";
 
-const APP_VERSION = "1.0.0";
+const APP_VERSION = "1.0.1";
 
 const PLAN_LABELS: Record<PlanType, { label: string; color: string }> = {
   free: { label: "Free", color: "bg-muted text-muted-foreground" },
@@ -449,7 +449,7 @@ export default function SettingsPage() {
 
         {/* Save Button */}
         {hasChanges && (
-          <div className="fixed bottom-6 left-0 right-0 flex justify-center z-50 px-4">
+          <div className="fixed bottom-24 md:bottom-6 left-0 right-0 flex justify-center z-50 px-4">
             <Button 
               onClick={handleSave} 
               disabled={updateProfile.isPending}

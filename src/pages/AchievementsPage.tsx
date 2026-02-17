@@ -122,9 +122,8 @@ export default function AchievementsPage() {
       >
         {/* Hero Section */}
         <motion.div variants={itemVariants}>
-          <Card variant="glass" className="overflow-hidden border-0">
+          <Card variant="elevated" className="overflow-hidden">
             <div className="relative p-6 md:p-8">
-              <div className="absolute top-0 right-0 w-72 h-72 rounded-full bg-gradient-to-br from-accent/20 to-primary/10 blur-3xl -translate-y-1/2 translate-x-1/3" />
               
               <div className="relative flex flex-col md:flex-row md:items-center gap-6">
                 <div className="flex-1">
@@ -159,7 +158,7 @@ export default function AchievementsPage() {
 
           {/* Stats Cards */}
           <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            <Card variant="glass">
+            <Card>
               <CardContent className="p-3 md:p-4 text-center">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-accent/15 to-accent/5 flex items-center justify-center mx-auto mb-2">
                   <Trophy className="w-4 h-4 md:w-5 md:h-5 text-accent" />
@@ -169,7 +168,7 @@ export default function AchievementsPage() {
               </CardContent>
             </Card>
             
-            <Card variant="glass">
+            <Card>
               <CardContent className="p-3 md:p-4 text-center">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-primary/15 to-primary/5 flex items-center justify-center mx-auto mb-2">
                   <Star className="w-4 h-4 md:w-5 md:h-5 text-primary" />
@@ -179,7 +178,7 @@ export default function AchievementsPage() {
               </CardContent>
             </Card>
             
-            <Card variant="glass">
+            <Card>
               <CardContent className="p-3 md:p-4 text-center">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-success/15 to-success/5 flex items-center justify-center mx-auto mb-2">
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-success" />
@@ -189,7 +188,7 @@ export default function AchievementsPage() {
               </CardContent>
             </Card>
           
-            <Card variant="glass">
+            <Card>
               <CardContent className="p-3 md:p-4 text-center">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 flex items-center justify-center mx-auto mb-2">
                   <Flame className="w-4 h-4 md:w-5 md:h-5 text-destructive" />

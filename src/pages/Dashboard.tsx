@@ -439,30 +439,37 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-7 gap-2">
-                {(stats?.weekData || []).map((data, i) => {
-                  const maxMinutes = Math.max(...(stats?.weekData || []).map(d => d.minutes), 1);
-                  const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
-                  const isToday = i === (stats?.weekData?.length || 0) - 1;
-                  return (
-                    <div key={data.day} className="flex flex-col items-center gap-2">
-                      <div className="w-full h-20 bg-secondary rounded-lg relative overflow-hidden">
-                        <motion.div
-                          initial={{ height: 0 }}
-                          animate={{ height: `${height}%` }}
-                          transition={{ delay: i * 0.05, duration: 0.4, ease: "easeOut" }}
-                          className={`absolute bottom-0 left-0 right-0 rounded-lg ${
-                            isToday ? "bg-primary" : "bg-primary/40"
-                          }`}
-                        />
+              {!stats?.weekData || stats.weekData.length === 0 || stats.weekData.every(d => d.minutes === 0) ? (
+                <div className="flex flex-col items-center justify-center py-8 text-center">
+                  <p className="text-sm text-muted-foreground">No activity yet this week</p>
+                  <p className="text-xs text-muted-foreground/70 mt-1">Start studying to see your progress here</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-7 gap-2">
+                  {stats.weekData.map((data, i) => {
+                    const maxMinutes = Math.max(...stats.weekData.map(d => d.minutes), 1);
+                    const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
+                    const isToday = i === stats.weekData.length - 1;
+                    return (
+                      <div key={data.day} className="flex flex-col items-center gap-2">
+                        <div className="w-full h-20 bg-secondary rounded-lg relative overflow-hidden">
+                          <motion.div
+                            initial={{ height: 0 }}
+                            animate={{ height: `${height}%` }}
+                            transition={{ delay: i * 0.05, duration: 0.4, ease: "easeOut" }}
+                            className={`absolute bottom-0 left-0 right-0 rounded-lg ${
+                              isToday ? "bg-primary" : "bg-primary/40"
+                            }`}
+                          />
+                        </div>
+                        <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                          {data.day}
+                        </span>
                       </div>
-                      <span className={`text-xs font-medium ${isToday ? "text-primary" : "text-muted-foreground"}`}>
-                        {data.day}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
         </motion.div>

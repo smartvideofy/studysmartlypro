@@ -108,7 +108,7 @@ export default function HelpPage() {
   };
 
   const handleEmailSupport = () => {
-    window.location.href = "mailto:support@studysmart.app?subject=Support Request";
+    window.location.href = "mailto:support@getstudily.com?subject=Support Request";
   };
 
   const showSearchResults = searchQuery.length >= 2;
@@ -261,7 +261,7 @@ export default function HelpPage() {
                   <Lightbulb className="w-5 h-5" />
                   Send Feedback
                 </CardTitle>
-                <CardDescription>Help us improve StudySmart</CardDescription>
+                <CardDescription>Help us improve Studily</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {feedbackSubmitted ? (
