@@ -32,6 +32,9 @@ const typeIcons: Record<string, string> = {
   shared_note: "📝",
   trial_expired: "⏰",
   subscription: "💳",
+  subscription_expired: "🚫",
+  feedback: "💡",
+  poll_created: "📊",
   default: "🔔",
 };
 
@@ -79,7 +82,10 @@ export default function NotificationBell() {
         return "/flashcards";
       case "trial_expired":
       case "subscription":
+      case "subscription_expired":
         return "/pricing";
+      case "feedback":
+        return "/help";
       default:
         return "/dashboard";
     }
