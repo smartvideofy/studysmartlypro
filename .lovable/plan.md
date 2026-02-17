@@ -1,99 +1,108 @@
 
-
-# Fix Notification Gaps and Improve NotificationBell
+# Comprehensive UI Audit -- Issues and Fixes
 
 ## Overview
-Add in-app notifications for all major events that currently only trigger toasts/emails, and upgrade NotificationBell with smart routing using the `data` field and complete icon coverage.
+After reviewing every page, component, and style file, I identified 12 issues ranging from dead code to broken styles, inconsistent patterns, and missing polish. Each is categorized by severity.
 
-## Changes
+---
 
-### 1. Add in-app notifications to gamification hooks (`src/hooks/useGamification.tsx`)
+## Critical Issues (Broken/Visible Bugs)
 
-Insert `supabase.from("notifications").insert(...)` calls at three points:
+### 1. Dead `App.css` file polluting global styles
+**File:** `src/App.css`
+**Problem:** This Vite boilerplate CSS file still exists with `#root { max-width: 1280px; margin: 0 auto; padding: 2rem; text-align: center; }`. While it appears unused (no import found), if any build tool picks it up, it would cap the app at 1280px width and add unwanted padding/centering.
+**Fix:** Delete the file entirely. It serves no purpose.
 
-- **Achievement unlocked** (in `useCheckAchievements`, after successful insert into `user_achievements`):
-  - type: `"achievement"`, title: "Achievement Unlocked: {name}", data: `{ achievement_id }`
+### 2. `HelpPage` references wrong app name
+**File:** `src/pages/HelpPage.tsx` (line 265)
+**Problem:** The feedback card description says "Help us improve **StudySmart**" instead of "**Studily**". This is a branding inconsistency.
+**Fix:** Change "StudySmart" to "Studily".
 
-- **Level up** (in `useAwardXP`, when `leveledUp` is true):
-  - type: `"level_up"`, title: "Level Up! You're now level {N}!", data: `{}`
+### 3. `HelpPage` support email references wrong domain
+**File:** `src/pages/HelpPage.tsx` (line 112)
+**Problem:** `mailto:support@studysmart.app` should be `mailto:support@getstudily.com` (matching the domain used in Settings for terms/privacy links).
+**Fix:** Update email to match the brand domain.
 
-- **Streak lost** (in `useAwardXP`, when `streakLost && previousStreak > 1`):
-  - type: `"streak_lost"`, title: "Your {N}-day streak was lost", data: `{}`
+---
 
-- **Daily challenge completed** (in `useUpdateDailyChallenge`, when `completed` is true):
-  - type: `"daily_challenge"`, title: "Daily Challenge Complete!", data: `{ xp_reward }`
+## Medium Issues (Style Inconsistencies / Polish)
 
-### 2. Add notification for group member joins (`src/hooks/useGroupInvites.tsx`)
+### 4. `SettingsPage` version mismatch with `App.tsx`
+**File:** `src/pages/SettingsPage.tsx` (line 61) -- `APP_VERSION = "1.0.0"`
+**File:** `src/App.tsx` (line 19) -- `APP_VERSION = '1.0.1'`
+**Problem:** The version shown in Settings footer ("v1.0.0") doesn't match the cache-buster version ("1.0.1"). Users see the wrong version number.
+**Fix:** Either import the version from a shared constant or update SettingsPage to `1.0.1`.
 
-In `useJoinByInvite`, after successful group join, notify all existing group members:
-- Fetch group name and joiner's profile name
-- Insert a notification for each existing member (excluding the joiner):
-  - type: `"group_member_joined"`, title: "{name} joined {group}", data: `{ group_id }`
+### 5. `SettingsPage` save button hidden by mobile bottom nav
+**File:** `src/pages/SettingsPage.tsx` (lines 452-461)
+**Problem:** The floating "Save Changes" button is positioned at `bottom-6`, but on mobile the bottom nav is ~80px tall. The save button can overlap or be hidden behind the bottom nav bar.
+**Fix:** Change `bottom-6` to `bottom-24 md:bottom-6` to account for the mobile bottom nav.
 
-### 3. Add notification for shared notes (`src/hooks/useSharedNotes.tsx`)
+### 6. Achievements hero section uses `glass` card variant with blur orb
+**File:** `src/pages/AchievementsPage.tsx` (lines 125-127)
+**Problem:** The hero section uses `variant="glass"` with a `blur-3xl` gradient orb (`bg-gradient-to-br from-accent/20 to-primary/10`). Per the "Super Premium Design" standard, all floating orbs and gradient meshes should be removed.
+**Fix:** Remove the blur orb div and use `variant="elevated"` or `variant="default"` instead.
 
-In `useShareNote`, after successful share, notify group members:
-- Fetch group name, note title, and sharer's profile name
-- Insert a notification for each group member (excluding the sharer):
-  - type: `"shared_note"`, title: "{name} shared a note in {group}", data: `{ group_id, note_id }`
+### 7. Achievements stats use `glass` variant inconsistently
+**File:** `src/pages/AchievementsPage.tsx` (lines 162, 172, 182, 192)
+**Problem:** Stats cards use `variant="glass"` while every other page (Dashboard, Flashcards, Progress) uses the default or `interactive` card variant.
+**Fix:** Switch to the standard card variant used elsewhere for consistency.
 
-### 4. Upgrade NotificationBell (`src/components/notifications/NotificationBell.tsx`)
+### 8. `ProgressPage` uses `variant="interactive"` for non-clickable stat cards
+**File:** `src/pages/ProgressPage.tsx` (lines 230, 244, 258, 272)
+**Problem:** Stat cards use `variant="interactive"` (which adds cursor-pointer and hover translate), but these stats are not clickable/tappable. This creates a misleading affordance.
+**Fix:** Use `variant="default"` instead, matching the Dashboard stat card pattern.
 
-**Add missing icons** to `typeIcons` map:
-| Type | Icon |
-|---|---|
-| `mention` | "💬" |
-| `session_reminder` | "📅" |
-| `level_up` | "⬆️" |
-| `streak_lost` | "💔" |
-| `daily_challenge` | "🎯" |
-| `group_member_joined` | "👋" |
-| `shared_note` | "📝" |
-| `trial_expired` | "⏰" |
-| `subscription` | "💳" |
+---
 
-**Smart routing using `data` field:**
-Replace `handleNotificationClick` to read `notification.data` and route to specific resources:
-- `group_invite`, `group_member_joined`, `shared_note`, `mention`, `session_reminder` with `data.group_id` -> `/groups/{group_id}`
-- `achievement` -> `/achievements`
-- `level_up`, `streak_lost`, `daily_challenge` -> `/progress`
-- `study_reminder` -> `/flashcards`
-- `trial_expired`, `subscription` -> `/pricing`
-- Fallback: `/dashboard`
+## Low / Polish Issues
 
-Also stop event propagation on the Mark-as-read and Delete buttons so clicking them doesn't trigger navigation.
+### 9. `PricingPage` missing `title` prop on DashboardLayout
+**File:** `src/pages/PricingPage.tsx` (line 155)
+**Problem:** `<DashboardLayout>` without a `title` prop. The desktop header will show no page title, looking unfinished compared to every other page.
+**Fix:** Add `title="Pricing"`.
 
-## Technical details
+### 10. `GroupsPage` search input missing `w-full` on mobile
+**File:** `src/pages/GroupsPage.tsx` (line 206)
+**Problem:** The search `div` has `flex-1 max-w-md` but lacks `w-full`, so on mobile it may not stretch to fill the available width (unlike other pages that have `w-full`).
+**Fix:** Add `w-full` to match the pattern used in FlashcardsPage, NotesPage, and StudyMaterialsPage.
 
-### RLS consideration
-The notifications table INSERT policy requires `auth.uid() = user_id`. For group-wide notifications (member joins, shared notes), each notification is inserted individually with the recipient's `user_id`. Since the inserting user's auth.uid() won't match the recipient's user_id, we need to add a **service-level INSERT policy** or use a **database trigger/function**.
+### 11. `NotesPage` uses `variant="hero"` button but `FlashcardsPage` uses default for same action
+**File:** `src/pages/NotesPage.tsx` (line 246) vs `src/pages/FlashcardsPage.tsx` (line 234)
+**Problem:** "New Note" uses `variant="hero"` while "New Deck" uses the default variant. Primary action buttons across pages should be consistent.
+**Fix:** Standardize: use the default primary variant for the main CTA on list pages, or hero consistently. I recommend keeping `hero` for primary page CTAs and aligning FlashcardsPage.
 
-**Chosen approach:** Create a Postgres function `notify_group_members(p_group_id, p_sender_id, p_type, p_title, p_message, p_data)` with `SECURITY DEFINER` that inserts notifications for all group members except the sender. This avoids RLS issues.
+### 12. `Dashboard` weekly chart has no empty state guard
+**File:** `src/pages/Dashboard.tsx` (lines 442-465)
+**Problem:** The weekly progress section renders an empty 7-column grid with zero-height bars when `stats?.weekData` is empty (returns `[]`). Unlike the ProgressPage chart which shows a proper empty state message, the Dashboard just shows blank columns.
+**Fix:** Add a conditional: if `weekData` is empty or all zeros, show a small "No activity yet" message instead.
 
-### Database migration
-Create a `SECURITY DEFINER` function:
-```sql
-CREATE OR REPLACE FUNCTION public.notify_group_members(
-  p_group_id uuid, p_sender_id uuid, p_type text, 
-  p_title text, p_message text, p_data jsonb DEFAULT '{}'
-) RETURNS void AS $$
-  INSERT INTO public.notifications (user_id, type, title, message, data)
-  SELECT gm.user_id, p_type, p_title, p_message, p_data
-  FROM public.group_members gm
-  WHERE gm.group_id = p_group_id AND gm.user_id != p_sender_id;
-$$ LANGUAGE sql SECURITY DEFINER SET search_path = 'public';
-```
+---
 
-Then call it from the client via `supabase.rpc("notify_group_members", {...})`.
+## Summary Table
 
-For self-notifications (achievements, level-up, etc.), the existing INSERT policy works fine since the user is inserting their own notification.
+| # | Severity | File | Issue |
+|---|----------|------|-------|
+| 1 | Critical | `App.css` | Dead boilerplate CSS -- delete |
+| 2 | Critical | `HelpPage.tsx` | Wrong app name "StudySmart" |
+| 3 | Critical | `HelpPage.tsx` | Wrong support email domain |
+| 4 | Medium | `SettingsPage.tsx` | Version mismatch with App.tsx |
+| 5 | Medium | `SettingsPage.tsx` | Save button hidden by mobile nav |
+| 6 | Medium | `AchievementsPage.tsx` | Blur orb violates design standard |
+| 7 | Medium | `AchievementsPage.tsx` | Inconsistent `glass` card variant |
+| 8 | Medium | `ProgressPage.tsx` | `interactive` variant on non-clickable cards |
+| 9 | Low | `PricingPage.tsx` | Missing page title |
+| 10 | Low | `GroupsPage.tsx` | Search input not full width on mobile |
+| 11 | Low | `FlashcardsPage.tsx` | Inconsistent primary CTA variant |
+| 12 | Low | `Dashboard.tsx` | No empty state for weekly chart |
 
-### Files to modify
-| File | Change |
-|---|---|
-| `src/hooks/useGamification.tsx` | Add notification inserts for achievement, level-up, streak-loss, daily challenge |
-| `src/hooks/useGroupInvites.tsx` | Add `rpc("notify_group_members")` call on join |
-| `src/hooks/useSharedNotes.tsx` | Add `rpc("notify_group_members")` call on share |
-| `src/components/notifications/NotificationBell.tsx` | Add all icons, smart routing with `data` field, fix event propagation |
-| New migration | Create `notify_group_members` function |
+---
 
+## Implementation Order
+1. Delete `App.css` (instant cleanup)
+2. Fix HelpPage branding (StudySmart -> Studily, email domain)
+3. Fix SettingsPage version + save button positioning
+4. Standardize card variants across Achievements and Progress pages
+5. Remove blur orb from Achievements hero
+6. Add PricingPage title, GroupsPage search width, consistent CTA variants
+7. Add Dashboard weekly chart empty state
