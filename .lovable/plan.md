@@ -1,78 +1,99 @@
 
 
-# Offline Study Mode with IndexedDB Caching
+# Fix Notification Gaps and Improve NotificationBell
 
 ## Overview
-Add offline capability so users can read their notes and study flashcards without an internet connection. When online, data syncs automatically from Supabase into IndexedDB. When offline, the app serves cached data seamlessly.
+Add in-app notifications for all major events that currently only trigger toasts/emails, and upgrade NotificationBell with smart routing using the `data` field and complete icon coverage.
 
-## What users will experience
-- Notes, flashcards, and decks are automatically cached in the background after loading
-- When internet drops, users see an "Offline Mode" indicator banner
-- They can still browse cached notes and study cached flashcard decks
-- Flashcard review results (SRS updates) are queued offline and synced when back online
-- Read-only for notes (no offline editing to avoid complex conflict resolution)
+## Changes
 
-## Technical approach
+### 1. Add in-app notifications to gamification hooks (`src/hooks/useGamification.tsx`)
 
-### 1. IndexedDB storage layer (`src/lib/offlineStorage.ts`)
-Create a lightweight IndexedDB wrapper (no extra dependencies) with object stores for:
-- `notes` -- cached note objects
-- `flashcard_decks` -- cached deck objects
-- `flashcards` -- cached flashcard objects, indexed by `deck_id`
-- `pending_reviews` -- queued SRS review updates for sync
-- `sync_meta` -- last sync timestamps per store
+Insert `supabase.from("notifications").insert(...)` calls at three points:
 
-### 2. Offline-aware hooks (`src/hooks/useOfflineStorage.tsx`)
-- `useOfflineStatus()` -- monitors `navigator.onLine` and emits online/offline events
-- `useOfflineNotes()` -- wraps `useNotes` to write results to IndexedDB on success, and fall back to IndexedDB when the Supabase query fails
-- `useOfflineDecks()` -- same pattern for flashcard decks
-- `useOfflineFlashcards(deckId)` -- same for individual cards
-- `useOfflineReview()` -- wraps `useReviewFlashcard` to queue reviews in IndexedDB when offline, and flush the queue when back online
+- **Achievement unlocked** (in `useCheckAchievements`, after successful insert into `user_achievements`):
+  - type: `"achievement"`, title: "Achievement Unlocked: {name}", data: `{ achievement_id }`
 
-### 3. Background sync on reconnect
-When the app detects it's back online:
-- Flush all `pending_reviews` from IndexedDB to Supabase via the existing `useReviewFlashcard` mutation
-- Re-fetch fresh data and update the IndexedDB cache
-- Show a toast: "Back online -- your progress has been synced"
+- **Level up** (in `useAwardXP`, when `leveledUp` is true):
+  - type: `"level_up"`, title: "Level Up! You're now level {N}!", data: `{}`
 
-### 4. Offline banner component (`src/components/ui/offline-banner.tsx`)
-A slim, fixed banner at the top of the app that appears when offline:
-- Yellow/amber background with a wifi-off icon
-- Text: "You're offline -- viewing cached data"
-- Auto-dismisses when back online
+- **Streak lost** (in `useAwardXP`, when `streakLost && previousStreak > 1`):
+  - type: `"streak_lost"`, title: "Your {N}-day streak was lost", data: `{}`
 
-### 5. Integration points
-- **`useNotes` hook**: Add IndexedDB caching after successful fetch, fallback on error
-- **`useFlashcards` hook**: Same caching/fallback pattern for decks, cards, and due cards
-- **`useReviewFlashcard` hook**: Queue reviews when offline
-- **`DashboardLayout`**: Render the offline banner
-- **`App.tsx`**: Initialize IndexedDB on app startup, register online/offline listeners for sync
+- **Daily challenge completed** (in `useUpdateDailyChallenge`, when `completed` is true):
+  - type: `"daily_challenge"`, title: "Daily Challenge Complete!", data: `{ xp_reward }`
 
-### 6. Cache management
-- Cache up to 100 most recent notes and all flashcard decks/cards
-- Refresh cache on every successful online fetch (overwrite strategy, no merge)
-- Clear offline cache on sign-out (add to existing auth cleanup in `useAuth`)
-- Respect the existing `CacheBuster` version system -- clear IndexedDB on version bump
+### 2. Add notification for group member joins (`src/hooks/useGroupInvites.tsx`)
 
-## Files to create
-| File | Purpose |
+In `useJoinByInvite`, after successful group join, notify all existing group members:
+- Fetch group name and joiner's profile name
+- Insert a notification for each existing member (excluding the joiner):
+  - type: `"group_member_joined"`, title: "{name} joined {group}", data: `{ group_id }`
+
+### 3. Add notification for shared notes (`src/hooks/useSharedNotes.tsx`)
+
+In `useShareNote`, after successful share, notify group members:
+- Fetch group name, note title, and sharer's profile name
+- Insert a notification for each group member (excluding the sharer):
+  - type: `"shared_note"`, title: "{name} shared a note in {group}", data: `{ group_id, note_id }`
+
+### 4. Upgrade NotificationBell (`src/components/notifications/NotificationBell.tsx`)
+
+**Add missing icons** to `typeIcons` map:
+| Type | Icon |
 |---|---|
-| `src/lib/offlineStorage.ts` | IndexedDB wrapper with CRUD for each store |
-| `src/hooks/useOfflineStorage.tsx` | Offline-aware hooks and sync logic |
-| `src/components/ui/offline-banner.tsx` | Visual offline indicator |
+| `mention` | "💬" |
+| `session_reminder` | "📅" |
+| `level_up` | "⬆️" |
+| `streak_lost` | "💔" |
+| `daily_challenge` | "🎯" |
+| `group_member_joined` | "👋" |
+| `shared_note` | "📝" |
+| `trial_expired` | "⏰" |
+| `subscription` | "💳" |
 
-## Files to modify
+**Smart routing using `data` field:**
+Replace `handleNotificationClick` to read `notification.data` and route to specific resources:
+- `group_invite`, `group_member_joined`, `shared_note`, `mention`, `session_reminder` with `data.group_id` -> `/groups/{group_id}`
+- `achievement` -> `/achievements`
+- `level_up`, `streak_lost`, `daily_challenge` -> `/progress`
+- `study_reminder` -> `/flashcards`
+- `trial_expired`, `subscription` -> `/pricing`
+- Fallback: `/dashboard`
+
+Also stop event propagation on the Mark-as-read and Delete buttons so clicking them doesn't trigger navigation.
+
+## Technical details
+
+### RLS consideration
+The notifications table INSERT policy requires `auth.uid() = user_id`. For group-wide notifications (member joins, shared notes), each notification is inserted individually with the recipient's `user_id`. Since the inserting user's auth.uid() won't match the recipient's user_id, we need to add a **service-level INSERT policy** or use a **database trigger/function**.
+
+**Chosen approach:** Create a Postgres function `notify_group_members(p_group_id, p_sender_id, p_type, p_title, p_message, p_data)` with `SECURITY DEFINER` that inserts notifications for all group members except the sender. This avoids RLS issues.
+
+### Database migration
+Create a `SECURITY DEFINER` function:
+```sql
+CREATE OR REPLACE FUNCTION public.notify_group_members(
+  p_group_id uuid, p_sender_id uuid, p_type text, 
+  p_title text, p_message text, p_data jsonb DEFAULT '{}'
+) RETURNS void AS $$
+  INSERT INTO public.notifications (user_id, type, title, message, data)
+  SELECT gm.user_id, p_type, p_title, p_message, p_data
+  FROM public.group_members gm
+  WHERE gm.group_id = p_group_id AND gm.user_id != p_sender_id;
+$$ LANGUAGE sql SECURITY DEFINER SET search_path = 'public';
+```
+
+Then call it from the client via `supabase.rpc("notify_group_members", {...})`.
+
+For self-notifications (achievements, level-up, etc.), the existing INSERT policy works fine since the user is inserting their own notification.
+
+### Files to modify
 | File | Change |
 |---|---|
-| `src/hooks/useNotes.tsx` | Wrap `useNotes` query with IndexedDB cache/fallback |
-| `src/hooks/useFlashcards.tsx` | Wrap deck/card/review queries with IndexedDB cache/fallback |
-| `src/hooks/useAuth.tsx` | Clear IndexedDB on sign-out |
-| `src/components/layout/DashboardLayout.tsx` | Add offline banner |
-| `src/App.tsx` | Clear IndexedDB on version bump |
-
-## Scope boundaries
-- **Read-only offline for notes** -- no offline note editing (avoids conflict resolution complexity)
-- **Offline flashcard reviews are queued** -- SRS updates sync when reconnected
-- **No offline creation** of new notes/decks/cards (keeps it simple and reliable)
-- **No additional npm dependencies** -- uses the native IndexedDB API
+| `src/hooks/useGamification.tsx` | Add notification inserts for achievement, level-up, streak-loss, daily challenge |
+| `src/hooks/useGroupInvites.tsx` | Add `rpc("notify_group_members")` call on join |
+| `src/hooks/useSharedNotes.tsx` | Add `rpc("notify_group_members")` call on share |
+| `src/components/notifications/NotificationBell.tsx` | Add all icons, smart routing with `data` field, fix event propagation |
+| New migration | Create `notify_group_members` function |
 
