@@ -362,9 +362,9 @@ export default function GroupDetailPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-display font-bold">{group.name}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-display font-bold truncate">{group.name}</h1>
           {group.description && (
             <p className="text-muted-foreground text-sm mt-1">{group.description}</p>
           )}
@@ -464,7 +464,7 @@ export default function GroupDetailPage() {
             />
           </div>
 
-          <div className="relative border border-border rounded-xl bg-card overflow-hidden">
+          <div className={cn("relative border border-border rounded-xl bg-card overflow-hidden", isMobile && "mb-20")}>
             {/* Pinned Messages Panel */}
             <PinnedMessagesPanel
               pinnedMessages={pinnedMessages || []}
@@ -478,7 +478,7 @@ export default function GroupDetailPage() {
             <ScrollArea 
               className={cn(
                 "p-4",
-                isMobile ? "h-[calc(100vh-20rem)]" : "h-[400px]"
+                isMobile ? "h-[calc(100dvh-24rem)]" : "h-[400px]"
               )}
               ref={scrollAreaRef}
               onScrollCapture={handleScroll}
