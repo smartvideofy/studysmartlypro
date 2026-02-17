@@ -227,7 +227,7 @@ export default function ProgressPage() {
             variants={itemVariants}
             className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4"
           >
-            <Card variant="interactive" className="p-3 md:p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center gap-2 md:gap-3">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Clock className="w-4 h-4 md:w-5 md:h-5 text-primary" />
@@ -241,7 +241,7 @@ export default function ProgressPage() {
               </div>
             </Card>
             
-            <Card variant="interactive" className="p-3 md:p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center gap-2 md:gap-3">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-success/10 flex items-center justify-center">
                   <CheckCircle2 className="w-4 h-4 md:w-5 md:h-5 text-success" />
@@ -255,7 +255,7 @@ export default function ProgressPage() {
               </div>
             </Card>
             
-            <Card variant="interactive" className="p-3 md:p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center gap-2 md:gap-3">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-accent/10 flex items-center justify-center">
                   <Flame className="w-4 h-4 md:w-5 md:h-5 text-accent" />
@@ -269,7 +269,7 @@ export default function ProgressPage() {
               </div>
             </Card>
             
-            <Card variant="interactive" className="p-3 md:p-4">
+            <Card className="p-3 md:p-4">
               <div className="flex items-center gap-2 md:gap-3">
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-primary/10 flex items-center justify-center">
                   <Target className="w-4 h-4 md:w-5 md:h-5 text-primary" />

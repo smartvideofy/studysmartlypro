@@ -152,7 +152,7 @@ export default function PricingPage() {
   };
 
   return (
-    <DashboardLayout>
+    <DashboardLayout title="Pricing">
       <SEOHead
         title="Pricing"
         description="Choose the perfect Studily plan for your learning needs. Start free, upgrade to Pro for unlimited features. Simple, transparent pricing with no hidden fees."

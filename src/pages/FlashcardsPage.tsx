@@ -231,7 +231,7 @@ export default function FlashcardsPage() {
                 <span className="hidden sm:inline ml-1">AI Generate</span>
               </Button>
               
-              <Button size="sm" onClick={() => setCreateDeckOpen(true)}>
+              <Button variant="hero" size="sm" onClick={() => setCreateDeckOpen(true)}>
                 <Plus className="w-4 h-4" />
                 <span className="ml-1">New Deck</span>
               </Button>
