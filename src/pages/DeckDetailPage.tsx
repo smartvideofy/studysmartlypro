@@ -164,8 +164,8 @@ export default function DeckDetailPage() {
         />
 
         {/* Header */}
-        <motion.div variants={itemVariants} className="flex items-start justify-between gap-4">
-          <div>
+        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="min-w-0">
             <div className="flex items-center gap-3 mb-1">
               <h1 className="font-display text-2xl font-bold">{deck.name}</h1>
               {deck.is_public && <Badge variant="accent">Public</Badge>}
@@ -181,7 +181,7 @@ export default function DeckDetailPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 self-start">
             <Button variant="hero" asChild>
               <Link to={`/study/${deck.id}`}>
                 <Play className="w-4 h-4" />
@@ -217,7 +217,7 @@ export default function DeckDetailPage() {
           variants={itemVariants}
           className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between"
         >
-          <div className="relative flex-1 max-w-md">
+          <div className="relative w-full flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="Search cards..."
