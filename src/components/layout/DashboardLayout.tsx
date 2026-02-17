@@ -34,6 +34,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsBlocked } from "@/hooks/useSubscription";
 import { SubscriptionBlock } from "@/components/subscription/SubscriptionBlock";
 import logoImage from "@/assets/logo.png";
+import { OfflineBanner } from "@/components/ui/offline-banner";
+import { useOfflineSync } from "@/hooks/useOfflineStorage";
 
 // Grouped navigation items
 const mainNavItems = [
@@ -95,6 +97,9 @@ export default function DashboardLayout({
   
   // Check if user is blocked (expired trial)
   const { isBlocked, isLoading: blockLoading } = useIsBlocked();
+  
+  // Sync offline reviews when back online
+  useOfflineSync();
 
   // Persist sidebar collapsed state
   useEffect(() => {
@@ -111,6 +116,7 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      <OfflineBanner />
       {/* Mobile Header - Only render on mobile */}
       {isMobile && (
         <MobileHeader 
