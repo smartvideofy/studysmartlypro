@@ -2,6 +2,7 @@ import { useState, useEffect, createContext, useContext, ReactNode, useRef } fro
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { offlineStorage } from '@/lib/offlineStorage';
 
 interface AuthContextType {
   user: User | null;
@@ -108,6 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     // Clear React Query cache first
     queryClient.clear();
+    
+    // Clear offline IndexedDB cache
+    offlineStorage.clearAll().catch(console.error);
     
     // Clear user-specific localStorage
     const keysToRemove = ['sidebar-collapsed'];

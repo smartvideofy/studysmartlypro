@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { offlineStorage } from '@/lib/offlineStorage';
 
 export interface Note {
   id: string;
@@ -41,19 +42,34 @@ export function useNotes(folderId?: string) {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      let query = supabase
-        .from('notes')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+      try {
+        let query = supabase
+          .from('notes')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
 
-      if (folderId) {
-        query = query.eq('folder_id', folderId);
+        if (folderId) {
+          query = query.eq('folder_id', folderId);
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        const notes = data as Note[];
+        // Cache for offline use (only cache the unfiltered list)
+        if (!folderId) {
+          offlineStorage.cacheNotes(notes).catch(console.error);
+        }
+        return notes;
+      } catch (err) {
+        // Fallback to cached data when offline
+        if (!navigator.onLine) {
+          const cached = await offlineStorage.getCachedNotes();
+          if (folderId) return cached.filter(n => n.folder_id === folderId);
+          return cached;
+        }
+        throw err;
       }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as Note[];
     },
     enabled: !!user?.id,
   });

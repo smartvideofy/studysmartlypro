@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { offlineStorage } from "@/lib/offlineStorage";
 import { HelmetProvider } from "react-helmet-async";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/toaster";
@@ -22,6 +23,8 @@ function CacheBuster() {
     if (storedVersion !== APP_VERSION) {
       // Version changed - clear caches
       queryClient.clear();
+      // Clear offline IndexedDB cache on version bump
+      offlineStorage.clearAll().catch(console.error);
       // Clear user-specific localStorage keys that might have stale data
       const keysToPreserve = ['app-version', 'theme'];
       const allKeys = Object.keys(localStorage);

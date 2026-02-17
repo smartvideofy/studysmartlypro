@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { offlineStorage } from '@/lib/offlineStorage';
 
 export interface FlashcardDeck {
   id: string;
@@ -84,14 +85,23 @@ export function useDecks() {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      const { data, error } = await supabase
-        .from('flashcard_decks')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+      try {
+        const { data, error } = await supabase
+          .from('flashcard_decks')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false });
 
-      if (error) throw error;
-      return data as FlashcardDeck[];
+        if (error) throw error;
+        const decks = data as FlashcardDeck[];
+        offlineStorage.cacheDecks(decks).catch(console.error);
+        return decks;
+      } catch (err) {
+        if (!navigator.onLine) {
+          return await offlineStorage.getCachedDecks();
+        }
+        throw err;
+      }
     },
     enabled: !!user?.id,
   });
@@ -200,14 +210,23 @@ export function useFlashcards(deckId: string) {
   return useQuery({
     queryKey: ['flashcards', deckId],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('flashcards')
-        .select('*')
-        .eq('deck_id', deckId)
-        .order('created_at');
+      try {
+        const { data, error } = await supabase
+          .from('flashcards')
+          .select('*')
+          .eq('deck_id', deckId)
+          .order('created_at');
 
-      if (error) throw error;
-      return data as Flashcard[];
+        if (error) throw error;
+        const cards = data as Flashcard[];
+        offlineStorage.cacheFlashcards(cards).catch(console.error);
+        return cards;
+      } catch (err) {
+        if (!navigator.onLine) {
+          return await offlineStorage.getCachedFlashcards(deckId);
+        }
+        throw err;
+      }
     },
     enabled: !!deckId,
   });
@@ -419,6 +438,20 @@ export function useReviewFlashcard() {
       currentInterval: number;
       currentRepetitions: number;
     }) => {
+      // If offline, queue the review for later sync
+      if (!navigator.onLine) {
+        await offlineStorage.queueReview({
+          id,
+          deckId,
+          quality,
+          currentEaseFactor,
+          currentInterval,
+          currentRepetitions,
+          queuedAt: new Date().toISOString(),
+        });
+        return { deckId };
+      }
+
       const updates = calculateNextReview(
         quality,
         currentEaseFactor,
