@@ -225,10 +225,33 @@ export function useAwardXP() {
 
       if (updateError) throw updateError;
 
+      // Create in-app notification for streak lost
+      if (streakLost && previousStreak > 1) {
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "streak_lost",
+          title: `Your ${previousStreak}-day streak was lost`,
+          message: "Start studying again to build a new streak!",
+          data: {},
+        });
+      }
+
+      // Create in-app notification for level up
+      if (leveledUp) {
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "level_up",
+          title: `Level Up! You're now level ${newLevel}!`,
+          message: `You earned ${amount} XP for: ${reason}`,
+          data: {},
+        });
+      }
+
       return { newXP, newLevel, leveledUp, newStreak };
     },
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ["gamification-profile"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       
       if (data.leveledUp) {
         toast.success(`🎉 Level Up! You're now level ${data.newLevel}!`, {
@@ -308,6 +331,15 @@ export function useCheckAchievements() {
               reason: `Achievement: ${ach.name}`,
             });
 
+            // Create in-app notification for achievement
+            await supabase.from("notifications").insert({
+              user_id: user.id,
+              type: "achievement",
+              title: `Achievement Unlocked: ${ach.name}!`,
+              message: ach.description,
+              data: { achievement_id: ach.id },
+            });
+
             // Send achievement celebration email
             try {
               await supabase.functions.invoke("send-email", {
@@ -335,6 +367,7 @@ export function useCheckAchievements() {
     },
     onSuccess: (achievements) => {
       queryClient.invalidateQueries({ queryKey: ["user-achievements"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       
       for (const ach of achievements) {
         toast.success(`🏆 Achievement Unlocked: ${ach.name}!`, {
@@ -412,12 +445,22 @@ export function useUpdateDailyChallenge() {
           amount: challenge.xp_reward,
           reason: "Daily Challenge Completed",
         });
+
+        // Create in-app notification for daily challenge
+        await supabase.from("notifications").insert({
+          user_id: user.id,
+          type: "daily_challenge",
+          title: "Daily Challenge Complete!",
+          message: `You earned ${challenge.xp_reward} XP!`,
+          data: { xp_reward: challenge.xp_reward },
+        });
       }
 
       return { ...challenge, current_value: newValue, completed };
     },
     onSuccess: (challenge) => {
       queryClient.invalidateQueries({ queryKey: ["daily-challenge"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       
       if (challenge?.completed) {
         toast.success("🎯 Daily Challenge Complete!", {

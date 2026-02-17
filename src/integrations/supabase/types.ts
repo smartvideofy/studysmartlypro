@@ -1835,6 +1835,17 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      notify_group_members: {
+        Args: {
+          p_data?: Json
+          p_group_id: string
+          p_message: string
+          p_sender_id: string
+          p_title: string
+          p_type: string
+        }
+        Returns: undefined
+      }
       search_group_messages: {
         Args: { p_group_id: string; p_limit?: number; p_search_term: string }
         Returns: {

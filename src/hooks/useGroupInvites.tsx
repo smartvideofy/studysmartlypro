@@ -165,11 +165,33 @@ export function useJoinByInvite() {
         .update({ use_count: invite.use_count + 1 })
         .eq('id', invite.id);
 
+      // Notify existing group members about the new joiner
+      try {
+        const [{ data: group }, { data: profile }] = await Promise.all([
+          supabase.from("study_groups").select("name").eq("id", invite.group_id).single(),
+          supabase.from("profiles").select("full_name").eq("user_id", user.id).single(),
+        ]);
+        const joinerName = profile?.full_name || "Someone";
+        const groupName = group?.name || "the group";
+
+        await supabase.rpc("notify_group_members", {
+          p_group_id: invite.group_id,
+          p_sender_id: user.id,
+          p_type: "group_member_joined",
+          p_title: `${joinerName} joined ${groupName}`,
+          p_message: "",
+          p_data: { group_id: invite.group_id },
+        });
+      } catch (notifError) {
+        console.error("Failed to send join notifications:", notifError);
+      }
+
       return invite.group_id;
     },
     onSuccess: (groupId) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });
       queryClient.invalidateQueries({ queryKey: ['group', groupId] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
       toast.success('Successfully joined the group!');
     },
     onError: (error) => {

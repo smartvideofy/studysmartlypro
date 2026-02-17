@@ -49,9 +49,32 @@ export function useShareNote() {
       });
 
       if (error) throw error;
+
+      // Notify group members about the shared note
+      try {
+        const [{ data: group }, { data: note }, { data: profile }] = await Promise.all([
+          supabase.from("study_groups").select("name").eq("id", groupId).single(),
+          supabase.from("notes").select("title").eq("id", noteId).single(),
+          supabase.from("profiles").select("full_name").eq("user_id", user.id).single(),
+        ]);
+        const sharerName = profile?.full_name || "Someone";
+        const groupName = group?.name || "the group";
+
+        await supabase.rpc("notify_group_members", {
+          p_group_id: groupId,
+          p_sender_id: user.id,
+          p_type: "shared_note",
+          p_title: `${sharerName} shared "${note?.title || "a note"}" in ${groupName}`,
+          p_message: "",
+          p_data: { group_id: groupId, note_id: noteId },
+        });
+      } catch (notifError) {
+        console.error("Failed to send share notifications:", notifError);
+      }
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["shared-notes", variables.groupId] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       toast.success("Note shared with group");
     },
     onError: (error) => {
