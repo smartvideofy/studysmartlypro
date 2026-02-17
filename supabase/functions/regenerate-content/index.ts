@@ -80,10 +80,13 @@ serve(async (req) => {
       );
     }
 
-    const extractedContent = material.extracted_content;
-    if (!extractedContent) {
+    // Use extracted content, or fall back to metadata if extraction previously failed
+    const extractedContent = material.extracted_content 
+      || `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || material.title}`;
+    
+    if (!extractedContent || extractedContent.trim().length === 0) {
       return new Response(
-        JSON.stringify({ error: "No extracted content available" }),
+        JSON.stringify({ error: "No content available to regenerate from" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

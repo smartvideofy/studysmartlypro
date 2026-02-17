@@ -739,6 +739,11 @@ serve(async (req) => {
       console.error('Content extraction error:', extractError);
       // Continue with metadata-based generation
       extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
+      // Save fallback content so regenerate-content can use it later
+      await supabase
+        .from('study_materials')
+        .update({ extracted_content: extractedContent })
+        .eq('id', materialId);
     }
 
     // Generate tutor notes
