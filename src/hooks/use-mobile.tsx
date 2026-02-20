@@ -1,6 +1,6 @@
 import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768;
+const MOBILE_BREAKPOINT = 1024;
 
 // Helper to get initial value synchronously (prevents flash)
 function getInitialIsMobile(): boolean {

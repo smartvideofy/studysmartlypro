@@ -70,7 +70,7 @@ export function MobileHeader({
     <>
       <motion.header 
         className={cn(
-          "sticky top-0 z-40 md:hidden transition-all duration-300",
+          "sticky top-0 z-40 lg:hidden transition-all duration-300",
           scrolled 
             ? "bg-background/95 backdrop-blur-sm border-b border-border" 
             : "bg-background"
@@ -187,7 +187,7 @@ export function MobileHeader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            className="fixed inset-0 z-50 bg-background md:hidden"
+            className="fixed inset-0 z-50 bg-background lg:hidden"
           >
             <div className="pt-[env(safe-area-inset-top)]">
               <form onSubmit={handleSearchSubmit} className="flex items-center gap-3 p-4 border-b border-border/50">

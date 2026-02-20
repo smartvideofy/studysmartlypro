@@ -418,8 +418,8 @@ export default function GroupDetailPage() {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         {/* Horizontal scrollable tabs on mobile */}
-        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-          <TabsList className="mb-4 inline-flex min-w-max md:flex">
+        <div className="overflow-x-auto scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+          <TabsList className="mb-4 inline-flex min-w-max lg:flex">
             <TabsTrigger value="chat" className="gap-2 min-w-[100px] touch-target">
               <MessageSquare className="w-4 h-4" />
               <span className="hidden sm:inline">Chat</span>
