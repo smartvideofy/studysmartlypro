@@ -369,9 +369,9 @@ export default function DashboardLayout({
         className={cn(
           "flex-1 transition-all duration-300 relative z-10",
           // Mobile: full width with bottom padding for nav
-          "pb-24 md:pb-0",
+          "pb-24 lg:pb-0",
           // Desktop: margin for sidebar
-          collapsed ? "md:ml-[72px]" : "md:ml-[260px]"
+          collapsed ? "lg:ml-[72px]" : "lg:ml-[260px]"
         )}
       >
         {/* Desktop Header - Only render on desktop */}
@@ -421,7 +421,7 @@ export default function DashboardLayout({
         )}
 
         {/* Page Content - Responsive padding */}
-        <div className="p-4 md:p-6 relative">
+        <div className="p-4 lg:p-6 relative">
           {children}
         </div>
       </main>

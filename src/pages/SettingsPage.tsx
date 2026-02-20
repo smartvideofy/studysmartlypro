@@ -449,7 +449,7 @@ export default function SettingsPage() {
 
         {/* Save Button */}
         {hasChanges && (
-          <div className="fixed bottom-24 md:bottom-6 left-0 right-0 flex justify-center z-50 px-4">
+          <div className="fixed bottom-24 lg:bottom-6 left-0 right-0 flex justify-center z-50 px-4">
             <Button 
               onClick={handleSave} 
               disabled={updateProfile.isPending}
