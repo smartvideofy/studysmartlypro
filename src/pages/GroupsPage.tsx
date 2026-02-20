@@ -7,26 +7,15 @@ import {
   Search,
   MessageSquare,
   Crown,
-  MoreHorizontal,
   UserPlus,
   Globe,
   Lock,
-  Loader2,
-  BookOpen,
-  GraduationCap,
-  FlaskConical,
-  Calculator,
-  Languages,
-  Palette,
-  Code,
-  TrendingUp,
-  Sparkles
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
@@ -38,18 +27,6 @@ import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useIsMobile } from "@/hooks/use-mobile";
-
-// Subject categories for discovery
-const subjectCategories = [
-  { id: "all", label: "All", icon: Sparkles },
-  { id: "science", label: "Science", icon: FlaskConical },
-  { id: "math", label: "Mathematics", icon: Calculator },
-  { id: "languages", label: "Languages", icon: Languages },
-  { id: "humanities", label: "Humanities", icon: BookOpen },
-  { id: "tech", label: "Technology", icon: Code },
-  { id: "arts", label: "Arts", icon: Palette },
-  { id: "business", label: "Business", icon: TrendingUp },
-];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -68,13 +45,12 @@ export default function GroupsPage() {
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-  const [showCreateModal, setShowCreateModal] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState("all");
   
   const queryClient = useQueryClient();
   const { data: myGroups, isLoading: groupsLoading, isError: groupsError } = useGroups();
   const { data: publicGroups, isLoading: publicLoading, isError: publicError } = usePublicGroups();
   const joinGroup = useJoinGroup();
+  const [showCreateModal, setShowCreateModal] = useState(false);
   
   const groupIds = useMemo(() => myGroups?.map(g => g.id) || [], [myGroups]);
   const { data: unreadCounts } = useUnreadCounts(groupIds);
@@ -89,12 +65,10 @@ export default function GroupsPage() {
     ]);
   };
 
-  // Filter groups based on search
   const filteredMyGroups = myGroups?.filter(g => 
     g.name.toLowerCase().includes(searchQuery.toLowerCase())
   ) || [];
 
-  // Filter public groups to exclude ones user is already in
   const myGroupIds = new Set(myGroups?.map(g => g.id) || []);
   const availablePublicGroups = publicGroups?.filter(g => {
     const matchesSearch = g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -107,43 +81,14 @@ export default function GroupsPage() {
     await joinGroup.mutateAsync(groupId);
   };
 
-  // Get icon for group based on name/description keywords
-  const getGroupIcon = (name: string, description?: string | null) => {
-    const text = `${name} ${description || ''}`.toLowerCase();
-    if (text.includes('science') || text.includes('biology') || text.includes('chemistry') || text.includes('physics')) return FlaskConical;
-    if (text.includes('math') || text.includes('calculus') || text.includes('algebra')) return Calculator;
-    if (text.includes('language') || text.includes('english') || text.includes('spanish') || text.includes('french')) return Languages;
-    if (text.includes('art') || text.includes('design') || text.includes('music')) return Palette;
-    if (text.includes('code') || text.includes('programming') || text.includes('computer') || text.includes('tech')) return Code;
-    if (text.includes('business') || text.includes('economics') || text.includes('finance')) return TrendingUp;
-    if (text.includes('history') || text.includes('literature') || text.includes('philosophy')) return BookOpen;
-    return GraduationCap;
-  };
-
-  // Get subtle background colors for group cards using design tokens
-  const getGroupBg = (index: number) => {
-    const backgrounds = [
-      'bg-primary/8',
-      'bg-primary/6',
-      'bg-success/8',
-      'bg-accent/8',
-      'bg-primary/10',
-      'bg-muted/50',
-    ];
-    return backgrounds[index % backgrounds.length];
-  };
-
   if (isLoading) {
     return (
       <DashboardLayout title="Study Groups">
         <div className="space-y-6 animate-in fade-in duration-300">
-          {/* Search & Actions Skeleton */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <Skeleton className="h-10 w-full max-w-md rounded-lg" />
             <Skeleton className="h-9 w-32 rounded-lg" />
           </div>
-
-          {/* My Groups Skeleton */}
           <div>
             <Skeleton className="h-6 w-28 mb-4" />
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -152,26 +97,14 @@ export default function GroupsPage() {
               ))}
             </div>
           </div>
-
-          {/* Discover Groups Skeleton */}
-          <Card variant="elevated">
-            <CardHeader>
-              <Skeleton className="h-6 w-48" />
-              <Skeleton className="h-4 w-40 mt-1" />
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div>
+            <Skeleton className="h-6 w-28 mb-4" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
               {Array.from({ length: 2 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-xl bg-secondary/50">
-                  <Skeleton className="w-12 h-12 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-3 w-48" />
-                  </div>
-                  <Skeleton className="h-9 w-20 rounded-lg" />
-                </div>
+                <SkeletonGroupCard key={i} />
               ))}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -188,6 +121,88 @@ export default function GroupsPage() {
       </DashboardLayout>
     );
   }
+
+  // Shared card renderer for both My Groups and Discover groups
+  const renderGroupCard = (group: any, variant: 'my' | 'discover') => (
+    <Card key={group.id} variant="interactive" className="group">
+      <CardContent className="p-5">
+        <div className="flex items-center gap-2 mb-3">
+          {variant === 'my' && group.owner_id === user?.id && (
+            <Badge variant="accent" className="text-xs">
+              <Crown className="w-3 h-3 mr-1" />
+              Owner
+            </Badge>
+          )}
+          {group.is_private ? (
+            <Badge variant="secondary" className="text-xs">
+              <Lock className="w-3 h-3 mr-1" />
+              Private
+            </Badge>
+          ) : (
+            <Badge variant="muted" className="text-xs">
+              <Globe className="w-3 h-3 mr-1" />
+              Public
+            </Badge>
+          )}
+        </div>
+        
+        <h4 className="font-display font-semibold mb-2 line-clamp-1">
+          {group.name}
+        </h4>
+        
+        {group.description && (
+          <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+            {group.description}
+          </p>
+        )}
+        
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+          <span className="flex items-center gap-1">
+            <Users className="w-4 h-4" />
+            {group.member_count || 1}
+          </span>
+        </div>
+        
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">
+            {variant === 'my' 
+              ? `Updated ${formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}`
+              : `${group.member_count || 1} members`
+            }
+          </span>
+          {variant === 'my' ? (
+            <Button variant="outline" size="sm" asChild className="relative">
+              <Link to={`/groups/${group.id}`}>
+                <MessageSquare className="w-4 h-4" />
+                Open
+                {unreadCounts?.[group.id] > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center px-1">
+                    {unreadCounts[group.id] > 99 ? '99+' : unreadCounts[group.id]}
+                  </span>
+                )}
+              </Link>
+            </Button>
+          ) : (
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => handleJoinGroup(group.id)}
+              disabled={joinGroup.isPending}
+            >
+              {joinGroup.isPending ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  Join
+                </>
+              )}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <DashboardLayout title="Study Groups">
@@ -224,215 +239,53 @@ export default function GroupsPage() {
           <h3 className="font-display text-lg font-semibold mb-4">My Groups</h3>
           {filteredMyGroups.length > 0 ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredMyGroups.map((group) => (
-                <Card key={group.id} variant="interactive" className="group">
-                  <CardContent className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        {group.owner_id === user?.id && (
-                          <Badge variant="accent" className="text-xs">
-                            <Crown className="w-3 h-3 mr-1" />
-                            Owner
-                          </Badge>
-                        )}
-                        {group.is_private ? (
-                          <Badge variant="secondary" className="text-xs">
-                            <Lock className="w-3 h-3 mr-1" />
-                            Private
-                          </Badge>
-                        ) : (
-                          <Badge variant="muted" className="text-xs">
-                            <Globe className="w-3 h-3 mr-1" />
-                            Public
-                          </Badge>
-                        )}
-                      </div>
-                      <Button variant="ghost" size="icon-sm" className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    
-                    <h4 className="font-display font-semibold mb-2 line-clamp-1">
-                      {group.name}
-                    </h4>
-                    
-                    {group.description && (
-                      <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                        {group.description}
-                      </p>
-                    )}
-                    
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                      <span className="flex items-center gap-1">
-                        <Users className="w-4 h-4" />
-                        {group.member_count || 1}
-                      </span>
-                    </div>
-                    
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-muted-foreground">
-                        Updated {formatDistanceToNow(new Date(group.updated_at), { addSuffix: true })}
-                      </span>
-                      <Button variant="outline" size="sm" asChild className="relative">
-                        <Link to={`/groups/${group.id}`}>
-                          <MessageSquare className="w-4 h-4" />
-                          Open
-                          {unreadCounts?.[group.id] > 0 && (
-                            <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-primary text-primary-foreground text-[10px] font-medium flex items-center justify-center px-1">
-                              {unreadCounts[group.id] > 99 ? '99+' : unreadCounts[group.id]}
-                            </span>
-                          )}
-                        </Link>
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+              {filteredMyGroups.map((group) => renderGroupCard(group, 'my'))}
             </div>
           ) : (
             <Card variant="elevated" className="p-8 text-center">
-              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center">
-                <Users className="w-10 h-10 text-muted-foreground/50" />
+              <div className="w-12 h-12 mx-auto mb-4 rounded-xl border-2 border-dashed border-muted-foreground/20 bg-muted/30 flex items-center justify-center">
+                <Users className="w-6 h-6 text-muted-foreground/50" />
               </div>
               <h4 className="font-display font-semibold text-lg mb-2">No groups yet</h4>
               <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
                 Create a study group or join a public one to get started.
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-                <Button onClick={() => setShowCreateModal(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Your First Group
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground mt-4">
-                Tip: <Link to="/materials" className="text-primary hover:underline">Upload study materials</Link> first, then share them with your group
-              </p>
+              <Button onClick={() => setShowCreateModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Your First Group
+              </Button>
             </Card>
           )}
         </motion.div>
 
         {/* Discover Public Groups */}
         <motion.div variants={itemVariants}>
-          <Card variant="elevated" className="overflow-hidden">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2 text-xl">
-                    <div className="w-10 h-10 rounded-xl bg-success/20 flex items-center justify-center">
-                      <Globe className="w-5 h-5 text-success" />
-                    </div>
-                    Discover Study Groups
-                  </CardTitle>
-                  <CardDescription className="mt-2">
-                    Join public study communities and learn together
-                  </CardDescription>
-                </div>
-                {availablePublicGroups.length > 0 && (
-                  <Badge variant="secondary" className="text-xs">
-                    {availablePublicGroups.length} available
-                  </Badge>
-                )}
-              </div>
-              
-              {/* Category Filter */}
-              <ScrollArea className="w-full mt-4">
-                <div className="flex gap-2 pb-2 scroll-fade-horizontal">
-                  {subjectCategories.map((category) => {
-                    const Icon = category.icon;
-                    const isActive = selectedCategory === category.id;
-                    return (
-                      <Button
-                        key={category.id}
-                        variant={isActive ? "default" : "outline"}
-                        size="sm"
-                        className={`shrink-0 gap-1.5 touch-target ${isActive ? '' : 'bg-secondary/50 hover:bg-secondary'}`}
-                        onClick={() => setSelectedCategory(category.id)}
-                      >
-                        <Icon className="w-3.5 h-3.5" />
-                        {category.label}
-                      </Button>
-                    );
-                  })}
-                </div>
-                <ScrollBar orientation="horizontal" />
-              </ScrollArea>
-            </CardHeader>
-            
-            <CardContent>
-              {availablePublicGroups.length > 0 ? (
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {availablePublicGroups.map((group, index) => {
-                    const GroupIcon = getGroupIcon(group.name, group.description);
-                    return (
-                      <motion.div
-                        key={group.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: index * 0.05 }}
-                        className={`group relative p-4 rounded-xl ${getGroupBg(index)} border border-border hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200`}
-                      >
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-12 h-12 rounded-xl bg-card border border-border flex items-center justify-center shadow-sm">
-                            <GroupIcon className="w-6 h-6 text-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-semibold text-sm mb-0.5 truncate group-hover:text-primary transition-colors">
-                              {group.name}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <Users className="w-3 h-3" />
-                              <span>{group.member_count || 1} members</span>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {group.description && (
-                          <p className="text-xs text-muted-foreground mb-4 line-clamp-2 min-h-[2.5rem]">
-                            {group.description}
-                          </p>
-                        )}
-                        
-                        {!group.description && (
-                          <div className="mb-4 min-h-[2.5rem]" />
-                        )}
-                        
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="w-full bg-card hover:bg-primary hover:text-primary-foreground transition-all"
-                          onClick={() => handleJoinGroup(group.id)}
-                          disabled={joinGroup.isPending}
-                        >
-                          {joinGroup.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <>
-                              <UserPlus className="w-4 h-4 mr-1.5" />
-                              Join Group
-                            </>
-                          )}
-                        </Button>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="py-12 text-center">
-                  <div className="w-20 h-20 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-primary/10 to-primary/5 flex items-center justify-center">
-                    <Globe className="w-10 h-10 text-primary/50" />
-                  </div>
-                  <h4 className="font-semibold mb-2">No public groups yet</h4>
-                  <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
-                    Be the first to create a public study group and help others learn together!
-                  </p>
-                  <Button variant="hero" onClick={() => setShowCreateModal(true)}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create Public Group
-                  </Button>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="font-display text-lg font-semibold">Discover</h3>
+            {availablePublicGroups.length > 0 && (
+              <span className="text-sm text-muted-foreground">
+                {availablePublicGroups.length} available
+              </span>
+            )}
+          </div>
+
+          {availablePublicGroups.length > 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {availablePublicGroups.map((group) => renderGroupCard(group, 'discover'))}
+            </div>
+          ) : (
+            <div className="py-12 text-center border border-dashed border-border rounded-xl">
+              <Globe className="w-10 h-10 mx-auto text-muted-foreground/50 mb-2" />
+              <h4 className="font-semibold mb-2">No public groups yet</h4>
+              <p className="text-sm text-muted-foreground mb-6 max-w-sm mx-auto">
+                Be the first to create a public study group!
+              </p>
+              <Button variant="hero" onClick={() => setShowCreateModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Public Group
+              </Button>
+            </div>
+          )}
         </motion.div>
       </motion.div>
       </PullToRefresh>
