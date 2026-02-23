@@ -1,91 +1,144 @@
 
 
-# Groups UI/UX Redesign -- Premium Minimalist
+# Study Materials Pipeline Audit: NotebookLM Feature Comparison
 
-## Overview
-The Groups experience has two pages: **GroupsPage** (listing) and **GroupDetailPage** (chat/collaboration). Both have visual clutter that contradicts the premium minimalist direction. This plan addresses both pages with specific, actionable changes.
+## What NotebookLM Offers (2025)
 
----
+NotebookLM is Google's AI research assistant. Its core features include:
 
-## GroupsPage Improvements
-
-### 1. Remove the "Discover Study Groups" wrapper card (High)
-**Current:** Public groups are wrapped inside an elevated Card with a large header (icon box + title + description + badge) and 8 category filter pills.
-**Fix:** Remove the Card wrapper entirely. Render "Discover" as a simple section heading (like "My Groups") with the count as muted text. Public group cards render directly in a grid below, same as "My Groups".
-
-### 2. Remove the 8-category filter pills (High)
-**Current:** A horizontal scroll of 8 subject category buttons (All, Science, Math, Languages, Humanities, Technology, Arts, Business).
-**Problem:** These filters don't actually filter by a database field -- they rely on keyword matching in the group name/description, which is unreliable. They add interaction complexity for marginal value.
-**Fix:** Remove entirely. The search bar already handles filtering.
-
-### 3. Remove colored background variants from public group cards (Medium)
-**Current:** Each public group card gets a colored background like `bg-primary/8`, `bg-success/8`, `bg-accent/8` via the `getGroupBg()` function.
-**Fix:** Remove the `getGroupBg()` function. Use the same plain `Card variant="interactive"` styling as "My Groups" cards. This creates visual consistency.
-
-### 4. Simplify public group card layout to match My Groups cards (Medium)
-**Current:** Public group cards have a 48px icon box, name, member count, description, and a full-width "Join Group" button -- a completely different layout from My Groups cards.
-**Fix:** Use the same card layout as My Groups cards. Replace the large icon box with a simple inline icon. Add a "Join" button instead of "Open". This creates a uniform grid where the only difference between My Groups and Discover groups is the action button.
-
-### 5. Remove the `getGroupIcon()` keyword-matching function (Low)
-**Current:** Assigns icons based on keyword matching in group name/description (e.g., "science" gets a flask icon).
-**Fix:** Remove this function. Use a single consistent icon (Users or GraduationCap) for all groups, or no icon at all. Keyword-matching is fragile and inconsistent.
-
-### 6. Simplify the empty state for My Groups (Low)
-**Current:** Large 80px dashed-border icon container with text and a tip linking to /materials.
-**Fix:** Reduce the icon container to 48px. Remove the "Tip" text -- it's noise. Keep the CTA button.
-
-### 7. Clean up the "more" button on My Groups cards (Low)
-**Current:** Each My Groups card has a `MoreHorizontal` button that doesn't actually do anything (no dropdown menu attached).
-**Fix:** Remove this non-functional button entirely.
+1. **Multi-source notebooks** -- Upload up to 50 sources per notebook (PDFs, Google Docs/Slides, web URLs, YouTube videos, audio files, plain text). Sources are cross-referenced together.
+2. **Grounded AI Chat** -- Chat that answers ONLY from your sources, with inline clickable citations that jump to the exact passage in the source.
+3. **Audio Overview ("Deep Dive Podcast")** -- Two AI hosts discuss your material in a podcast-style conversation. Users can customize style (deep dive, brief, etc.) and even "join" the conversation to ask questions mid-playback.
+4. **Notebook Guide** -- Auto-generated structured overview: FAQ, Study Guide, Table of Contents, Timeline, Briefing Doc. Each is a one-click generation.
+5. **Mind Maps** -- Visual concept maps showing relationships between ideas.
+6. **Source-level summaries** -- Each uploaded source gets its own auto-summary visible in a side panel.
+7. **Multi-source cross-referencing** -- Ask questions that span multiple documents and get synthesized answers with per-source citations.
+8. **Inline citations** -- Every AI response includes numbered citations that link directly to the exact location in the source document.
+9. **Notes/Pinning** -- Save important AI responses as "notes" within the notebook for later reference.
+10. **Sharing and collaboration** -- Share notebooks with others.
+11. **50+ language support**
+12. **Web URL and Google Docs as sources** -- Not just file uploads.
 
 ---
 
-## GroupDetailPage Improvements
+## Feature-by-Feature Comparison
 
-### 8. Reduce tab count -- merge Polls into Chat (Medium)
-**Current:** 5 horizontal tabs: Chat, Shared Notes, Polls, Sessions, Members. This is a lot of tabs, especially on mobile where they require horizontal scrolling.
-**Fix:** Polls are infrequent and lightweight. Render polls inline within the Chat tab (they already feel like chat content). Remove the dedicated Polls tab, reducing to 4 tabs: Chat, Notes, Sessions, Members. Polls can be created via the attachment/action menu in the chat input area.
-
-### 9. Simplify the header action buttons (Low)
-**Current:** Owner sees "Invite" + "Settings" buttons. Non-owner sees "Leave" button. The "Invite" button only shows for private groups.
-**Fix:** Collapse all header actions into a single overflow menu (three-dot icon). The menu contains: Invite Link (if owner + private), Group Settings (if owner), Leave Group (if not owner). This declutters the header significantly.
-
-### 10. Remove the UpcomingSessions banner from above tabs (Low)
-**Current:** A banner showing upcoming study sessions renders between the header and tabs, pushing tabs down.
-**Fix:** Move this information into the Sessions tab itself. The banner adds vertical noise on every visit, even when the user is focused on chat.
+| Feature | NotebookLM | Your App | Gap |
+|---|---|---|---|
+| Multi-source notebooks | Up to 50 sources per notebook, cross-referenced | 1 source per material | **Critical gap** |
+| Grounded AI Chat | Inline numbered citations linking to exact source passages | Chat exists but citations are basic/non-functional regex matching | **Major gap** |
+| Audio Overview | Two AI hosts, customizable style, interactive "join the conversation" | Audio overview exists with 4 styles but requires ElevenLabs key (not configured) | **Partial** -- feature exists but non-functional without API key |
+| Notebook Guide (FAQ, Study Guide, Timeline, Briefing Doc) | One-click generation of 5+ output formats | Tutor Notes + 3 Summary types | **Minor gap** -- could add FAQ, Timeline, Briefing Doc as output types |
+| Mind/Concept Map | Interactive mind map | React Flow concept map exists | **Parity** |
+| Flashcards | Not a core feature (community workaround) | Full flashcard generation, save to deck, study mode, SRS | **Your app wins** |
+| Practice Questions/Quiz | Not a core feature | MCQ, short answer, case-based, quiz mode with scoring | **Your app wins** |
+| Source-level auto-summary | Each source summarized on upload | Summaries generated (quick, detailed, bullet) | **Parity** |
+| Inline citations in AI responses | Precise, clickable, jumps to source passage | CitationChip component exists but regex-based and unreliable | **Major gap** |
+| Save/Pin AI responses | Pin important responses as notes | Not implemented | **Gap** |
+| Multi-source cross-referencing | Ask across all sources | Single-source only | **Critical gap** |
+| Web URL as source | Paste any URL | YouTube URL only | **Gap** |
+| Google Docs/Slides integration | Native | Not available | **Gap** (acceptable) |
+| Export | Copy text | Markdown, TXT, CSV, Anki-compatible | **Your app wins** |
+| Collaboration | Share notebooks | Not available for materials | **Gap** |
 
 ---
 
-## Summary of Changes
+## Critical Gaps to Address (Prioritized)
 
-| # | File | Change | Impact |
-|---|------|--------|--------|
-| 1 | GroupsPage | Remove Discover card wrapper | High -- cleaner layout |
-| 2 | GroupsPage | Remove 8 category filter pills | High -- less clutter |
-| 3 | GroupsPage | Remove colored card backgrounds | Medium -- visual consistency |
-| 4 | GroupsPage | Unify public/private card layout | Medium -- consistency |
-| 5 | GroupsPage | Remove keyword icon matching | Low -- simplification |
-| 6 | GroupsPage | Simplify empty state | Low -- cleaner |
-| 7 | GroupsPage | Remove non-functional more button | Low -- bug fix |
-| 8 | GroupDetailPage | Merge Polls tab into Chat | Medium -- fewer tabs |
-| 9 | GroupDetailPage | Collapse header buttons to overflow menu | Low -- cleaner header |
-| 10 | GroupDetailPage | Move sessions banner into Sessions tab | Low -- less noise |
+### 1. Multi-Source Notebooks (Critical -- Architectural Change)
+NotebookLM's killer feature is combining multiple documents into one "notebook" and asking questions across all of them. Your app treats each upload as isolated.
+
+**Implementation:**
+- Add a `notebooks` table: `id`, `user_id`, `title`, `created_at`
+- Add a junction table `notebook_materials`: `notebook_id`, `material_id`
+- Update the workspace to allow selecting multiple materials for a notebook
+- Update the AI Chat edge function to concatenate extracted content from all materials in a notebook
+- Update the upload flow: user can upload into an existing notebook or create a new one
+
+### 2. Reliable Inline Citations in AI Chat (Major)
+The `CitationChip` component and `parseCitations` function exist but use fragile regex matching (`[source: page X]`). The AI model doesn't consistently output these markers, making citations unreliable.
+
+**Implementation:**
+- Update the `material-chat` edge function system prompt to explicitly instruct the model to output citations in a specific format (e.g., `[1]`, `[2]`) referencing chunks
+- Before sending to AI, chunk the extracted content into numbered passages (e.g., every 500 characters or by paragraph)
+- Include the numbered chunks in the system prompt so the AI can reference them
+- Parse the AI response client-side to render CitationChip components that, when clicked, scroll to or highlight the relevant passage in the MaterialViewer
+
+### 3. Save/Pin AI Chat Responses as Notes (Medium)
+NotebookLM lets you "pin" an AI response to save it as a note in your notebook.
+
+**Implementation:**
+- Add a `saved_responses` table: `id`, `material_id`, `user_id`, `content`, `created_at`
+- Add a "Save" button on each AI chat response bubble
+- Add a "Saved Notes" section accessible from the workspace (could be a new tab or a panel within the existing Tutor Notes tab)
+
+### 4. Web URL as Source (Medium)
+NotebookLM allows pasting any web URL. Your app only supports YouTube URLs.
+
+**Implementation:**
+- Add a "Web URL" tab in the UploadMaterialModal alongside File and YouTube
+- Create or extend the `process-material` edge function to fetch the URL, extract text content (using the AI gateway to summarize/extract from the HTML), and store it as `extracted_content`
+- Validate URLs and handle common edge cases (paywalled content, dynamic JS sites)
+
+### 5. Notebook Guide -- Additional Output Types (Low)
+NotebookLM generates FAQ, Timeline, and Briefing Doc formats. Your app has Tutor Notes, Summaries, and Flashcards but lacks these specific formats.
+
+**Implementation:**
+- Add "FAQ" and "Timeline" as new summary types in the `summaries` table
+- Update the `process-material` edge function to generate these additional formats
+- Add corresponding tabs or sub-tabs in the SummariesTab component
+
+### 6. Audio Overview -- Make Functional (Low)
+The AudioOverviewTab exists with a complete UI but requires an ElevenLabs API key that isn't configured.
+
+**Implementation:**
+- Either: Configure the `ELEVENLABS_API_KEY` secret and wire up the `generate-audio-overview` function
+- Or: Pivot to a text-to-speech approach using the browser's built-in `SpeechSynthesis` API for a basic but functional version
+- The script generation already works via the Lovable AI Gateway -- only the audio synthesis step is blocked
+
+---
+
+## What Your App Already Does Better Than NotebookLM
+
+These are strengths to preserve and highlight:
+
+1. **Flashcards with SRS** -- Full spaced repetition system with save-to-deck, difficulty tracking, and study mode
+2. **Practice Questions with Quiz Mode** -- MCQ, short answer, case-based questions with scoring and explanations
+3. **Export flexibility** -- Markdown, TXT, CSV, Anki-compatible exports
+4. **Tutor Notes structure** -- Hierarchical topic/subtopic notes with definitions, examples, and exam tips (more structured than NotebookLM's outputs)
+5. **Concept Map** -- Interactive React Flow-based concept map (NotebookLM's mind maps are static images)
+
+---
+
+## Recommended Implementation Order
+
+1. **Inline Citations in AI Chat** -- Highest impact for perceived quality, moderate effort. Update the edge function prompt + client-side parsing.
+2. **Save/Pin AI Responses** -- Small effort, high UX value. New DB table + button on chat bubbles.
+3. **Web URL as Source** -- Expands input types significantly. New tab in upload modal + URL fetching in edge function.
+4. **Multi-Source Notebooks** -- Highest architectural effort but the most transformative feature. New DB tables, updated workspace UI, updated AI chat function.
+5. **Additional Output Types (FAQ, Timeline)** -- Low effort, adds variety to generated content.
+6. **Audio Overview activation** -- Depends on ElevenLabs API key availability or fallback to browser TTS.
 
 ---
 
 ## Technical Details
 
-### GroupsPage.tsx changes:
-- Remove `subjectCategories` array, `getGroupBg()`, `getGroupIcon()`, `selectedCategory` state
-- Remove imports: `FlaskConical`, `Calculator`, `Languages`, `Palette`, `Code`, `TrendingUp`, `Sparkles`, `BookOpen`, `GraduationCap`, `ScrollArea`, `ScrollBar`
-- Replace the entire Discover `Card` block (lines 316-435) with a simple section heading + grid of cards using the same layout as My Groups
-- Remove the `MoreHorizontal` button from My Groups cards (line 250-252) since it has no attached menu
-- Simplify empty state icon size
+### Files to Create:
+- `src/hooks/useNotebooks.tsx` -- CRUD hooks for notebooks (for multi-source feature)
+- `src/components/materials/SaveResponseButton.tsx` -- Pin/save button for chat responses
+- `src/components/materials/SavedResponsesPanel.tsx` -- Panel showing saved AI responses
 
-### GroupDetailPage.tsx changes:
-- Remove the Polls `TabsTrigger` and `TabsContent`
-- Render polls inline at the top of the Chat tab content
-- Remove the `UpcomingSessionsBanner` from above the tabs; move it inside the Sessions `TabsContent`
-- Replace the header buttons (Invite, Settings, Leave) with a single `DropdownMenu` triggered by a three-dot icon button
-- Remove `BarChart3` import (polls icon), add `MoreHorizontal` if not already imported
+### Files to Modify:
+- `supabase/functions/material-chat/index.ts` -- Add chunked content with numbered references for citations; support multi-material context
+- `src/components/materials/tabs/AIChatTab.tsx` -- Render CitationChips from AI responses; add save button per response
+- `src/components/materials/tabs/CitationChip.tsx` -- Update `parseCitations` to use numbered reference format instead of fragile regex
+- `src/components/materials/UploadMaterialModal.tsx` -- Add "Web URL" tab for pasting any URL
+- `supabase/functions/process-material/index.ts` -- Add URL content extraction; add FAQ/Timeline generation
+- `src/hooks/useStudyMaterials.tsx` -- Add hooks for saved responses
+- `src/pages/MaterialWorkspace.tsx` -- Support notebook context (multiple materials)
+
+### Database Migrations Needed:
+1. `saved_responses` table for pinned AI chat responses
+2. `notebooks` and `notebook_materials` tables for multi-source support
+3. New summary types ('faq', 'timeline') added to summaries table
 
