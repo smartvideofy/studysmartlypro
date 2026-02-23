@@ -378,3 +378,77 @@ export function useMaterialFlashcards(materialId: string) {
     enabled: !!user && !!materialId,
   });
 }
+
+// Saved Responses hooks
+export interface SavedResponse {
+  id: string;
+  material_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
+export function useSavedResponses(materialId: string) {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['saved-responses', materialId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('saved_responses')
+        .select('*')
+        .eq('material_id', materialId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data as SavedResponse[];
+    },
+    enabled: !!user && !!materialId,
+  });
+}
+
+export function useSaveResponse() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ materialId, content }: { materialId: string; content: string }) => {
+      if (!user?.id) throw new Error('Must be logged in');
+
+      const { data, error } = await supabase
+        .from('saved_responses')
+        .insert({
+          material_id: materialId,
+          user_id: user.id,
+          content,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data as SavedResponse;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['saved-responses', data.material_id] });
+    },
+  });
+}
+
+export function useDeleteSavedResponse() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('saved_responses')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['saved-responses'] });
+      toast.success('Saved response removed');
+    },
+  });
+}

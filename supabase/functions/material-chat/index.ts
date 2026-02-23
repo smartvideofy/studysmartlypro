@@ -11,6 +11,32 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
+// Chunk content into numbered passages for citation references
+function chunkContent(content: string, chunkSize = 800): { id: number; text: string }[] {
+  const chunks: { id: number; text: string }[] = [];
+  // Split by paragraphs first, then merge into chunks
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim().length > 0);
+  
+  let currentChunk = '';
+  let chunkId = 1;
+
+  for (const para of paragraphs) {
+    if (currentChunk.length + para.length > chunkSize && currentChunk.length > 0) {
+      chunks.push({ id: chunkId, text: currentChunk.trim() });
+      chunkId++;
+      currentChunk = para;
+    } else {
+      currentChunk += (currentChunk ? '\n\n' : '') + para;
+    }
+  }
+  
+  if (currentChunk.trim()) {
+    chunks.push({ id: chunkId, text: currentChunk.trim() });
+  }
+
+  return chunks;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -73,10 +99,16 @@ serve(async (req) => {
     // Get material content if not provided
     const content = extractedContent || material?.extracted_content || `Title: ${material?.title}`;
 
-    const systemPrompt = `You are an expert academic tutor helping students understand their study material. You have access to the following study content:
+    // Chunk content into numbered passages for citations
+    const chunks = chunkContent(content.substring(0, 40000));
+    const numberedPassages = chunks
+      .map(c => `[${c.id}] ${c.text}`)
+      .join('\n\n---\n\n');
+
+    const systemPrompt = `You are an expert academic tutor helping students understand their study material. You have access to the following study content, organized into numbered passages:
 
 ---BEGIN STUDY MATERIAL---
-${content?.substring(0, 40000) || 'No content available'}
+${numberedPassages}
 ---END STUDY MATERIAL---
 
 IMPORTANT RULES:
@@ -87,8 +119,13 @@ IMPORTANT RULES:
 5. Format your responses clearly with bullet points, numbered lists, or paragraphs as appropriate
 6. If the student asks for clarification, provide more detailed explanations
 7. Help students understand concepts deeply, not just memorize facts
-8. Reference specific parts of the material when answering
-9. Keep responses focused and relevant to the question asked`;
+
+CITATION RULES (CRITICAL):
+- When you reference information from the material, cite the passage number using this exact format: [1], [2], etc.
+- Place citations inline at the end of the sentence or claim they support
+- Use citations frequently - aim to cite at least 2-3 passages per response
+- Only use passage numbers that exist in the material above
+- Example: "Photosynthesis converts light energy into chemical energy [3]. This process occurs in the chloroplasts [5]."`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
@@ -124,13 +161,17 @@ IMPORTANT RULES:
       throw new Error('AI gateway error');
     }
 
-    return new Response(response.body, {
-      headers: { ...corsHeaders, 'Content-Type': 'text/event-stream' },
-    });
+    // Return chunks metadata in a custom header so client can map citations
+    const responseHeaders = {
+      ...corsHeaders,
+      'Content-Type': 'text/event-stream',
+      'X-Citation-Chunks': JSON.stringify(chunks.map(c => ({ id: c.id, text: c.text.substring(0, 200) }))),
+    };
+
+    return new Response(response.body, { headers: responseHeaders });
   } catch (error) {
     console.error('Chat error:', error);
     
-    // Map technical errors to user-friendly messages
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     let userFriendlyError = 'Failed to get AI response. Please try again.';
     

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageSquare, 
@@ -8,7 +8,9 @@ import {
   User,
   Sparkles,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Bookmark,
+  BookmarkCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -19,6 +21,9 @@ import {
   Dialog,
   DialogContent,
 } from "@/components/ui/dialog";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { Citation, renderWithCitations } from "./CitationChip";
+import { useSaveResponse, useSavedResponses } from "@/hooks/useStudyMaterials";
 
 interface AIChatTabProps {
   materialId: string;
@@ -40,7 +45,11 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   const [isLoading, setIsLoading] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const saveResponse = useSaveResponse();
+  const { data: savedResponses } = useSavedResponses(materialId);
 
   // Keyboard avoidance for mobile
   useEffect(() => {
@@ -65,6 +74,26 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const isResponseSaved = useCallback((content: string) => {
+    return savedResponses?.some(r => r.content === content) ?? false;
+  }, [savedResponses]);
+
+  const handleSaveResponse = useCallback(async (content: string) => {
+    try {
+      await saveResponse.mutateAsync({ materialId, content });
+      toast.success("Response saved!");
+    } catch {
+      toast.error("Failed to save response");
+    }
+  }, [materialId, saveResponse]);
+
+  const handleCitationClick = useCallback((citation: Citation) => {
+    toast.info(`Source [${citation.id}]`, {
+      description: citation.text,
+      duration: 6000,
+    });
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -99,7 +128,6 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
     };
 
     try {
-      // Get user's access token for authentication
       const { data: { session } } = await supabase.auth.getSession();
       const accessToken = session?.access_token;
       
@@ -134,6 +162,17 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
       }
       if (!resp.ok || !resp.body) {
         throw new Error("Failed to start stream");
+      }
+
+      // Parse citation chunks from response header
+      try {
+        const chunksHeader = resp.headers.get('X-Citation-Chunks');
+        if (chunksHeader) {
+          const parsed = JSON.parse(chunksHeader) as Citation[];
+          setCitationChunks(parsed);
+        }
+      } catch {
+        // Ignore header parsing errors
       }
 
       const reader = resp.body.getReader();
@@ -212,146 +251,179 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   ];
 
   const ChatContent = ({ inDialog = false }: { inDialog?: boolean }) => (
-    <div className={`flex flex-col ${inDialog ? 'h-[80vh]' : 'h-full'}`}>
-      {/* Chat Header */}
-      <div className="flex items-center justify-between p-4 border-b border-border/50">
-        <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-primary" />
-          <h3 className="font-semibold">AI Chat</h3>
-        </div>
-        {!inDialog && (
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setIsFullscreen(true)}
-          >
-            <Maximize2 className="w-4 h-4" />
-          </Button>
-        )}
-      </div>
-
-      {/* Chat Messages */}
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center p-8">
-            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-              <MessageSquare className="w-8 h-8 text-primary" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">Ask about your material</h3>
-            <p className="text-muted-foreground max-w-sm mb-6 text-sm">
-              I can answer questions based only on the content you uploaded.
-            </p>
-            <div className="flex flex-wrap gap-2 justify-center">
-              {suggestedQuestions.map((question, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setInput(question)}
-                  className="text-xs"
-                >
-                  {question}
-                </Button>
-              ))}
-            </div>
+    <TooltipProvider>
+      <div className={`flex flex-col ${inDialog ? 'h-[80vh]' : 'h-full'}`}>
+        {/* Chat Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-primary" />
+            <h3 className="font-semibold">AI Chat</h3>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <AnimatePresence initial={false}>
-              {messages.map((message) => (
-                <motion.div
-                  key={message.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  className={`flex gap-3 ${
-                    message.role === "user" ? "justify-end" : ""
-                  }`}
-                >
-                  {message.role === "assistant" && (
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <Bot className="w-4 h-4 text-primary" />
-                    </div>
-                  )}
-                  <div
-                    className={`max-w-[85%] rounded-lg p-3 ${
-                      message.role === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-secondary"
+          {!inDialog && (
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setIsFullscreen(true)}
+            >
+              <Maximize2 className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+
+        {/* Chat Messages */}
+        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+          {messages.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center text-center p-8">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <MessageSquare className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">Ask about your material</h3>
+              <p className="text-muted-foreground max-w-sm mb-6 text-sm">
+                I can answer questions based only on the content you uploaded. Responses include clickable citations.
+              </p>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {suggestedQuestions.map((question, index) => (
+                  <Button
+                    key={index}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setInput(question)}
+                    className="text-xs"
+                  >
+                    {question}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <AnimatePresence initial={false}>
+                {messages.map((message) => (
+                  <motion.div
+                    key={message.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className={`flex gap-3 ${
+                      message.role === "user" ? "justify-end" : ""
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                    <p className="text-xs opacity-60 mt-1">
-                      {message.timestamp.toLocaleTimeString([], { 
-                        hour: "2-digit", 
-                        minute: "2-digit" 
-                      })}
-                    </p>
-                  </div>
-                  {message.role === "user" && (
-                    <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
-                      <User className="w-4 h-4" />
+                    {message.role === "assistant" && (
+                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <Bot className="w-4 h-4 text-primary" />
+                      </div>
+                    )}
+                    <div className="max-w-[85%]">
+                      <div
+                        className={`rounded-lg p-3 ${
+                          message.role === "user"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary"
+                        }`}
+                      >
+                        <div className="text-sm whitespace-pre-wrap">
+                          {message.role === "assistant" && citationChunks.length > 0
+                            ? renderWithCitations(message.content, citationChunks, handleCitationClick)
+                            : message.content
+                          }
+                        </div>
+                        <p className="text-xs opacity-60 mt-1">
+                          {message.timestamp.toLocaleTimeString([], { 
+                            hour: "2-digit", 
+                            minute: "2-digit" 
+                          })}
+                        </p>
+                      </div>
+                      {/* Save button for assistant messages */}
+                      {message.role === "assistant" && !isLoading && (
+                        <div className="flex justify-end mt-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                            onClick={() => handleSaveResponse(message.content)}
+                            disabled={isResponseSaved(message.content)}
+                          >
+                            {isResponseSaved(message.content) ? (
+                              <>
+                                <BookmarkCheck className="w-3 h-3 mr-1" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="w-3 h-3 mr-1" />
+                                Save
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                    {message.role === "user" && (
+                      <div className="w-8 h-8 rounded-full bg-secondary flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4" />
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
 
-            {isLoading && messages[messages.length - 1]?.role === "user" && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex gap-3"
-              >
-                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Bot className="w-4 h-4 text-primary" />
-                </div>
-                <div className="bg-secondary rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="text-sm text-muted-foreground">Thinking...</span>
+              {isLoading && messages[messages.length - 1]?.role === "user" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex gap-3"
+                >
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Bot className="w-4 h-4 text-primary" />
                   </div>
-                </div>
-              </motion.div>
-            )}
-          </div>
-        )}
-      </ScrollArea>
+                  <div className="bg-secondary rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span className="text-sm text-muted-foreground">Thinking...</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          )}
+        </ScrollArea>
 
-      {/* Input */}
-      <div 
-        className="p-4 border-t border-border pb-safe"
-        style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
-      >
-        <div className="flex gap-2">
-          <Textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask a question..."
-            className="min-h-[44px] max-h-32 resize-none text-base sm:text-sm"
-            rows={1}
-          />
-          <Button 
-            onClick={handleSend}
-            disabled={!input.trim() || isLoading}
-            size="icon"
-            className="shrink-0 h-11 w-11 min-h-[44px] min-w-[44px]"
-          >
-            {isLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Send className="w-4 h-4" />
-            )}
-          </Button>
+        {/* Input */}
+        <div 
+          className="p-4 border-t border-border pb-safe"
+          style={{ paddingBottom: keyboardHeight > 0 ? `${keyboardHeight}px` : undefined }}
+        >
+          <div className="flex gap-2">
+            <Textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Ask a question..."
+              className="min-h-[44px] max-h-32 resize-none text-base sm:text-sm"
+              rows={1}
+            />
+            <Button 
+              onClick={handleSend}
+              disabled={!input.trim() || isLoading}
+              size="icon"
+              className="shrink-0 h-11 w-11 min-h-[44px] min-w-[44px]"
+            >
+              {isLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            <Sparkles className="w-3 h-3 inline mr-1" />
+            AI responses include citations from your material
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground mt-2 text-center">
-          <Sparkles className="w-3 h-3 inline mr-1" />
-          AI responses are based only on your material
-        </p>
       </div>
-    </div>
+    </TooltipProvider>
   );
 
   return (

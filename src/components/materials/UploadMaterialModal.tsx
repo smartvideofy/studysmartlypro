@@ -62,9 +62,19 @@ function isValidYouTubeUrl(url: string): boolean {
   return patterns.some(pattern => pattern.test(url));
 }
 
+// Validate generic web URL
+function isValidWebUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 export default function UploadMaterialModal({ open, onOpenChange }: UploadMaterialModalProps) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'file' | 'youtube'>('file');
+  const [activeTab, setActiveTab] = useState<'file' | 'youtube' | 'web'>('file');
   
   // File upload state
   const [file, setFile] = useState<File | null>(null);
@@ -72,6 +82,10 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   // YouTube state
   const [videoUrl, setVideoUrl] = useState('');
   const [isValidUrl, setIsValidUrl] = useState(false);
+  
+  // Web URL state
+  const [webUrl, setWebUrl] = useState('');
+  const [isValidWebUrlState, setIsValidWebUrlState] = useState(false);
   
   // Common state
   const [title, setTitle] = useState('');
@@ -118,6 +132,11 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   const handleVideoUrlChange = (url: string) => {
     setVideoUrl(url);
     setIsValidUrl(isValidYouTubeUrl(url));
+  };
+
+  const handleWebUrlChange = (url: string) => {
+    setWebUrl(url);
+    setIsValidWebUrlState(isValidWebUrl(url));
   };
 
   const handleSubmitFile = async () => {
@@ -196,18 +215,62 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
     }
   };
 
+  const handleSubmitWebUrl = async () => {
+    if (!webUrl || !isValidWebUrlState || !title.trim()) return;
+
+    setIsUploading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please sign in to continue');
+        return;
+      }
+
+      // Create material record with web URL metadata
+      await createMaterial.mutateAsync({
+        title: title.trim(),
+        file_name: webUrl,
+        file_type: 'web_url',
+        file_path: null,
+        file_size: null,
+        subject: subject || null,
+        topic: topic || null,
+        folder_id: folderId || null,
+        language,
+        generate_tutor_notes: generateTutorNotes,
+        generate_flashcards: generateFlashcards,
+        generate_questions: generateQuestions,
+        generate_concept_map: generateConceptMap,
+      });
+
+      toast.success('Web page is being processed! Check back in a moment.');
+      resetForm();
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Web URL processing failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to process web page');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSubmit = () => {
     if (activeTab === 'file') {
       handleSubmitFile();
-    } else {
+    } else if (activeTab === 'youtube') {
       handleSubmitVideo();
+    } else {
+      handleSubmitWebUrl();
     }
   };
+
 
   const resetForm = () => {
     setFile(null);
     setVideoUrl('');
     setIsValidUrl(false);
+    setWebUrl('');
+    setIsValidWebUrlState(false);
     setTitle('');
     setSubject('');
     setTopic('');
@@ -231,7 +294,9 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
 
   const canSubmit = activeTab === 'file' 
     ? file && title.trim() && !isAtLimit
-    : videoUrl && isValidUrl && title.trim() && !isAtLimit;
+    : activeTab === 'youtube'
+    ? videoUrl && isValidUrl && title.trim() && !isAtLimit
+    : webUrl && isValidWebUrlState && title.trim() && !isAtLimit;
 
   // If at document limit, show upgrade prompt
   if (isAtLimit) {
@@ -285,15 +350,19 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
 
       <ResponsiveModalBody className="space-y-6">
         {/* Source Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'file' | 'youtube')}>
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'file' | 'youtube' | 'web')}>
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="file" className="flex items-center gap-2">
               <FileText className="w-4 h-4" />
-              File Upload
+              <span className="hidden sm:inline">File</span>
             </TabsTrigger>
             <TabsTrigger value="youtube" className="flex items-center gap-2">
               <Youtube className="w-4 h-4" />
-              YouTube URL
+              <span className="hidden sm:inline">YouTube</span>
+            </TabsTrigger>
+            <TabsTrigger value="web" className="flex items-center gap-2">
+              <LinkIcon className="w-4 h-4" />
+              <span className="hidden sm:inline">Web URL</span>
             </TabsTrigger>
           </TabsList>
 
@@ -409,6 +478,60 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
                   <li>• youtube.com/watch?v=VIDEO_ID</li>
                   <li>• youtu.be/VIDEO_ID</li>
                   <li>• youtube.com/shorts/VIDEO_ID</li>
+                </ul>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Web URL Tab */}
+          <TabsContent value="web" className="mt-4">
+            <div className="space-y-4">
+              <div className="p-4 md:p-6 rounded-xl border-2 border-dashed border-border bg-secondary/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <LinkIcon className="w-5 h-5 md:w-6 md:h-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-sm md:text-base">Web Page</p>
+                    <p className="text-xs md:text-sm text-muted-foreground">
+                      Paste any web URL to extract and study from the page content
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="relative">
+                  <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    value={webUrl}
+                    onChange={(e) => handleWebUrlChange(e.target.value)}
+                    placeholder="https://example.com/article..."
+                    className={cn(
+                      "pl-10",
+                      webUrl && (isValidWebUrlState ? "border-success" : "border-destructive")
+                    )}
+                  />
+                </div>
+                
+                {webUrl && !isValidWebUrlState && (
+                  <p className="text-sm text-destructive mt-2">
+                    Please enter a valid URL (starting with http:// or https://)
+                  </p>
+                )}
+                {webUrl && isValidWebUrlState && (
+                  <p className="text-sm text-success mt-2 flex items-center gap-1">
+                    <CheckCircle className="w-4 h-4" />
+                    Valid URL
+                  </p>
+                )}
+              </div>
+
+              <div className="p-3 md:p-4 rounded-lg bg-muted/50 text-sm text-muted-foreground">
+                <p className="font-medium mb-2 text-xs md:text-sm">Works best with:</p>
+                <ul className="space-y-1 text-xs">
+                  <li>• Blog posts and articles</li>
+                  <li>• Documentation pages</li>
+                  <li>• Wikipedia articles</li>
+                  <li>• News articles</li>
                 </ul>
               </div>
             </div>

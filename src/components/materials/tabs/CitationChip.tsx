@@ -10,8 +10,6 @@ import {
 export interface Citation {
   id: number;
   text: string;
-  startIndex: number;
-  endIndex: number;
 }
 
 interface CitationChipProps {
@@ -47,49 +45,26 @@ export function CitationChip({ citation, onClick }: CitationChipProps) {
   );
 }
 
-// Parse AI response for citations and return structured data
-export function parseCitations(
-  text: string,
-  extractedContent: string | null
-): { content: React.ReactNode; citations: Citation[] } {
-  if (!extractedContent) {
-    return { content: text, citations: [] };
-  }
-
-  // Match citation patterns like [source: page X], [ref: paragraph Y], [citation: X]
-  const citationRegex = /\[(?:source|ref|citation|see)?:?\s*(?:page\s*)?(\d+)(?:\s*,\s*(?:paragraph|para|p)?\s*(\d+))?\]/gi;
-  
-  const citations: Citation[] = [];
+// Parse AI response text to find [1], [2], etc. citation markers
+export function parseCitationMarkers(text: string): { parts: (string | number)[]; citationIds: number[] } {
+  const citationRegex = /\[(\d+)\]/g;
+  const parts: (string | number)[] = [];
+  const citationIds: number[] = [];
   let lastIndex = 0;
-  const parts: React.ReactNode[] = [];
-  let citationId = 1;
-
   let match;
+
   while ((match = citationRegex.exec(text)) !== null) {
     // Add text before citation
     if (match.index > lastIndex) {
       parts.push(text.slice(lastIndex, match.index));
     }
-
-    // Calculate approximate position in source content
-    const pageNum = parseInt(match[1], 10);
-    const charPerPage = Math.floor(extractedContent.length / Math.max(pageNum, 1));
-    const startIndex = Math.min((pageNum - 1) * charPerPage, extractedContent.length - 200);
-    const endIndex = Math.min(startIndex + 200, extractedContent.length);
     
-    const citationText = extractedContent.slice(startIndex, endIndex).trim();
-
-    const citation: Citation = {
-      id: citationId,
-      text: citationText,
-      startIndex,
-      endIndex,
-    };
-    citations.push(citation);
-
-    // Add citation component placeholder
-    parts.push(`__CITATION_${citationId}__`);
-    citationId++;
+    const id = parseInt(match[1], 10);
+    parts.push(id); // number indicates a citation reference
+    if (!citationIds.includes(id)) {
+      citationIds.push(id);
+    }
+    
     lastIndex = match.index + match[0].length;
   }
 
@@ -98,44 +73,37 @@ export function parseCitations(
     parts.push(text.slice(lastIndex));
   }
 
-  if (citations.length === 0) {
-    return { content: text, citations: [] };
-  }
-
-  return {
-    content: parts.join(""),
-    citations,
-  };
+  return { parts, citationIds };
 }
 
-// Render text with citation chips
+// Render text with inline citation chips
 export function renderWithCitations(
   text: string,
-  citations: Citation[],
+  chunks: Citation[],
   onCitationClick: (citation: Citation) => void
 ): React.ReactNode {
-  if (citations.length === 0) {
+  const { parts } = parseCitationMarkers(text);
+
+  if (parts.length <= 1 && typeof parts[0] === 'string') {
     return text;
   }
 
-  const parts = text.split(/__CITATION_(\d+)__/);
-  
   return parts.map((part, index) => {
-    // Even indices are text, odd indices are citation IDs
-    if (index % 2 === 0) {
-      return part;
+    if (typeof part === 'string') {
+      return <span key={index}>{part}</span>;
     }
-    const citationId = parseInt(part, 10);
-    const citation = citations.find(c => c.id === citationId);
-    if (citation) {
+    // part is a number (citation id)
+    const chunk = chunks.find(c => c.id === part);
+    if (chunk) {
       return (
         <CitationChip
-          key={`citation-${citationId}`}
-          citation={citation}
+          key={`citation-${index}-${part}`}
+          citation={chunk}
           onClick={onCitationClick}
         />
       );
     }
-    return null;
+    // If chunk not found, render as plain text
+    return <span key={index}>[{part}]</span>;
   });
 }
