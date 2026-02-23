@@ -27,6 +27,43 @@ interface StudyMaterial {
 }
 
 async function extractTextFromFile(supabase: any, material: StudyMaterial): Promise<string> {
+  // Handle web URLs - fetch and extract content via AI
+  if (material.file_type === 'web_url' && material.file_name) {
+    console.log(`Fetching web URL: ${material.file_name}`);
+    try {
+      const resp = await fetch(material.file_name, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; StudyBot/1.0)' },
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const html = await resp.text();
+      // Use AI to extract meaningful text from HTML
+      const extractResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-3-flash-preview',
+          messages: [{
+            role: 'user',
+            content: `Extract ALL the main textual content from this web page HTML. Remove navigation, ads, footers, and boilerplate. Preserve headings, paragraphs, lists, and tables. Output clean structured text:\n\n${html.substring(0, 60000)}`,
+          }],
+        }),
+      });
+      if (!extractResp.ok) {
+        if (extractResp.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+        if (extractResp.status === 402) throw new Error('PAYMENT_REQUIRED');
+        throw new Error('Failed to extract web content');
+      }
+      const data = await extractResp.json();
+      return data.choices?.[0]?.message?.content || '';
+    } catch (e) {
+      console.error('Web URL extraction failed:', e);
+      throw e;
+    }
+  }
+
   if (!material.file_path) {
     throw new Error('No file path provided');
   }
@@ -45,25 +82,20 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
 
   const fileType = material.file_type || 'text';
 
-  // For text and simple formats, extract text directly
   if (fileType === 'text') {
     return await fileData.text();
   }
 
-  // For images, use AI vision to extract text
   if (fileType === 'image') {
     const base64 = await blobToBase64(fileData);
     return await extractContentWithVision(base64, 'image', material.title);
   }
 
-  // For audio, transcribe using AI
   if (fileType === 'audio') {
     return 'Audio content - transcription not yet implemented. Please provide a text-based document for AI processing.';
   }
 
-  // For PDFs and documents, use AI vision to analyze each page
   if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
-    // Try text extraction first
     try {
       const text = await fileData.text();
       if (text && text.length > 100 && !text.includes('\x00') && isPrintableText(text)) {
@@ -74,7 +106,6 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
       console.log('Direct text extraction failed, using AI vision');
     }
     
-    // Use AI vision to analyze the document as images
     const base64 = await blobToBase64(fileData);
     return await extractContentWithVision(base64, fileType, material.title);
   }

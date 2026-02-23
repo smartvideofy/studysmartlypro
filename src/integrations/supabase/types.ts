@@ -1350,6 +1350,38 @@ export type Database = {
           },
         ]
       }
+      saved_responses: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          material_id: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          material_id: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          material_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_responses_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_notes: {
         Row: {
           group_id: string
