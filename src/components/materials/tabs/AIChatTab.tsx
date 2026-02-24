@@ -180,11 +180,12 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
         throw new Error("Failed to start stream");
       }
 
-      // Parse citation chunks from response header
+      // Parse citation chunks from response header (base64 encoded)
       try {
         const chunksHeader = resp.headers.get('X-Citation-Chunks');
         if (chunksHeader) {
-          const parsed = JSON.parse(chunksHeader) as Citation[];
+          const decoded = decodeURIComponent(escape(atob(chunksHeader)));
+          const parsed = JSON.parse(decoded) as Citation[];
           setCitationChunks(parsed);
         }
       } catch {
