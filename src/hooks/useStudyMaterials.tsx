@@ -158,15 +158,12 @@ export function useCreateStudyMaterial() {
 
       if (error) throw error;
       
-      // Trigger processing via stepped pipeline in the background
+      // Fire-and-forget: don't await the pipeline so the mutation resolves immediately
       const createdMaterial = data as StudyMaterial;
-      try {
-        await runProcessingPipeline(createdMaterial.id);
-      } catch (processingError) {
-        // Don't throw - material is created, processing can be retried
+      runProcessingPipeline(createdMaterial.id).catch((processingError) => {
         console.error('Pipeline error:', processingError);
-        toast.info('Material uploaded but processing encountered an issue. You can retry from the materials page.');
-      }
+        toast.info('Processing encountered an issue. You can retry from the materials page.');
+      });
       
       return createdMaterial;
     },
