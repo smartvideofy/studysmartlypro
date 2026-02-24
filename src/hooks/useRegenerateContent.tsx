@@ -19,8 +19,8 @@ export function useRegenerateContent(materialId: string) {
         if (errorMessage.includes("Rate limit") || error.context?.status === 429) {
           throw new Error("Rate limit exceeded. Please wait a moment and try again.");
         }
-        if (errorMessage.includes("credits") || error.context?.status === 402) {
-          throw new Error("AI credits exhausted. Please add credits to continue.");
+        if (errorMessage.includes("quota") || errorMessage.includes("Gemini") || error.context?.status === 402) {
+          throw new Error("Gemini API quota exceeded. Please check your API key usage.");
         }
         throw error;
       }

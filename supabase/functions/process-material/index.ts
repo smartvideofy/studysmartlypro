@@ -9,7 +9,10 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 const MAX_VISION_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -33,6 +36,32 @@ interface StudyMaterial {
 
 type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
 
+// ─── Helper: call Gemini API ───
+async function callGeminiAI(messages: any[]): Promise<string> {
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${geminiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: GEMINI_MODEL,
+      messages,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini API error:', response.status, errorText);
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 // ─── Helper: update progress message ───
 async function updateProgress(supabase: any, materialId: string, message: string) {
   await supabase
@@ -52,27 +81,10 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const html = await resp.text();
-      const extractResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${lovableApiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'google/gemini-3-flash-preview',
-          messages: [{
-            role: 'user',
-            content: `Extract ALL the main textual content from this web page HTML. Remove navigation, ads, footers, and boilerplate. Preserve headings, paragraphs, lists, and tables. Output clean structured text:\n\n${html.substring(0, 60000)}`,
-          }],
-        }),
-      });
-      if (!extractResp.ok) {
-        if (extractResp.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-        if (extractResp.status === 402) throw new Error('PAYMENT_REQUIRED');
-        throw new Error('Failed to extract web content');
-      }
-      const data = await extractResp.json();
-      return data.choices?.[0]?.message?.content || '';
+      return await callGeminiAI([{
+        role: 'user',
+        content: `Extract ALL the main textual content from this web page HTML. Remove navigation, ads, footers, and boilerplate. Preserve headings, paragraphs, lists, and tables. Output clean structured text:\n\n${html.substring(0, 60000)}`,
+      }]);
     } catch (e) {
       console.error('Web URL extraction failed:', e);
       throw e;
@@ -157,22 +169,14 @@ async function extractContentWithVision(base64Data: string, fileType: string, ti
                    fileType === 'image' ? 'image/png' : 
                    'application/octet-stream';
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
+  const content = await callGeminiAI([
+    {
+      role: 'user',
+      content: [
         {
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `You are analyzing a study document titled "${title}". 
-              
+          type: 'text',
+          text: `You are analyzing a study document titled "${title}". 
+          
 Your task is to extract and transcribe ALL textual content from this document in a comprehensive and structured way.
 
 Instructions:
@@ -190,29 +194,17 @@ Output Format:
 - Include [DIAGRAM: description] or [FIGURE: description] for visual elements
 
 Be thorough and comprehensive. The extracted content will be used to generate study materials, so accuracy is crucial.`,
-            },
-            {
-              type: 'image_url',
-              image_url: { url: `data:${mimeType};base64,${base64Data}` },
-            },
-          ],
+        },
+        {
+          type: 'image_url',
+          image_url: { url: `data:${mimeType};base64,${base64Data}` },
         },
       ],
-    }),
-  });
+    },
+  ]);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('Vision API error:', response.status, errorText);
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
-    throw new Error(`Failed to extract content from ${fileType}`);
-  }
-
-  const data = await response.json();
-  const extractedContent = data.choices?.[0]?.message?.content || '';
-  console.log(`Extracted ${extractedContent.length} characters from ${fileType}`);
-  return extractedContent;
+  console.log(`Extracted ${content.length} characters from ${fileType}`);
+  return content;
 }
 
 // ─── AI Generation functions ───
@@ -280,31 +272,10 @@ ${content.substring(0, 40000)}
 
 Generate detailed, comprehensive tutor notes covering ALL the key concepts from this material.`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('AI API error:', response.status, errorText);
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
-    throw new Error('Failed to generate tutor notes');
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '';
+  const responseText = await callGeminiAI([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ]);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -335,25 +306,12 @@ ${content.substring(0, 30000)}
 
 Format: Write 2-3 paragraphs that capture the essence of the material.`;
 
-  const quickResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: quickPrompt }],
-    }),
-  });
-
-  if (!quickResponse.ok && (quickResponse.status === 429 || quickResponse.status === 402)) {
-    throw new Error(quickResponse.status === 429 ? 'RATE_LIMIT_EXCEEDED' : 'PAYMENT_REQUIRED');
-  }
-
-  if (quickResponse.ok) {
-    const quickData = await quickResponse.json();
-    summaries.push({ type: 'quick', content: quickData.choices?.[0]?.message?.content || '' });
+  try {
+    const quickContent = await callGeminiAI([{ role: 'user', content: quickPrompt }]);
+    summaries.push({ type: 'quick', content: quickContent });
+  } catch (e) {
+    console.error('Quick summary failed:', e);
+    throw e; // Re-throw rate limit / quota errors
   }
 
   const detailedPrompt = `Create a comprehensive, detailed summary of this study material.
@@ -367,21 +325,11 @@ ${content.substring(0, 40000)}
 
 Structure your summary with: Overview, Key Concepts, Important Details, Connections and Relationships, Summary.`;
 
-  const detailedResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: detailedPrompt }],
-    }),
-  });
-
-  if (detailedResponse.ok) {
-    const detailedData = await detailedResponse.json();
-    summaries.push({ type: 'detailed', content: detailedData.choices?.[0]?.message?.content || '' });
+  try {
+    const detailedContent = await callGeminiAI([{ role: 'user', content: detailedPrompt }]);
+    summaries.push({ type: 'detailed', content: detailedContent });
+  } catch (e) {
+    console.error('Detailed summary failed:', e);
   }
 
   const bulletPrompt = `Extract the key points from this study material as a numbered list.
@@ -394,21 +342,11 @@ ${content.substring(0, 30000)}
 
 Create 10-15 key points. Each point should be a complete, standalone statement.`;
 
-  const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: bulletPrompt }],
-    }),
-  });
-
-  if (bulletResponse.ok) {
-    const bulletData = await bulletResponse.json();
-    summaries.push({ type: 'bullet_points', content: bulletData.choices?.[0]?.message?.content || '' });
+  try {
+    const bulletContent = await callGeminiAI([{ role: 'user', content: bulletPrompt }]);
+    summaries.push({ type: 'bullet_points', content: bulletContent });
+  } catch (e) {
+    console.error('Bullet summary failed:', e);
   }
 
   return summaries;
@@ -453,29 +391,10 @@ ${content.substring(0, 40000)}
 
 Generate 15 diverse, challenging practice questions.`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
-    throw new Error('Failed to generate practice questions');
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '[]';
+  const responseText = await callGeminiAI([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ]);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -514,29 +433,10 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 40000)}`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
-    throw new Error('Failed to generate flashcards');
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '[]';
+  const responseText = await callGeminiAI([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ]);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -575,29 +475,10 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 30000)}`;
 
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-    }),
-  });
-
-  if (!response.ok) {
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
-    throw new Error('Failed to generate concept map');
-  }
-
-  const data = await response.json();
-  const responseText = data.choices?.[0]?.message?.content || '';
+  const responseText = await callGeminiAI([
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: userPrompt },
+  ]);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -615,7 +496,6 @@ ${content.substring(0, 30000)}`;
 // ─── Step handlers ───
 
 async function handleExtractStep(supabase: any, material: StudyMaterial, materialId: string) {
-  // If extracted_content already exists and is substantial, skip re-extraction
   if (material.extracted_content && material.extracted_content.length > 100) {
     console.log('Extracted content already exists, skipping extraction');
     return;
@@ -832,7 +712,6 @@ serve(async (req) => {
     if (step) {
       switch (step as PipelineStep) {
         case 'extract':
-          // Check document limit for free users
           if (!isPremium) {
             const { count, error: countError } = await supabase
               .from('study_materials')
@@ -849,7 +728,6 @@ serve(async (req) => {
           await handleExtractStep(supabase, material, materialId);
           break;
         case 'tutor_notes':
-          // Re-fetch material to get extracted_content
           const { data: matTN } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
           await handleTutorNotesStep(supabase, matTN || material, materialId, materialUserId);
           break;
@@ -986,8 +864,8 @@ serve(async (req) => {
     if (errorMessage === 'RATE_LIMIT_EXCEEDED') {
       userFriendlyError = 'AI service is busy. Please try again in a few moments.';
       statusCode = 429;
-    } else if (errorMessage === 'PAYMENT_REQUIRED') {
-      userFriendlyError = 'AI credits exhausted. Please add more credits to your Lovable workspace to continue.';
+    } else if (errorMessage === 'QUOTA_EXCEEDED') {
+      userFriendlyError = 'Gemini API quota exceeded. Please check your API key usage at Google AI Studio.';
       statusCode = 402;
     } else if (errorMessage.includes('No file path')) {
       userFriendlyError = 'No file was uploaded. Please upload a document to process.';

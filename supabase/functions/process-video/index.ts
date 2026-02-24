@@ -9,9 +9,34 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
 
-// Extract YouTube video ID from various URL formats
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+// Helper to call Gemini
+async function callGeminiAI(messages: any[]): Promise<string> {
+  const response = await fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${geminiApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ model: GEMINI_MODEL, messages }),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Gemini API error:', response.status, errorText);
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
+    throw new Error(`Gemini API error: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
 function extractYouTubeId(url: string): string | null {
   const patterns = [
     /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
@@ -25,16 +50,10 @@ function extractYouTubeId(url: string): string | null {
   return null;
 }
 
-// Fetch video metadata and transcript from YouTube
 async function fetchYouTubeData(videoId: string): Promise<{ title: string; description: string; transcript: string }> {
   console.log(`Fetching YouTube data for video: ${videoId}`);
   
-  // Try to get transcript using a transcript API
-  // Note: YouTube's official API requires API key and doesn't provide transcripts directly
-  // We'll use the video page to extract available info
-  
   try {
-    // Fetch video page to extract metadata
     const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
     const response = await fetch(videoUrl, {
       headers: {
@@ -48,29 +67,23 @@ async function fetchYouTubeData(videoId: string): Promise<{ title: string; descr
     
     const html = await response.text();
     
-    // Extract title from HTML
     const titleMatch = html.match(/<title>([^<]+)<\/title>/);
     const title = titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : 'YouTube Video';
     
-    // Extract description from meta tag
     const descMatch = html.match(/<meta name="description" content="([^"]+)"/);
     const description = descMatch ? descMatch[1] : '';
     
-    // Try to extract captions/transcript
-    // YouTube embeds caption data in the page for videos with captions
-    const captionMatch = html.match(/"captionTracks":\[(.*?)\]/);
+    const captionMatch = html.match(/"captionTracks":\[(.*?)]/);
     let transcript = '';
     
     if (captionMatch) {
       try {
-        // Parse caption tracks to find URL
         const captionData = JSON.parse(`[${captionMatch[1]}]`);
         if (captionData.length > 0 && captionData[0].baseUrl) {
           const captionUrl = captionData[0].baseUrl;
           const captionResponse = await fetch(captionUrl);
           if (captionResponse.ok) {
             const captionXml = await captionResponse.text();
-            // Extract text from XML captions
             const textMatches = captionXml.matchAll(/<text[^>]*>([^<]+)<\/text>/g);
             const texts = [];
             for (const match of textMatches) {
@@ -87,15 +100,10 @@ async function fetchYouTubeData(videoId: string): Promise<{ title: string; descr
     return { title, description, transcript };
   } catch (error) {
     console.error('Error fetching YouTube data:', error);
-    return { 
-      title: 'YouTube Video', 
-      description: '', 
-      transcript: '' 
-    };
+    return { title: 'YouTube Video', description: '', transcript: '' };
   }
 }
 
-// Generate content from video using AI
 async function generateVideoContent(
   videoUrl: string,
   title: string,
@@ -113,7 +121,6 @@ async function generateVideoContent(
 }> {
   console.log('Generating study content from video...');
   
-  // Build context from available data
   let context = `Video Title: ${title}\n\n`;
   if (description) {
     context += `Description: ${description}\n\n`;
@@ -121,8 +128,6 @@ async function generateVideoContent(
   if (transcript) {
     context += `Transcript:\n${transcript.substring(0, 30000)}\n\n`;
   }
-  
-  // If no transcript, ask AI to work with available metadata
   if (!transcript) {
     context += `Note: No transcript available. Please generate educational content based on the video title and description provided.\n`;
   }
@@ -159,28 +164,13 @@ Create detailed tutor notes in JSON format:
 
 Return ONLY valid JSON.`;
 
-  const tutorResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: tutorNotesPrompt }],
-    }),
-  });
-
   let tutorNotes = { topics: [] };
-  if (tutorResponse.ok) {
-    const data = await tutorResponse.json();
-    const text = data.choices?.[0]?.message?.content || '';
-    try {
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-      tutorNotes = JSON.parse(jsonMatch[1].trim());
-    } catch {
-      console.log('Failed to parse tutor notes JSON');
-    }
+  try {
+    const text = await callGeminiAI([{ role: 'user', content: tutorNotesPrompt }]);
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+    tutorNotes = JSON.parse(jsonMatch[1].trim());
+  } catch {
+    console.log('Failed to parse tutor notes JSON');
   }
 
   // Generate summaries
@@ -190,25 +180,12 @@ ${context.substring(0, 20000)}
 
 Provide a detailed summary covering the main concepts, key points, and important takeaways.`;
 
-  const summaryResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: summaryPrompt }],
-    }),
-  });
-
   const summaries = [];
-  if (summaryResponse.ok) {
-    const data = await summaryResponse.json();
-    summaries.push({
-      type: 'detailed',
-      content: data.choices?.[0]?.message?.content || '',
-    });
+  try {
+    const summaryText = await callGeminiAI([{ role: 'user', content: summaryPrompt }]);
+    summaries.push({ type: 'detailed', content: summaryText });
+  } catch {
+    console.log('Failed to generate summary');
   }
 
   // Generate flashcards
@@ -226,28 +203,13 @@ Return ONLY a JSON array:
   }
 ]`;
 
-  const flashcardsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: flashcardsPrompt }],
-    }),
-  });
-
   let flashcards: object[] = [];
-  if (flashcardsResponse.ok) {
-    const data = await flashcardsResponse.json();
-    const text = data.choices?.[0]?.message?.content || '[]';
-    try {
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-      flashcards = JSON.parse(jsonMatch[1].trim());
-    } catch {
-      console.log('Failed to parse flashcards JSON');
-    }
+  try {
+    const text = await callGeminiAI([{ role: 'user', content: flashcardsPrompt }]);
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+    flashcards = JSON.parse(jsonMatch[1].trim());
+  } catch {
+    console.log('Failed to parse flashcards JSON');
   }
 
   // Generate practice questions
@@ -272,37 +234,16 @@ Return ONLY a JSON array with mixed question types:
   }
 ]`;
 
-  const questionsResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${lovableApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: 'google/gemini-3-flash-preview',
-      messages: [{ role: 'user', content: questionsPrompt }],
-    }),
-  });
-
   let questions: object[] = [];
-  if (questionsResponse.ok) {
-    const data = await questionsResponse.json();
-    const text = data.choices?.[0]?.message?.content || '[]';
-    try {
-      const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
-      questions = JSON.parse(jsonMatch[1].trim());
-    } catch {
-      console.log('Failed to parse questions JSON');
-    }
+  try {
+    const text = await callGeminiAI([{ role: 'user', content: questionsPrompt }]);
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
+    questions = JSON.parse(jsonMatch[1].trim());
+  } catch {
+    console.log('Failed to parse questions JSON');
   }
 
-  return {
-    extractedContent,
-    tutorNotes,
-    summaries,
-    flashcards,
-    questions,
-  };
+  return { extractedContent, tutorNotes, summaries, flashcards, questions };
 }
 
 serve(async (req) => {
@@ -311,7 +252,6 @@ serve(async (req) => {
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -337,7 +277,6 @@ serve(async (req) => {
     const userId = claims.claims.sub as string;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Parse request body
     const { videoUrl, title, subject, topic, language = 'en', folderId } = await req.json();
 
     if (!videoUrl) {
@@ -349,7 +288,6 @@ serve(async (req) => {
 
     console.log(`Processing video: ${videoUrl}`);
 
-    // Extract video ID if YouTube
     const youtubeId = extractYouTubeId(videoUrl);
     let videoTitle = title || 'Video Material';
     let videoDescription = '';
@@ -362,7 +300,6 @@ serve(async (req) => {
       transcript = ytData.transcript;
     }
 
-    // Create study material record
     const { data: material, error: createError } = await supabase
       .from('study_materials')
       .insert({
@@ -391,77 +328,45 @@ serve(async (req) => {
 
     console.log(`Created material: ${material.id}`);
 
-    // Generate content from video
     try {
       const content = await generateVideoContent(
-        videoUrl,
-        videoTitle,
-        videoDescription,
-        transcript,
-        subject,
-        topic,
-        language
+        videoUrl, videoTitle, videoDescription, transcript, subject, topic, language
       );
 
-      // Update extracted content
       await supabase
         .from('study_materials')
         .update({ extracted_content: content.extractedContent })
         .eq('id', material.id);
 
-      // Insert tutor notes
       if (content.tutorNotes && Object.keys(content.tutorNotes).length > 0) {
-        await supabase
-          .from('tutor_notes')
-          .insert({
-            material_id: material.id,
-            user_id: userId,
-            content: content.tutorNotes,
-          });
+        await supabase.from('tutor_notes').insert({
+          material_id: material.id, user_id: userId, content: content.tutorNotes,
+        });
       }
 
-      // Insert summaries
       for (const summary of content.summaries) {
-        await supabase
-          .from('summaries')
-          .insert({
-            material_id: material.id,
-            user_id: userId,
-            summary_type: summary.type,
-            content: summary.content,
-          });
+        await supabase.from('summaries').insert({
+          material_id: material.id, user_id: userId, summary_type: summary.type, content: summary.content,
+        });
       }
 
-      // Insert flashcards
       for (const card of content.flashcards) {
-        await supabase
-          .from('material_flashcards')
-          .insert({
-            material_id: material.id,
-            user_id: userId,
-            front: (card as any).front,
-            back: (card as any).back,
-            hint: (card as any).hint || null,
-            difficulty: (card as any).difficulty || 'medium',
-          });
+        await supabase.from('material_flashcards').insert({
+          material_id: material.id, user_id: userId,
+          front: (card as any).front, back: (card as any).back,
+          hint: (card as any).hint || null, difficulty: (card as any).difficulty || 'medium',
+        });
       }
 
-      // Insert practice questions
       for (const question of content.questions) {
-        await supabase
-          .from('practice_questions')
-          .insert({
-            material_id: material.id,
-            user_id: userId,
-            question: (question as any).question,
-            question_type: (question as any).question_type,
-            options: (question as any).options || null,
-            correct_answer: (question as any).correct_answer,
-            explanation: (question as any).explanation || null,
-          });
+        await supabase.from('practice_questions').insert({
+          material_id: material.id, user_id: userId,
+          question: (question as any).question, question_type: (question as any).question_type,
+          options: (question as any).options || null, correct_answer: (question as any).correct_answer,
+          explanation: (question as any).explanation || null,
+        });
       }
 
-      // Mark as completed
       await supabase
         .from('study_materials')
         .update({ processing_status: 'completed' })
@@ -470,11 +375,7 @@ serve(async (req) => {
       console.log(`Video processing completed for material: ${material.id}`);
 
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          materialId: material.id,
-          message: 'Video processed successfully' 
-        }),
+        JSON.stringify({ success: true, materialId: material.id, message: 'Video processed successfully' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
 
@@ -482,15 +383,11 @@ serve(async (req) => {
       console.error('Processing error:', processingError);
       
       const errorMessage = processingError instanceof Error 
-        ? processingError.message 
-        : 'Failed to process video';
+        ? processingError.message : 'Failed to process video';
       
       await supabase
         .from('study_materials')
-        .update({ 
-          processing_status: 'failed',
-          processing_error: errorMessage
-        })
+        .update({ processing_status: 'failed', processing_error: errorMessage })
         .eq('id', material.id);
 
       throw processingError;
