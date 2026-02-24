@@ -312,7 +312,7 @@ export default function NotebookWorkspace() {
               </motion.div>
             ) : (
               <motion.div key="tools" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex-1 flex flex-col overflow-hidden">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+                <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
                   <div className="border-b border-border overflow-x-auto scrollbar-hide">
                     <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto w-max min-w-full">
                       <TabsTrigger value="tutor-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2 touch-target">
@@ -378,7 +378,7 @@ export default function NotebookWorkspace() {
 
         {/* Right Panel - Study Tools */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between border-b border-border">
               <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto overflow-x-auto flex-1">
                 <TabsTrigger value="tutor-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
