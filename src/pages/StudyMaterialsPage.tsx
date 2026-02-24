@@ -32,10 +32,13 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import MaterialCard from "@/components/materials/MaterialCard";
+import NotebookCard from "@/components/materials/NotebookCard";
 import UploadMaterialModal from "@/components/materials/UploadMaterialModal";
+import CreateNotebookModal from "@/components/materials/CreateNotebookModal";
 import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
 import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { useStudyMaterials, useDeleteStudyMaterial, useUpdateStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
+import { useNotebooks, useDeleteNotebook } from "@/hooks/useNotebooks";
 import { supabase } from "@/integrations/supabase/client";
 import { runProcessingPipeline } from "@/lib/processMaterialPipeline";
 import { toast } from "sonner";
@@ -56,14 +59,17 @@ export default function StudyMaterialsPage() {
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
   const [fileTypeFilters, setFileTypeFilters] = useState<FileTypeFilter[]>([]);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [notebookModalOpen, setNotebookModalOpen] = useState(false);
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<StudyMaterial | null>(null);
 
   const queryClient = useQueryClient();
   const { data: materials, isLoading, isError } = useStudyMaterials(selectedFolderId);
+  const { data: notebooks } = useNotebooks();
   const { data: folders } = useFolders();
   const deleteMaterial = useDeleteStudyMaterial();
+  const deleteNotebook = useDeleteNotebook();
   const updateMaterial = useUpdateStudyMaterial();
 
   const handleRetry = () => {
@@ -146,6 +152,14 @@ export default function StudyMaterialsPage() {
                 <Button onClick={() => setUploadModalOpen(true)} className="gap-2 w-full sm:w-auto h-11">
                   <Upload className="w-4 h-4" />
                   Upload Material
+                </Button>
+                <Button 
+                  variant="secondary"
+                  onClick={() => setNotebookModalOpen(true)}
+                  className="gap-2 w-full sm:w-auto h-11"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Create Notebook
                 </Button>
                 <Button 
                   variant="outline" 
@@ -326,6 +340,30 @@ export default function StudyMaterialsPage() {
             </div>
           )}
 
+          {/* Notebooks Section */}
+          {notebooks && notebooks.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <BookOpen className="w-4 h-4" />
+                Notebooks
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {notebooks.map((nb) => (
+                  <NotebookCard
+                    key={nb.id}
+                    notebook={nb}
+                    onClick={() => navigate(`/notebooks/${nb.id}`)}
+                    onDelete={() => {
+                      if (confirm('Delete this notebook? Source materials will be kept.')) {
+                        deleteNotebook.mutate(nb.id);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Materials Grid/List */}
           <AnimatePresence mode="wait">
             {isLoading ? (
@@ -421,6 +459,11 @@ export default function StudyMaterialsPage() {
       <UploadMaterialModal
         open={uploadModalOpen}
         onOpenChange={setUploadModalOpen}
+      />
+
+      <CreateNotebookModal
+        open={notebookModalOpen}
+        onOpenChange={setNotebookModalOpen}
       />
 
       <CreateFolderModal

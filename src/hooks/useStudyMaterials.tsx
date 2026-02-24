@@ -8,6 +8,7 @@ export interface StudyMaterial {
   id: string;
   user_id: string;
   folder_id: string | null;
+  notebook_id: string | null;
   title: string;
   file_name: string | null;
   file_type: string | null;

@@ -1003,6 +1003,244 @@ export type Database = {
           },
         ]
       }
+      notebook_concept_maps: {
+        Row: {
+          created_at: string | null
+          edges: Json
+          id: string
+          nodes: Json
+          notebook_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          edges: Json
+          id?: string
+          nodes: Json
+          notebook_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          edges?: Json
+          id?: string
+          nodes?: Json
+          notebook_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_concept_maps_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_flashcards: {
+        Row: {
+          back: string
+          created_at: string | null
+          difficulty: string | null
+          front: string
+          hint: string | null
+          id: string
+          notebook_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          back: string
+          created_at?: string | null
+          difficulty?: string | null
+          front: string
+          hint?: string | null
+          id?: string
+          notebook_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          back?: string
+          created_at?: string | null
+          difficulty?: string | null
+          front?: string
+          hint?: string | null
+          id?: string
+          notebook_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_flashcards_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_practice_questions: {
+        Row: {
+          correct_answer: string | null
+          created_at: string | null
+          explanation: string | null
+          id: string
+          notebook_id: string
+          options: Json | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Insert: {
+          correct_answer?: string | null
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          notebook_id: string
+          options?: Json | null
+          question: string
+          question_type: string
+          user_id: string
+        }
+        Update: {
+          correct_answer?: string | null
+          created_at?: string | null
+          explanation?: string | null
+          id?: string
+          notebook_id?: string
+          options?: Json | null
+          question?: string
+          question_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_practice_questions_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_summaries: {
+        Row: {
+          content: string
+          created_at: string | null
+          id: string
+          notebook_id: string
+          summary_type: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string | null
+          id?: string
+          notebook_id: string
+          summary_type: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string | null
+          id?: string
+          notebook_id?: string
+          summary_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_summaries_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebook_tutor_notes: {
+        Row: {
+          content: Json
+          created_at: string | null
+          id: string
+          notebook_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string | null
+          id?: string
+          notebook_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string | null
+          id?: string
+          notebook_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notebook_tutor_notes_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notebooks: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          language: string
+          processing_error: string | null
+          processing_status: string | null
+          subject: string | null
+          title: string
+          topic: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          processing_error?: string | null
+          processing_status?: string | null
+          subject?: string | null
+          title: string
+          topic?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          language?: string
+          processing_error?: string | null
+          processing_status?: string | null
+          subject?: string | null
+          title?: string
+          topic?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notes: {
         Row: {
           content: string | null
@@ -1498,6 +1736,7 @@ export type Database = {
           generate_tutor_notes: boolean | null
           id: string
           language: string | null
+          notebook_id: string | null
           processing_error: string | null
           processing_status: string | null
           subject: string | null
@@ -1520,6 +1759,7 @@ export type Database = {
           generate_tutor_notes?: boolean | null
           id?: string
           language?: string | null
+          notebook_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           subject?: string | null
@@ -1542,6 +1782,7 @@ export type Database = {
           generate_tutor_notes?: boolean | null
           id?: string
           language?: string | null
+          notebook_id?: string | null
           processing_error?: string | null
           processing_status?: string | null
           subject?: string | null
@@ -1556,6 +1797,13 @@ export type Database = {
             columns: ["folder_id"]
             isOneToOne: false
             referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_materials_notebook_id_fkey"
+            columns: ["notebook_id"]
+            isOneToOne: false
+            referencedRelation: "notebooks"
             referencedColumns: ["id"]
           },
         ]
