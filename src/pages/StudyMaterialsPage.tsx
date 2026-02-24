@@ -341,14 +341,23 @@ export default function StudyMaterialsPage() {
           )}
 
           {/* Notebooks Section */}
-          {notebooks && notebooks.length > 0 && (
+          {notebooks && notebooks.length > 0 && (() => {
+            const filteredNotebooks = searchQuery
+              ? notebooks.filter((nb) =>
+                  nb.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  nb.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  nb.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                  nb.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                )
+              : notebooks;
+            return filteredNotebooks.length > 0 ? (
             <div className="space-y-3">
               <h3 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <BookOpen className="w-4 h-4" />
                 Notebooks
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {notebooks.map((nb) => (
+                {filteredNotebooks.map((nb) => (
                   <NotebookCard
                     key={nb.id}
                     notebook={nb}
@@ -362,7 +371,8 @@ export default function StudyMaterialsPage() {
                 ))}
               </div>
             </div>
-          )}
+          ) : null;
+          })()}
 
           {/* Materials Grid/List */}
           <AnimatePresence mode="wait">

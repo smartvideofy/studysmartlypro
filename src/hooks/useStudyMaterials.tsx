@@ -150,6 +150,7 @@ export function useCreateStudyMaterial() {
         .insert({
           title: material.title,
           folder_id: material.folder_id ?? null,
+          notebook_id: material.notebook_id ?? null,
           file_name: material.file_name ?? null,
           file_type: material.file_type ?? null,
           file_path: material.file_path ?? null,
@@ -171,10 +172,25 @@ export function useCreateStudyMaterial() {
       
       // Fire-and-forget: don't await the pipeline so the mutation resolves immediately
       const createdMaterial = data as StudyMaterial;
-      runProcessingPipeline(createdMaterial.id).catch((processingError) => {
-        console.error('Pipeline error:', processingError);
-        toast.info('Processing encountered an issue. You can retry from the materials page.');
-      });
+      const hasNotebook = !!createdMaterial.notebook_id;
+      
+      // For notebook materials, only run extract step; the notebook pipeline handles the rest
+      if (hasNotebook) {
+        import('@/integrations/supabase/client').then(({ supabase: sb }) => {
+          sb.functions.invoke('process-material', {
+            body: { materialId: createdMaterial.id, step: 'extract' },
+          }).then(({ error: extractErr }) => {
+            if (extractErr) {
+              console.error('Extract-only pipeline error:', extractErr);
+            }
+          });
+        });
+      } else {
+        runProcessingPipeline(createdMaterial.id).catch((processingError) => {
+          console.error('Pipeline error:', processingError);
+          toast.info('Processing encountered an issue. You can retry from the materials page.');
+        });
+      }
       
       return createdMaterial;
     },

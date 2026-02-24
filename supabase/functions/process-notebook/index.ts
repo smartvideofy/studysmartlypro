@@ -415,40 +415,42 @@ serve(async (req) => {
 
     if (nbError || !notebook) throw new Error('Notebook not found');
 
-    // Build combined content from all materials
-    const { combinedContent, materialCount } = await buildCombinedContent(supabase, notebookId);
-    const notebookWithCount = { ...notebook, material_count: materialCount };
+    // For the 'complete' step, skip fetching combined content — it's not needed
+    if (step === 'complete') {
+      await supabase.from('notebooks').update({
+        processing_status: 'completed',
+        processing_error: null,
+      }).eq('id', notebookId);
+      console.log('Notebook processing completed');
+    } else {
+      // Build combined content from all materials
+      const { combinedContent, materialCount } = await buildCombinedContent(supabase, notebookId);
+      const notebookWithCount = { ...notebook, material_count: materialCount };
 
-    console.log(`Combined content from ${materialCount} materials: ${combinedContent.length} chars`);
+      console.log(`Combined content from ${materialCount} materials: ${combinedContent.length} chars`);
 
-    // Update status to processing
-    await supabase.from('notebooks').update({ processing_status: 'processing' }).eq('id', notebookId);
+      // Update status to processing
+      await supabase.from('notebooks').update({ processing_status: 'processing' }).eq('id', notebookId);
 
-    switch (step as NotebookStep) {
-      case 'tutor_notes':
-        await handleTutorNotesStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
-        break;
-      case 'summaries':
-        await handleSummariesStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
-        break;
-      case 'flashcards':
-        await handleFlashcardsStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
-        break;
-      case 'questions':
-        await handleQuestionsStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
-        break;
-      case 'concept_map':
-        await handleConceptMapStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
-        break;
-      case 'complete':
-        await supabase.from('notebooks').update({
-          processing_status: 'completed',
-          processing_error: null,
-        }).eq('id', notebookId);
-        console.log('Notebook processing completed');
-        break;
-      default:
-        throw new Error(`Unknown step: ${step}`);
+      switch (step as NotebookStep) {
+        case 'tutor_notes':
+          await handleTutorNotesStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
+          break;
+        case 'summaries':
+          await handleSummariesStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
+          break;
+        case 'flashcards':
+          await handleFlashcardsStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
+          break;
+        case 'questions':
+          await handleQuestionsStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
+          break;
+        case 'concept_map':
+          await handleConceptMapStep(supabase, notebookId, userId, combinedContent, notebookWithCount);
+          break;
+        default:
+          throw new Error(`Unknown step: ${step}`);
+      }
     }
 
     return new Response(
