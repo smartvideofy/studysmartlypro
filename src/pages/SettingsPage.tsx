@@ -57,6 +57,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { haptics } from "@/lib/haptics";
+import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
 
 const APP_VERSION = "1.0.1";
 
@@ -289,6 +290,11 @@ export default function SettingsPage() {
               </Collapsible>
             </>
           )}
+        </Section>
+
+        {/* Connected Accounts */}
+        <Section title="Connected Accounts">
+          <ConnectedAccountsSection />
         </Section>
 
         {/* Study Preferences */}
