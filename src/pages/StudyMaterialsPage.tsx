@@ -33,7 +33,9 @@ import MaterialCard from "@/components/materials/MaterialCard";
 import UploadMaterialModal from "@/components/materials/UploadMaterialModal";
 import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
 import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
-import { useStudyMaterials, useDeleteStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
+import { useStudyMaterials, useDeleteStudyMaterial, useUpdateStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { useFolders } from "@/hooks/useNotes";
 import { SkeletonMaterialCard } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
@@ -59,10 +61,36 @@ export default function StudyMaterialsPage() {
   const { data: materials, isLoading, isError } = useStudyMaterials(selectedFolderId);
   const { data: folders } = useFolders();
   const deleteMaterial = useDeleteStudyMaterial();
+  const updateMaterial = useUpdateStudyMaterial();
 
   const handleRetry = () => {
     queryClient.invalidateQueries({ queryKey: ['study-materials'] });
     queryClient.invalidateQueries({ queryKey: ['folders'] });
+  };
+
+  const handleRetryProcessing = async (material: StudyMaterial) => {
+    try {
+      await updateMaterial.mutateAsync({
+        id: material.id,
+        processing_status: "pending",
+        processing_error: null,
+      });
+
+      const { error } = await supabase.functions.invoke('process-material', {
+        body: { materialId: material.id },
+      });
+
+      if (error) {
+        console.error('Retry processing error:', error);
+        toast.error("Failed to restart processing. Please try again.");
+      } else {
+        toast.success("Processing restarted!");
+        queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+      }
+    } catch (error) {
+      console.error('Retry error:', error);
+      toast.error("An error occurred. Please try again.");
+    }
   };
 
   const toggleFileTypeFilter = (type: FileTypeFilter) => {
@@ -368,6 +396,7 @@ export default function StudyMaterialsPage() {
                       onClick={() => navigate(`/materials/${material.id}`)}
                       onDelete={() => handleDelete(material)}
                       onSettings={() => navigate(`/materials/${material.id}`)}
+                      onRetry={() => handleRetryProcessing(material)}
                     />
                   </motion.div>
                 ))}

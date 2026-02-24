@@ -10,7 +10,9 @@ import {
   Clock,
   Loader2,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  AlertTriangle
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -31,6 +33,7 @@ interface MaterialCardProps {
   onClick: () => void;
   onDelete: () => void;
   onSettings: () => void;
+  onRetry?: () => void;
 }
 
 const fileTypeConfig: Record<string, { icon: typeof FileText; bgColor: string; label: string }> = {
@@ -47,14 +50,24 @@ const statusConfig: Record<string, { icon: typeof Loader2; color: string; bgColo
   processing: { icon: Loader2, color: 'text-blue-600 dark:text-blue-500', bgColor: 'bg-blue-500/10', label: 'Processing' },
   completed: { icon: CheckCircle, color: 'text-green-600 dark:text-green-500', bgColor: 'bg-green-500/10', label: 'Ready' },
   failed: { icon: AlertCircle, color: 'text-red-600 dark:text-red-500', bgColor: 'bg-red-500/10', label: 'Failed' },
+  stalled: { icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-500', bgColor: 'bg-orange-500/10', label: 'Stalled' },
 };
 
-export default function MaterialCard({ material, onClick, onDelete, onSettings }: MaterialCardProps) {
+const STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+
+export default function MaterialCard({ material, onClick, onDelete, onSettings, onRetry }: MaterialCardProps) {
   const fileConfig = fileTypeConfig[material.file_type || 'other'] || fileTypeConfig.other;
-  const status = statusConfig[material.processing_status];
   const FileIcon = fileConfig.icon;
-  const StatusIcon = status.icon;
   const isMobile = useIsMobile();
+
+  // Detect stale processing
+  const isStale = material.processing_status === 'processing' &&
+    new Date(material.updated_at).getTime() < Date.now() - STALE_THRESHOLD_MS;
+
+  const effectiveStatus = isStale ? 'stalled' : (material.processing_status || 'pending');
+  const status = statusConfig[effectiveStatus] || statusConfig.pending;
+  const StatusIcon = status.icon;
+  const showRetry = effectiveStatus === 'failed' || effectiveStatus === 'stalled';
 
   return (
     <motion.div
@@ -73,12 +86,10 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
 
       {/* Content */}
       <div className="p-4 space-y-3">
-        {/* Title */}
         <h3 className="font-semibold text-foreground line-clamp-2 hover:text-primary transition-colors">
           {material.title}
         </h3>
 
-        {/* Meta Info */}
         <div className="flex items-center gap-2 flex-wrap">
           <Badge variant="secondary" className="text-xs">
             {fileConfig.label}
@@ -90,10 +101,9 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
           )}
         </div>
 
-        {/* Status & Time */}
         <div className="flex items-center justify-between text-xs text-muted-foreground pt-1">
           <div className={cn('flex items-center gap-1.5 px-2 py-0.5 rounded-full', status.bgColor)}>
-            <StatusIcon className={cn('w-3.5 h-3.5', status.color, material.processing_status === 'processing' && 'animate-spin')} />
+            <StatusIcon className={cn('w-3.5 h-3.5', status.color, effectiveStatus === 'processing' && 'animate-spin')} />
             <span className={status.color}>{status.label}</span>
           </div>
           <span>{formatDistanceToNow(new Date(material.updated_at), { addSuffix: true })}</span>
@@ -119,7 +129,13 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
               <MoreVertical className="w-4 h-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
+          <DropdownMenuContent align="end" className="w-44">
+            {showRetry && onRetry && (
+              <DropdownMenuItem onClick={onRetry}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Retry Processing
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem onClick={onSettings}>
               <Settings className="w-4 h-4 mr-2" />
               Settings
@@ -132,8 +148,8 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings }
         </DropdownMenu>
       </div>
 
-      {/* Processing Overlay */}
-      {material.processing_status === 'processing' && (
+      {/* Processing Overlay - only for actively processing, not stalled */}
+      {material.processing_status === 'processing' && !isStale && (
         <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
           <div className="text-center space-y-2">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
