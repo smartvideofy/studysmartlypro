@@ -8,7 +8,9 @@ import {
   CheckCircle2, 
   Loader2,
   AlertCircle,
-  RefreshCw
+  RefreshCw,
+  Ban,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -64,6 +66,19 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
 
   const { step: currentStep, progress } = getProgress();
 
+  const isRetryableError = (error?: string | null): boolean => {
+    if (!error) return false;
+    const retryablePatterns = [
+      'quota', 'rate limit', 'credit', '429', '402', '503',
+      'temporarily', 'try again', 'overloaded', 'capacity',
+      'timeout', 'timed out', 'WORKER_LIMIT',
+    ];
+    return retryablePatterns.some(p => error.toLowerCase().includes(p.toLowerCase()));
+  };
+
+  const retryable = material.processing_status === 'failed' && isRetryableError(material.processing_error);
+  const permanent = material.processing_status === 'failed' && !retryable;
+
   // Poll for updates
   useEffect(() => {
     if (material.processing_status === "completed") {
@@ -118,9 +133,19 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
         className="max-w-md w-full"
       >
         <div className="text-center mb-8">
-          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-            {material.processing_status === "failed" ? (
-              <AlertCircle className="w-10 h-10 text-destructive" />
+          <div className={`w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6 ${
+            permanent
+              ? "bg-destructive/10"
+              : retryable
+              ? "bg-warning/10"
+              : material.processing_status === "completed"
+              ? "bg-success/10"
+              : "bg-primary/10"
+          }`}>
+            {permanent ? (
+              <Ban className="w-10 h-10 text-destructive" />
+            ) : retryable ? (
+              <Clock className="w-10 h-10 text-warning" />
             ) : material.processing_status === "completed" ? (
               <CheckCircle2 className="w-10 h-10 text-success" />
             ) : (
@@ -129,8 +154,10 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
           </div>
 
           <h2 className="text-2xl font-display font-bold mb-2">
-            {material.processing_status === "failed"
+            {permanent
               ? "Processing Failed"
+              : retryable
+              ? "Temporarily Unavailable"
               : material.processing_status === "completed"
               ? "Ready to Study!"
               : "Processing Your Material"}
@@ -143,6 +170,27 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
               ? "Your study aids have been generated."
               : "This may take a few minutes depending on the file size."}
           </p>
+
+          {/* Error type badge */}
+          {material.processing_status === "failed" && (
+            <div className={`inline-flex items-center gap-1.5 mt-3 px-3 py-1.5 rounded-full text-xs font-medium ${
+              retryable
+                ? "bg-warning/10 text-warning border border-warning/20"
+                : "bg-destructive/10 text-destructive border border-destructive/20"
+            }`}>
+              {retryable ? (
+                <>
+                  <Clock className="w-3.5 h-3.5" />
+                  Retryable — try again shortly
+                </>
+              ) : (
+                <>
+                  <Ban className="w-3.5 h-3.5" />
+                  Permanent — check your file format
+                </>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Progress Steps */}
