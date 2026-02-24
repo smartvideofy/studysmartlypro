@@ -981,10 +981,14 @@ serve(async (req) => {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     let userFriendlyError = errorMessage;
     
+    let statusCode = 500;
+    
     if (errorMessage === 'RATE_LIMIT_EXCEEDED') {
       userFriendlyError = 'AI service is busy. Please try again in a few moments.';
+      statusCode = 429;
     } else if (errorMessage === 'PAYMENT_REQUIRED') {
-      userFriendlyError = 'AI credits exhausted. Please contact support to continue.';
+      userFriendlyError = 'AI credits exhausted. Please add more credits to your Lovable workspace to continue.';
+      statusCode = 402;
     } else if (errorMessage.includes('No file path')) {
       userFriendlyError = 'No file was uploaded. Please upload a document to process.';
     } else if (errorMessage.includes('Failed to download')) {
@@ -1009,7 +1013,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ error: userFriendlyError }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: statusCode, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });

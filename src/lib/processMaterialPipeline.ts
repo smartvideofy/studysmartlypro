@@ -40,20 +40,42 @@ export async function runProcessingPipeline(materialId: string): Promise<void> {
     if (error) {
       console.error(`Pipeline step "${step}" failed:`, error);
 
+      // Try to extract the actual error message from the response
+      let detailedError = error.message || '';
+      try {
+        // The edge function returns JSON with an "error" field
+        if (error.context?.body) {
+          const body = typeof error.context.body === 'string' ? JSON.parse(error.context.body) : error.context.body;
+          if (body?.error) detailedError = body.error;
+        }
+      } catch {
+        // best effort
+      }
+
+      // Check for specific status codes
+      const status = error.context?.status;
+      if (status === 402 || detailedError.includes('credits')) {
+        // Don't mark as failed for credit issues — it's retryable
+        throw new Error('AI credits exhausted. Please add more credits to your Lovable workspace and try again.');
+      }
+      if (status === 429 || detailedError.includes('Rate limit')) {
+        throw new Error('AI service is busy. Please wait a moment and try again.');
+      }
+
       // Mark as failed with which step broke
       try {
         await supabase
           .from('study_materials')
           .update({
             processing_status: 'failed' as string,
-            processing_error: `Failed during: ${STEP_LABELS[step]}. ${error.message || ''}`.trim(),
+            processing_error: detailedError || `Failed during: ${STEP_LABELS[step]}`,
           })
           .eq('id', materialId);
       } catch {
         // best effort
       }
 
-      throw new Error(`Processing failed at step "${STEP_LABELS[step]}"`);
+      throw new Error(detailedError || `Processing failed at step "${STEP_LABELS[step]}"`);
     }
   }
 }
