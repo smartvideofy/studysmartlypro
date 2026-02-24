@@ -9,7 +9,10 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Chunk content into numbered passages for citation references
 function chunkContent(content: string, chunkSize = 800): { id: number; text: string }[] {
@@ -127,14 +130,14 @@ CITATION RULES (CRITICAL):
 - Only use passage numbers that exist in the material above
 - Example: "Photosynthesis converts light energy into chemical energy [3]. This process occurs in the chloroplasts [5]."`;
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${geminiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: GEMINI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages.map((m: any) => ({ role: m.role, content: m.content })),
@@ -150,15 +153,15 @@ CITATION RULES (CRITICAL):
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "Payment required, please add funds to your Lovable AI workspace." }), {
+      if (response.status === 402 || response.status === 403) {
+        return new Response(JSON.stringify({ error: "Gemini API quota exceeded. Please check your API key usage." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
-      console.error('AI gateway error:', response.status, errorText);
-      throw new Error('AI gateway error');
+      console.error('Gemini API error:', response.status, errorText);
+      throw new Error('AI service error');
     }
 
     // Return chunks metadata in a custom header so client can map citations
@@ -179,7 +182,7 @@ CITATION RULES (CRITICAL):
       userFriendlyError = 'Invalid request. Please refresh and try again.';
     } else if (errorMessage.includes('Access denied')) {
       userFriendlyError = 'You do not have access to this material.';
-    } else if (errorMessage === 'AI gateway error') {
+    } else if (errorMessage === 'AI service error') {
       userFriendlyError = 'AI service temporarily unavailable. Please try again.';
     }
     

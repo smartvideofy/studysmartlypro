@@ -6,6 +6,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
 // Input validation constants
 const MAX_NOTE_CONTENT_LENGTH = 50000;
 const MAX_NOTE_TITLE_LENGTH = 500;
@@ -151,10 +154,10 @@ serve(async (req) => {
     const body = await req.json();
     const { action, noteContent, noteTitle, cardCount, difficulty, cardType } = validateInputs(body);
 
-    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
     
-    if (!LOVABLE_API_KEY) {
-      console.error('Missing API configuration');
+    if (!GEMINI_API_KEY) {
+      console.error('Missing Gemini API key');
       throw new Error('Service configuration error');
     }
 
@@ -209,14 +212,14 @@ Keep each card focused on a single concept. Be concise but complete.`;
 
     console.log(`Processing ${action} request for user ${userId.substring(0, 8)}...`);
 
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const response = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Authorization': `Bearer ${GEMINI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: GEMINI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -231,13 +234,13 @@ Keep each card focused on a single concept. Be concise but complete.`;
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: 'AI credits exhausted. Please try again later.' }), {
+      if (response.status === 402 || response.status === 403) {
+        return new Response(JSON.stringify({ error: 'Gemini API quota exceeded. Please check your API key usage.' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      console.error('AI service error:', response.status);
+      console.error('Gemini API error:', response.status);
       throw new Error('AI service temporarily unavailable');
     }
 

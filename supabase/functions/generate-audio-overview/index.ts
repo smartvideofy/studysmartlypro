@@ -9,8 +9,11 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
 const elevenLabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
+
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 // Voice IDs for the two hosts
 const HOST_1_VOICE = "JBFqnCBsd6RMkjVDRZzb"; // George - Male
@@ -22,7 +25,6 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -55,7 +57,6 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Check if audio already exists
     const { data: existingAudio } = await supabase
       .from('audio_overviews')
       .select('*')
@@ -65,16 +66,11 @@ serve(async (req) => {
 
     if (existingAudio?.audio_url) {
       return new Response(
-        JSON.stringify({ 
-          audioUrl: existingAudio.audio_url,
-          script: existingAudio.script,
-          cached: true 
-        }),
+        JSON.stringify({ audioUrl: existingAudio.audio_url, script: existingAudio.script, cached: true }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch material content
     const { data: material, error: materialError } = await supabase
       .from('study_materials')
       .select('extracted_content, title, subject, topic, user_id')
@@ -94,17 +90,16 @@ serve(async (req) => {
 
     const content = material.extracted_content || `Title: ${material.title}`;
 
-    // Generate conversational script
     const scriptPrompt = getScriptPrompt(style, content, material.title);
     
-    const scriptResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+    const scriptResponse = await fetch(GEMINI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
+        'Authorization': `Bearer ${geminiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-3-flash-preview',
+        model: GEMINI_MODEL,
         messages: [
           { role: 'system', content: scriptPrompt },
           { role: 'user', content: `Create an engaging podcast script about this material:\n\n${content.substring(0, 30000)}` }
@@ -119,39 +114,31 @@ serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+      if (scriptResponse.status === 402 || scriptResponse.status === 403) {
+        return new Response(JSON.stringify({ error: "Gemini API quota exceeded." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
       throw new Error('Failed to generate script');
     }
 
     const scriptData = await scriptResponse.json();
     const script = scriptData.choices?.[0]?.message?.content || '';
 
-    // Parse script into segments
     const segments = parseScript(script);
 
-    // If no ElevenLabs API key, return script only
     if (!elevenLabsApiKey) {
-      // Save script without audio
       await supabase
         .from('audio_overviews')
-        .upsert({
-          material_id: materialId,
-          style,
-          script,
-          user_id: userId,
-        });
+        .upsert({ material_id: materialId, style, script, user_id: userId });
 
       return new Response(
-        JSON.stringify({ 
-          script,
-          segments,
-          audioUrl: null,
-          message: 'Audio generation requires ElevenLabs API key'
-        }),
+        JSON.stringify({ script, segments, audioUrl: null, message: 'Audio generation requires ElevenLabs API key' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Generate audio for each segment
     const audioChunks: ArrayBuffer[] = [];
     
     for (const segment of segments) {
@@ -168,11 +155,7 @@ serve(async (req) => {
           body: JSON.stringify({
             text: segment.text,
             model_id: 'eleven_multilingual_v2',
-            voice_settings: {
-              stability: 0.5,
-              similarity_boost: 0.75,
-              style: 0.3,
-            },
+            voice_settings: { stability: 0.5, similarity_boost: 0.75, style: 0.3 },
           }),
         }
       );
@@ -186,7 +169,6 @@ serve(async (req) => {
       audioChunks.push(audioBuffer);
     }
 
-    // Combine audio chunks
     const totalLength = audioChunks.reduce((acc, chunk) => acc + chunk.byteLength, 0);
     const combinedAudio = new Uint8Array(totalLength);
     let offset = 0;
@@ -195,47 +177,33 @@ serve(async (req) => {
       offset += chunk.byteLength;
     }
 
-    // Upload to storage
     const fileName = `${materialId}/${style}-${Date.now()}.mp3`;
     const { error: uploadError } = await supabase.storage
       .from('study-materials')
-      .upload(fileName, combinedAudio.buffer, {
-        contentType: 'audio/mpeg',
-        upsert: true,
-      });
+      .upload(fileName, combinedAudio.buffer, { contentType: 'audio/mpeg', upsert: true });
 
     if (uploadError) {
       console.error('Upload error:', uploadError);
       throw new Error('Failed to upload audio');
     }
 
-    // Get public URL
     const { data: urlData } = await supabase.storage
       .from('study-materials')
-      .createSignedUrl(fileName, 604800); // 7 days
+      .createSignedUrl(fileName, 604800);
 
     const audioUrl = urlData?.signedUrl;
 
-    // Save to database
     await supabase
       .from('audio_overviews')
       .upsert({
-        material_id: materialId,
-        style,
-        script,
-        audio_url: audioUrl,
-        audio_path: fileName,
-        duration_seconds: Math.round(totalLength / 16000), // Rough estimate
+        material_id: materialId, style, script,
+        audio_url: audioUrl, audio_path: fileName,
+        duration_seconds: Math.round(totalLength / 16000),
         user_id: userId,
       });
 
     return new Response(
-      JSON.stringify({ 
-        audioUrl,
-        script,
-        segments,
-        cached: false 
-      }),
+      JSON.stringify({ audioUrl, script, segments, cached: false }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -260,7 +228,7 @@ Format the script like this:
 [HOST2]: (dialogue)
 
 Rules:
-1. Make it sound natural and conversational, not like reading a textbook
+1. Make it sound natural and conversational
 2. Include some banter and personality
 3. Explain complex concepts in accessible ways
 4. Use examples and analogies
@@ -269,13 +237,13 @@ Rules:
 
   switch (style) {
     case 'brief':
-      return `${basePrompt}\n\nStyle: Brief overview - Quick 2-3 minute summary of key points. Get straight to the essentials.`;
+      return `${basePrompt}\n\nStyle: Brief overview - Quick 2-3 minute summary of key points.`;
     case 'debate':
-      return `${basePrompt}\n\nStyle: Debate format - The hosts should respectfully debate different perspectives on the material. Include counterarguments and critical analysis.`;
+      return `${basePrompt}\n\nStyle: Debate format - The hosts should respectfully debate different perspectives.`;
     case 'critique':
-      return `${basePrompt}\n\nStyle: Critical analysis - Examine the material critically, discussing strengths, weaknesses, and implications.`;
-    default: // deep_dive
-      return `${basePrompt}\n\nStyle: Deep dive - Comprehensive exploration of the material. Cover all major concepts in detail with examples.`;
+      return `${basePrompt}\n\nStyle: Critical analysis - Examine the material critically.`;
+    default:
+      return `${basePrompt}\n\nStyle: Deep dive - Comprehensive exploration of the material.`;
   }
 }
 
@@ -296,14 +264,10 @@ function parseScript(script: string): ScriptSegment[] {
     
     if (host1Match || alexMatch) {
       const text = (host1Match?.[1] || alexMatch?.[1])?.trim();
-      if (text) {
-        segments.push({ speaker: 'host1', text });
-      }
+      if (text) segments.push({ speaker: 'host1', text });
     } else if (host2Match || jordanMatch) {
       const text = (host2Match?.[1] || jordanMatch?.[1])?.trim();
-      if (text) {
-        segments.push({ speaker: 'host2', text });
-      }
+      if (text) segments.push({ speaker: 'host2', text });
     }
   }
   

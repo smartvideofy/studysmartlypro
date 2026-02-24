@@ -64,8 +64,8 @@ async function handleInvokeError(error: any, context: string): Promise<void> {
     await supabase.auth.signOut();
   } else if (status === 429 || errorMessage.includes('Rate limit')) {
     toast.error("Too many requests. Please try again shortly.");
-  } else if (status === 402 || errorMessage.includes('credits')) {
-    toast.error("AI credits exhausted. Please try again later.");
+  } else if (status === 402 || errorMessage.includes('quota') || errorMessage.includes('Gemini')) {
+    toast.error("Gemini API quota exceeded. Please check your API key usage.");
   } else if (errorMessage) {
     toast.error(errorMessage);
   } else {

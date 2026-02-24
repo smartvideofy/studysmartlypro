@@ -54,9 +54,9 @@ export async function runProcessingPipeline(materialId: string): Promise<void> {
 
       // Check for specific status codes
       const status = error.context?.status;
-      if (status === 402 || detailedError.includes('credits')) {
-        // Don't mark as failed for credit issues — it's retryable
-        throw new Error('AI credits exhausted. Please add more credits to your Lovable workspace and try again.');
+      if (status === 402 || detailedError.includes('quota') || detailedError.includes('Gemini')) {
+        // Don't mark as failed for quota issues — it's retryable
+        throw new Error('Gemini API quota exceeded. Please check your API key usage at Google AI Studio and try again.');
       }
       if (status === 429 || detailedError.includes('Rate limit')) {
         throw new Error('AI service is busy. Please wait a moment and try again.');
