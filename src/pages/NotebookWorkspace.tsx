@@ -380,32 +380,34 @@ export default function NotebookWorkspace() {
         <div className="flex-1 flex flex-col overflow-hidden">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
             <div className="flex items-center justify-between border-b border-border">
-              <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto overflow-x-auto flex-1">
-                <TabsTrigger value="tutor-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="hidden sm:inline">Tutor Notes</span>
-                </TabsTrigger>
-                <TabsTrigger value="summaries" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <FileText className="w-4 h-4" />
-                  <span className="hidden sm:inline">Summaries</span>
-                </TabsTrigger>
-                <TabsTrigger value="flashcards" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <Lightbulb className="w-4 h-4" />
-                  <span className="hidden sm:inline">Flashcards</span>
-                </TabsTrigger>
-                <TabsTrigger value="questions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <Brain className="w-4 h-4" />
-                  <span className="hidden sm:inline">Questions</span>
-                </TabsTrigger>
-                <TabsTrigger value="concept-map" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <Network className="w-4 h-4" />
-                  <span className="hidden sm:inline">Map</span>
-                </TabsTrigger>
-                <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-4 py-3 gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  <span className="hidden sm:inline">AI Chat</span>
-                </TabsTrigger>
-              </TabsList>
+              <div className="overflow-x-auto scrollbar-hide flex-1 relative">
+                <TabsList className="justify-start rounded-none bg-transparent p-0 h-auto w-max min-w-full">
+                  <TabsTrigger value="tutor-notes" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <BookOpen className="w-4 h-4" />
+                    <span className="text-xs">Notes</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="summaries" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <FileText className="w-4 h-4" />
+                    <span className="text-xs">Summary</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="flashcards" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <Lightbulb className="w-4 h-4" />
+                    <span className="text-xs">Cards</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="questions" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <Brain className="w-4 h-4" />
+                    <span className="text-xs">Quiz</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="concept-map" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <Network className="w-4 h-4" />
+                    <span className="text-xs">Map</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="chat" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent px-3 py-3 gap-1.5">
+                    <MessageSquare className="w-4 h-4" />
+                    <span className="text-xs">Chat</span>
+                  </TabsTrigger>
+                </TabsList>
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               <TabsContent value="tutor-notes" className="m-0 h-full"><NotebookTutorNotesTab notebookId={id!} /></TabsContent>
