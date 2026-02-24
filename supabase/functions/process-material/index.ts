@@ -11,12 +11,16 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
+const MAX_VISION_FILE_SIZE = 10 * 1024 * 1024; // 10MB max for vision processing
+
 interface StudyMaterial {
   id: string;
   user_id: string;
   title: string;
   file_path: string | null;
+  file_name: string | null;
   file_type: string | null;
+  file_size: number | null;
   language: string;
   subject: string | null;
   topic: string | null;
@@ -96,6 +100,7 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
   }
 
   if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
+    // Try direct text extraction first (works for text-based PDFs)
     try {
       const text = await fileData.text();
       if (text && text.length > 100 && !text.includes('\x00') && isPrintableText(text)) {
@@ -103,9 +108,16 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
         return text.substring(0, 50000);
       }
     } catch {
-      console.log('Direct text extraction failed, using AI vision');
+      console.log('Direct text extraction failed');
     }
     
+    // Check file size before attempting vision (base64 causes ~4x memory amplification)
+    const fileSize = material.file_size || fileData.size;
+    if (fileSize > MAX_VISION_FILE_SIZE) {
+      console.error(`File too large for vision processing: ${(fileSize / (1024 * 1024)).toFixed(1)}MB (max ${MAX_VISION_FILE_SIZE / (1024 * 1024)}MB)`);
+      throw new Error(`This file is too large (${(fileSize / (1024 * 1024)).toFixed(0)}MB) for AI processing. Please upload a file under 10MB, or split it into smaller parts.`);
+    }
+
     const base64 = await blobToBase64(fileData);
     return await extractContentWithVision(base64, fileType, material.title);
   }
@@ -121,11 +133,14 @@ function isPrintableText(text: string): boolean {
 async function blobToBase64(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  let binary = '';
-  for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]);
+  // Process in chunks to reduce peak memory usage
+  const CHUNK_SIZE = 32768;
+  const chunks: string[] = [];
+  for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
+    const chunk = bytes.subarray(i, Math.min(i + CHUNK_SIZE, bytes.length));
+    chunks.push(String.fromCharCode(...chunk));
   }
-  return btoa(binary);
+  return btoa(chunks.join(''));
 }
 
 async function extractContentWithVision(base64Data: string, fileType: string, title: string): Promise<string> {
