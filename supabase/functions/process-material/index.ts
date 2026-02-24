@@ -495,9 +495,41 @@ ${content.substring(0, 30000)}`;
 
 // ─── Step handlers ───
 
+async function inferSubjectAndTopic(content: string, title: string): Promise<{ subject: string; topic: string }> {
+  try {
+    const prompt = `Given this study material, infer the academic subject/course and specific topic.
+
+Title: ${title}
+Content (first 3000 chars):
+${content.substring(0, 3000)}
+
+Respond ONLY with valid JSON, no markdown:
+{"subject": "e.g. Biology 101", "topic": "e.g. Photosynthesis"}
+
+If you cannot determine a value, use an empty string.`;
+
+    const responseText = await callGeminiAI([{ role: 'user', content: prompt }]);
+    let jsonContent = responseText;
+    const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (jsonMatch) jsonContent = jsonMatch[1].trim();
+    const parsed = JSON.parse(jsonContent);
+    return {
+      subject: typeof parsed.subject === 'string' ? parsed.subject.trim() : '',
+      topic: typeof parsed.topic === 'string' ? parsed.topic.trim() : '',
+    };
+  } catch (e) {
+    console.error('Subject/topic inference failed:', e);
+    return { subject: '', topic: '' };
+  }
+}
+
 async function handleExtractStep(supabase: any, material: StudyMaterial, materialId: string) {
   if (material.extracted_content && material.extracted_content.length > 100) {
     console.log('Extracted content already exists, skipping extraction');
+    // Still try to infer subject/topic if they're missing
+    if (!material.subject && !material.topic) {
+      await inferAndUpdateMetadata(supabase, material.extracted_content, material.title, materialId);
+    }
     return;
   }
 
@@ -508,12 +540,22 @@ async function handleExtractStep(supabase: any, material: StudyMaterial, materia
     extractedContent = await extractTextFromFile(supabase, material);
     console.log(`Extracted ${extractedContent.length} characters`);
     
+    // Infer subject and topic from extracted content if not already set
+    const metadata: Record<string, any> = {
+      extracted_content: extractedContent.substring(0, 65000),
+      processing_status: 'processing',
+    };
+
+    if (!material.subject || !material.topic) {
+      const inferred = await inferSubjectAndTopic(extractedContent, material.title);
+      if (inferred.subject && !material.subject) metadata.subject = inferred.subject;
+      if (inferred.topic && !material.topic) metadata.topic = inferred.topic;
+      console.log(`Inferred metadata - subject: ${inferred.subject}, topic: ${inferred.topic}`);
+    }
+
     await supabase
       .from('study_materials')
-      .update({ 
-        extracted_content: extractedContent.substring(0, 65000),
-        processing_status: 'processing',
-      })
+      .update(metadata)
       .eq('id', materialId);
   } catch (extractError) {
     console.error('Content extraction error:', extractError);
@@ -525,6 +567,17 @@ async function handleExtractStep(supabase: any, material: StudyMaterial, materia
         processing_status: 'processing',
       })
       .eq('id', materialId);
+  }
+}
+
+async function inferAndUpdateMetadata(supabase: any, content: string, title: string, materialId: string) {
+  const inferred = await inferSubjectAndTopic(content, title);
+  const updates: Record<string, string> = {};
+  if (inferred.subject) updates.subject = inferred.subject;
+  if (inferred.topic) updates.topic = inferred.topic;
+  if (Object.keys(updates).length > 0) {
+    await supabase.from('study_materials').update(updates).eq('id', materialId);
+    console.log(`Backfilled metadata - subject: ${inferred.subject}, topic: ${inferred.topic}`);
   }
 }
 
