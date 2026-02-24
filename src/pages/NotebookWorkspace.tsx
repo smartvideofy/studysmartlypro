@@ -341,7 +341,7 @@ export default function NotebookWorkspace() {
                       </TabsTrigger>
                     </TabsList>
                   </div>
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="flex-1 overflow-hidden">
                     <TabsContent value="tutor-notes" className="m-0 h-full"><NotebookTutorNotesTab notebookId={id!} /></TabsContent>
                     <TabsContent value="summaries" className="m-0 h-full"><NotebookSummariesTab notebookId={id!} /></TabsContent>
                     <TabsContent value="flashcards" className="m-0 h-full"><NotebookFlashcardsTab notebookId={id!} /></TabsContent>
@@ -407,7 +407,7 @@ export default function NotebookWorkspace() {
                 </TabsTrigger>
               </TabsList>
             </div>
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-hidden">
               <TabsContent value="tutor-notes" className="m-0 h-full"><NotebookTutorNotesTab notebookId={id!} /></TabsContent>
               <TabsContent value="summaries" className="m-0 h-full"><NotebookSummariesTab notebookId={id!} /></TabsContent>
               <TabsContent value="flashcards" className="m-0 h-full"><NotebookFlashcardsTab notebookId={id!} /></TabsContent>
