@@ -1,30 +1,46 @@
 
 
-# Hide "Go Premium" CTA for Paid Subscribers
+# Fix: Allow Multiple Sequential File Uploads
 
 ## Problem
-The mobile menu drawer (`MobileMenuDrawer.tsx`) always shows the "Go Premium" upgrade card regardless of subscription status. Paid users and active trial users should not see this.
+When uploading a file, the app blocks until the entire 7-step AI processing pipeline completes (extraction, tutor notes, summaries, flashcards, questions, concept map, finalization). This takes several minutes per file, during which:
+- The upload modal shows a loading spinner and can't be used
+- The user can't upload additional files
+- If the pipeline errors, the whole upload appears to fail even though the file was saved
 
 ## Solution
-Add a subscription check to the mobile drawer's Premium CTA section, matching the logic already used in `SidebarUpgradeCTA.tsx`.
+Decouple the file upload/DB insert from the AI processing pipeline. The upload should complete instantly, then processing runs in the background.
 
-## Technical Details
+## Technical Changes
 
-### File: `src/components/layout/MobileMenuDrawer.tsx`
+### File: `src/hooks/useStudyMaterials.tsx`
 
-1. Import `useSubscription` and `useTrialStatus` hooks
-2. Wrap the "Premium CTA" block (lines 186-202) in a conditional that hides it when:
-   - The user has an active paid subscription (`status === 'active'` and `plan !== 'free'` and not on trial)
-   - This matches the existing logic in `SidebarUpgradeCTA.tsx` line 20
+In `useCreateStudyMaterial` (around line 161-169), change the processing pipeline from `await` to fire-and-forget:
 
-The conditional logic:
-```text
-const { data: subscription } = useSubscription();
-const isPaidUser = subscription?.status === 'active' 
-  && subscription?.plan !== 'free' 
-  && !subscription?.is_trial;
-
-// Only render Premium CTA if NOT a paid user
+**Before:**
+```typescript
+try {
+  await runProcessingPipeline(createdMaterial.id);
+} catch (processingError) {
+  console.error('Pipeline error:', processingError);
+  toast.info('Material uploaded but processing encountered an issue.');
+}
 ```
 
-No other files need changes.
+**After:**
+```typescript
+// Fire-and-forget: don't await the pipeline so the mutation resolves immediately
+runProcessingPipeline(createdMaterial.id).catch((processingError) => {
+  console.error('Pipeline error:', processingError);
+  toast.info('Processing encountered an issue. You can retry from the materials page.');
+});
+```
+
+This single change means:
+- The mutation resolves as soon as the DB record is created
+- The modal closes immediately and the user can upload more files
+- Processing continues in the background (the ProcessingStatus component already polls for updates)
+- Errors are still caught and shown as toasts
+
+No other files need changes -- the `ProcessingStatus` component already handles polling and displaying progress.
+
