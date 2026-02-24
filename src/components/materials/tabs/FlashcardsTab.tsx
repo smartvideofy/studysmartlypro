@@ -131,20 +131,6 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
         .insert(flashcardsToInsert);
 
       if (error) throw error;
-
-      // Get current card count and update
-      const { data: deck } = await supabase
-        .from('flashcard_decks')
-        .select('card_count')
-        .eq('id', deckId)
-        .single();
-
-      const newCount = (deck?.card_count || 0) + flashcardsToInsert.length;
-
-      await supabase
-        .from('flashcard_decks')
-        .update({ card_count: newCount })
-        .eq('id', deckId);
     },
     onSuccess: (_, variables) => {
       setSavedDeckId(variables.deckId);
