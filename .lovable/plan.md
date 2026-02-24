@@ -1,90 +1,59 @@
 
 
-# Break Processing into Small Batches (Pipeline Approach)
+# Switch from Lovable AI Gateway to Google Gemini API
 
-## Problem
-The `process-material` edge function does everything in one call:
-1. Download file + extract text
-2. Generate tutor notes (large AI call)
-3. Generate 3 summaries (3 AI calls)
-4. Generate 15 practice questions (large AI call)
-5. Generate 20 flashcards (large AI call)
-6. Generate concept map (large AI call)
+## Overview
+Replace all Lovable AI Gateway calls across 6 edge functions with direct Google Gemini API calls. This eliminates dependency on Lovable AI credits and uses your own Gemini API key instead.
 
-This accumulates memory across all steps, hitting the WORKER_LIMIT for larger files. The text extraction may succeed, but the function crashes partway through content generation.
+## Step 1: Add Gemini API Key Secret
+- You'll need a Google Gemini API key from [Google AI Studio](https://aistudio.google.com/apikey)
+- Store it as a Supabase secret called `GEMINI_API_KEY`
 
-## Solution: Multi-Step Pipeline
-Split processing into individual steps. Each step is a separate edge function invocation with its own memory budget. The client orchestrates the steps sequentially.
+## Step 2: Update All 6 Edge Functions
 
+Each function currently calls:
 ```text
-Step 1: Extract text + save to DB        (one function call)
-Step 2: Generate tutor notes              (one function call)
-Step 3: Generate summaries                (one function call)
-Step 4: Generate flashcards               (one function call)
-Step 5: Generate practice questions       (one function call)
-Step 6: Generate concept map              (one function call)
-Step 7: Mark as completed                 (one function call)
+POST https://ai.gateway.lovable.dev/v1/chat/completions
+Authorization: Bearer {LOVABLE_API_KEY}
+Body: { model: "google/gemini-3-flash-preview", messages: [...] }
 ```
 
-Each step runs in a fresh edge function invocation, so memory resets between steps.
-
-## Technical Details
-
-### 1. Edge Function Changes (`supabase/functions/process-material/index.ts`)
-
-Add a `step` parameter to the request body. When `step` is provided, only run that specific generation task. When no `step` is provided (legacy calls), run the full pipeline for backward compatibility but with a fallback.
-
-Steps:
-- `"extract"` -- Download file, extract text, save `extracted_content` to DB. Set status to `"processing"`.
-- `"tutor_notes"` -- Read `extracted_content` from DB, generate tutor notes, save to `tutor_notes` table.
-- `"summaries"` -- Read `extracted_content`, generate all 3 summary types, save to `summaries` table.
-- `"flashcards"` -- Read `extracted_content`, generate flashcards, save to `material_flashcards` table.
-- `"questions"` -- Read `extracted_content`, generate practice questions (Pro only), save to `practice_questions` table.
-- `"concept_map"` -- Read `extracted_content`, generate concept map (Pro only), save to `concept_maps` table.
-- `"complete"` -- Set `processing_status` to `"completed"`.
-
-When no step is given, run all steps sequentially within the function (current behavior, kept for backward compat). This means existing retry buttons still work.
-
-### 2. Client-Side Orchestration (`src/hooks/useStudyMaterials.tsx`)
-
-Update the `useCreateStudyMaterial` mutation to call the function in steps instead of one shot:
-
+Will be changed to:
 ```text
-1. invoke('process-material', { materialId, step: 'extract' })
-2. invoke('process-material', { materialId, step: 'tutor_notes' })
-3. invoke('process-material', { materialId, step: 'summaries' })
-4. invoke('process-material', { materialId, step: 'flashcards' })
-5. invoke('process-material', { materialId, step: 'questions' })   // if enabled
-6. invoke('process-material', { materialId, step: 'concept_map' }) // if enabled
-7. invoke('process-material', { materialId, step: 'complete' })
+POST https://generativelanguage.googleapis.com/v1beta/openai/chat/completions
+Authorization: Bearer {GEMINI_API_KEY}
+Body: { model: "gemini-2.5-flash", messages: [...] }
 ```
 
-Each call is awaited before the next. If any step fails, set status to "failed" with an error message indicating which step failed. Previous steps' results are already saved to DB, so partial progress is preserved.
+Google's Gemini API supports the OpenAI-compatible endpoint, so the request/response format stays almost identical -- only the URL, API key, and model name change.
 
-### 3. Processing Status UI Updates (`src/components/materials/ProcessingStatus.tsx`)
+### Files to modify:
+1. **`supabase/functions/process-material/index.ts`** -- Main material processing (extraction + 6 generation steps)
+2. **`supabase/functions/regenerate-content/index.ts`** -- Content regeneration
+3. **`supabase/functions/ai-notes/index.ts`** -- AI note summarization and flashcard generation
+4. **`supabase/functions/process-video/index.ts`** -- YouTube video processing
+5. **`supabase/functions/material-chat/index.ts`** -- Chat with materials
+6. **`supabase/functions/generate-audio-overview/index.ts`** -- Audio overview script generation
 
-Update the progress steps to reflect more granular stages. Store a `processing_step` field on the material (or use the existing `processing_status` with more values). For simplicity, we can update `processing_error` with progress info like "Generating summaries..." so the polling UI shows which step is active.
+### Changes per file:
+- Replace `LOVABLE_API_KEY` with `GEMINI_API_KEY` in env reads
+- Replace gateway URL with `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`
+- Update model names from `google/gemini-3-flash-preview` to `gemini-2.5-flash`
+- Keep error handling for 429 (rate limit) and 402 (quota) as Gemini returns similar status codes
 
-Actually, we'll add a lightweight progress mechanism: the edge function updates a `processing_progress` text field on each step (e.g., "Extracting content...", "Generating tutor notes..."). The ProcessingStatus component already polls and can display this.
+## Step 3: Update Error Messages
+Change user-facing error messages from "Lovable AI credits" references to "Gemini API quota" so they make sense with the new provider.
 
-### 4. Retry Behavior
+## Model Mapping
+| Current (Lovable Gateway)         | New (Direct Gemini)    |
+|-----------------------------------|------------------------|
+| google/gemini-3-flash-preview     | gemini-2.5-flash       |
+| google/gemini-2.5-pro             | gemini-2.5-pro         |
 
-The retry buttons in `ProcessingStatus.tsx` and `MaterialCard.tsx` will continue to work. When retrying, the client calls the stepped pipeline again. If `extracted_content` already exists in DB, the extract step can skip re-downloading the file and reuse the saved content.
+Using `gemini-2.5-flash` as the default -- it's fast, capable, and cost-effective.
 
-### Files Modified
-- `supabase/functions/process-material/index.ts` -- Add `step` parameter handling; each step reads `extracted_content` from DB instead of holding it in memory
-- `src/hooks/useStudyMaterials.tsx` -- Update `useCreateStudyMaterial` to call steps sequentially
-- `src/components/materials/ProcessingStatus.tsx` -- Update retry handler to use stepped pipeline; show current step name
-- `src/pages/StudyMaterialsPage.tsx` -- Update retry handler to use stepped pipeline
-- `src/pages/MaterialSettingsPage.tsx` -- Update re-process call to use stepped pipeline
+## No Frontend Changes Needed
+All AI calls happen in edge functions. The frontend only calls the edge functions via `supabase.functions.invoke()`, so no client-side code changes are required.
 
-### No Database Schema Changes
-The `extracted_content` column already exists on `study_materials`. We'll use the existing `processing_error` field to store progress messages (cleared on completion).
-
-### Benefits
-- Each step gets a fresh 150MB+ memory budget
-- Partial results are saved -- if flashcards succeed but questions fail, the user still has flashcards
-- Retry can skip already-completed steps
-- Large files that extract successfully will now process fully
-- The 28MB PDF's extracted text is only ~65KB, so generation steps will work fine
-
+## Prerequisites
+- A Google Gemini API key (free tier available at [Google AI Studio](https://aistudio.google.com/apikey))
