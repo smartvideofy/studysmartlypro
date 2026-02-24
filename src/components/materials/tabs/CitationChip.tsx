@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { FileText } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
@@ -85,12 +86,12 @@ export function renderWithCitations(
   const { parts } = parseCitationMarkers(text);
 
   if (parts.length <= 1 && typeof parts[0] === 'string') {
-    return text;
+    return <ReactMarkdown>{text}</ReactMarkdown>;
   }
 
   return parts.map((part, index) => {
     if (typeof part === 'string') {
-      return <span key={index}>{part}</span>;
+      return <ReactMarkdown key={index} components={{ p: ({ children }) => <span>{children}</span> }}>{part}</ReactMarkdown>;
     }
     // part is a number (citation id)
     const chunk = chunks.find(c => c.id === part);

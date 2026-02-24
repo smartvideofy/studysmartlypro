@@ -12,6 +12,7 @@ import {
   Bookmark,
   BookmarkCheck
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -339,11 +340,17 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
                             : "bg-secondary"
                         }`}
                       >
-                        <div className="text-sm whitespace-pre-wrap">
-                          {message.role === "assistant" && citationChunks.length > 0
-                            ? renderWithCitations(message.content, citationChunks, handleCitationClick)
-                            : message.content
-                          }
+                        <div className="text-sm">
+                          {message.role === "assistant" ? (
+                            <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1">
+                              {citationChunks.length > 0
+                                ? renderWithCitations(message.content, citationChunks, handleCitationClick)
+                                : <ReactMarkdown>{message.content}</ReactMarkdown>
+                              }
+                            </div>
+                          ) : (
+                            <span className="whitespace-pre-wrap">{message.content}</span>
+                          )}
                         </div>
                         <p className="text-xs opacity-60 mt-1">
                           {message.timestamp.toLocaleTimeString([], { 
