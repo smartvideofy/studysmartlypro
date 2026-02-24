@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -50,6 +50,7 @@ export default function NotebookWorkspace() {
   const [activeTab, setActiveTab] = useState('tutor-notes');
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>('tools');
   const [isRetrying, setIsRetrying] = useState(false);
+  const pipelineTriggeredRef = useRef(false);
 
   const isProcessing = notebook?.processing_status === 'processing';
   const isCompleted = notebook?.processing_status === 'completed';
@@ -61,17 +62,23 @@ export default function NotebookWorkspace() {
   const totalCount = materials?.length || 0;
   const allExtracted = totalCount > 0 && extractedCount === totalCount;
 
+  // Reset trigger ref when notebook status changes to failed (allow retry)
+  useEffect(() => {
+    if (isFailed) pipelineTriggeredRef.current = false;
+  }, [isFailed]);
+
   // Auto-trigger notebook processing when all materials are extracted and notebook is pending
   useEffect(() => {
-    if (allExtracted && isPending && !isRetrying && id) {
-      console.log('All materials extracted, triggering notebook pipeline...');
+    if (allExtracted && isPending && !pipelineTriggeredRef.current && id) {
+      pipelineTriggeredRef.current = true;
+      console.log('All materials extracted, triggering notebook pipeline (fire-and-forget)...');
       setIsRetrying(true);
       runNotebookPipeline(id).catch((err) => {
         console.error('Notebook pipeline error:', err);
         toast.error(err instanceof Error ? err.message : 'Processing failed');
       }).finally(() => setIsRetrying(false));
     }
-  }, [allExtracted, isPending, id, isRetrying]);
+  }, [allExtracted, isPending, id]);
 
   const handleRetry = () => {
     if (!id || isRetrying) return;
