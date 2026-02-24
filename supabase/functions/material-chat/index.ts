@@ -83,24 +83,49 @@ serve(async (req) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Verify user owns this material
-    const { data: material, error: materialError } = await supabase
+    // Try study_materials first, then notebooks
+    let content = extractedContent || '';
+    
+    const { data: material } = await supabase
       .from('study_materials')
       .select('extracted_content, title, subject, topic, user_id')
       .eq('id', materialId)
-      .single();
+      .maybeSingle();
 
-    if (materialError) throw materialError;
+    if (material) {
+      if (material.user_id !== userId) {
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!content) content = material.extracted_content || `Title: ${material.title}`;
+    } else {
+      // Check if it's a notebook
+      const { data: notebook } = await supabase
+        .from('notebooks')
+        .select('title, user_id')
+        .eq('id', materialId)
+        .maybeSingle();
 
-    if (material?.user_id !== userId) {
-      return new Response(
-        JSON.stringify({ error: 'Access denied' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      if (!notebook) {
+        return new Response(
+          JSON.stringify({ error: 'Material not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (notebook.user_id !== userId) {
+        return new Response(
+          JSON.stringify({ error: 'Access denied' }),
+          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
+      if (!content) content = `Notebook: ${notebook.title}`;
     }
 
-    // Get material content if not provided
-    const content = extractedContent || material?.extracted_content || `Title: ${material?.title}`;
+    if (!content || content.trim().length === 0) {
+      content = 'No content available yet.'
+    }
 
     // Chunk content into numbered passages for citations
     const chunks = chunkContent(content.substring(0, 40000));
