@@ -189,11 +189,14 @@ CITATION RULES (CRITICAL):
       throw new Error('AI service error');
     }
 
-    // Return chunks metadata in a custom header so client can map citations
-    const responseHeaders = {
+    // Return chunks metadata encoded in base64 to avoid non-ASCII ByteString errors in headers
+    const chunksJson = JSON.stringify(chunks.map(c => ({ id: c.id, text: c.text.substring(0, 200) })));
+    const encodedChunks = btoa(unescape(encodeURIComponent(chunksJson)));
+    
+    const responseHeaders: Record<string, string> = {
       ...corsHeaders,
       'Content-Type': 'text/event-stream',
-      'X-Citation-Chunks': JSON.stringify(chunks.map(c => ({ id: c.id, text: c.text.substring(0, 200) }))),
+      'X-Citation-Chunks': encodedChunks,
     };
 
     return new Response(response.body, { headers: responseHeaders });
