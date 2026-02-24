@@ -1,32 +1,19 @@
 
 
-# Add Connected Accounts Section to Settings
+# Fix Oversized Toggle Switches on Mobile
 
-## What It Does
-Shows the user which login methods are connected to their account (Email, Google) and lets them link/unlink additional providers. For example, someone who signed up with email can link their Google account for faster logins in the future.
+## Problem
+The toggle switches in Settings (In-App Notifications, Email Notifications, Dark Mode) look visually heavy and disproportionate on mobile. At 28x48px with a 24px thumb, they dominate the rows and feel clunky compared to premium app standards (iOS uses ~31x51px but with thinner track proportions).
 
-## How It Works
-- Reads `user.identities` from the Supabase auth user object (already available via `useAuth`)
-- Each identity has a `provider` field ("email", "google", etc.) and metadata like email address
-- Linking: calls `supabase.auth.linkIdentity({ provider: 'google' })` to add Google
-- Unlinking: calls `supabase.auth.unlinkIdentity(identity)` to remove a linked provider (only if 2+ providers exist)
+## Solution
+Reduce the Switch component dimensions to a more refined size that still meets touch target requirements (the row itself provides the 44px touch area):
 
-## What Gets Built
+- **Track**: `h-6 w-11` (24x44px) -- slightly slimmer, more proportional
+- **Thumb**: `h-5 w-5` (20px) -- matches the reduced track
+- **Translation**: Adjust `translate-x-5` to `translate-x-[18px]` for correct travel distance
 
-### New Component: `src/components/settings/ConnectedAccountsSection.tsx`
-- Lists each connected identity with a provider icon (Mail icon for email, a Google "G" for Google)
-- Shows the email/identifier associated with each provider
-- "Link Google Account" button if Google isn't connected yet
-- "Unlink" button on non-primary providers (disabled if only one provider exists, to prevent lockout)
+## File Changed
+- `src/components/ui/switch.tsx` -- Update track and thumb dimensions
 
-### Modified File: `src/pages/SettingsPage.tsx`
-- New "Connected Accounts" section placed between the Account and Study Preferences sections
-- Uses the existing `Section`, `SettingRow`, and `LinkRow` patterns for consistency
-
-## Technical Details
-- No database changes needed -- identity data comes from `supabase.auth.getUser()`
-- The `user.identities` array is already available from the auth session
-- `supabase.auth.linkIdentity()` triggers an OAuth redirect flow, then returns the user back
-- `supabase.auth.unlinkIdentity()` requires the identity object with `identity_id` and `provider`
-- Safety: prevent unlinking the last remaining provider
-
+## Visual Impact
+The switches will look more refined and balanced within each settings row, closer to what premium apps like Notion or Linear use. The touch target remains accessible since the entire row is tappable.
