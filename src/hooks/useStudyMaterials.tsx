@@ -82,25 +82,35 @@ export interface ConceptMap {
 export function useStudyMaterials(folderId?: string) {
   const { user } = useAuth();
 
-  return useQuery({
+  const query = useQuery({
     queryKey: ['study-materials', folderId],
     queryFn: async () => {
-      let query = supabase
+      let q = supabase
         .from('study_materials')
         .select('*')
         .eq('user_id', user?.id)
         .order('updated_at', { ascending: false });
 
       if (folderId) {
-        query = query.eq('folder_id', folderId);
+        q = q.eq('folder_id', folderId);
       }
 
-      const { data, error } = await query;
+      const { data, error } = await q;
       if (error) throw error;
       return data as StudyMaterial[];
     },
     enabled: !!user,
+    refetchInterval: (query) => {
+      const materials = query.state.data;
+      if (!materials) return false;
+      const hasProcessing = materials.some(
+        m => m.processing_status === 'pending' || m.processing_status === 'processing'
+      );
+      return hasProcessing ? 5000 : false;
+    },
   });
+
+  return query;
 }
 
 // Fetch a single study material

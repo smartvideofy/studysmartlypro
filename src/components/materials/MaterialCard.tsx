@@ -12,7 +12,9 @@ import {
   AlertCircle,
   CheckCircle,
   RefreshCw,
-  AlertTriangle
+  AlertTriangle,
+  Globe,
+  Video
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -42,6 +44,8 @@ const fileTypeConfig: Record<string, { icon: typeof FileText; bgColor: string; l
   pptx: { icon: FileSpreadsheet, bgColor: 'bg-orange-500/10', label: 'PowerPoint' },
   audio: { icon: FileAudio, bgColor: 'bg-purple-500/10', label: 'Audio' },
   image: { icon: FileImage, bgColor: 'bg-green-500/10', label: 'Image' },
+  web_url: { icon: Globe, bgColor: 'bg-cyan-500/10', label: 'Web URL' },
+  youtube: { icon: Video, bgColor: 'bg-red-500/10', label: 'YouTube' },
   other: { icon: FileText, bgColor: 'bg-muted', label: 'File' },
 };
 
@@ -73,7 +77,7 @@ export default function MaterialCard({ material, onClick, onDelete, onSettings, 
     <motion.div
       whileTap={{ scale: 0.98 }}
       transition={{ type: "spring", stiffness: 400, damping: 25 }}
-      className="relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer"
+      className="group relative bg-card border border-border rounded-xl overflow-hidden hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer"
       onClick={() => {
         haptics.selection();
         onClick();

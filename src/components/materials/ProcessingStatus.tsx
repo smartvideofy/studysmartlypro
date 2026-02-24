@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StudyMaterial, useUpdateStudyMaterial } from "@/hooks/useStudyMaterials";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { runProcessingPipeline } from "@/lib/processMaterialPipeline";
 import { toast } from "sonner";
 
@@ -38,30 +39,52 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
   const updateMaterial = useUpdateStudyMaterial();
   const [isRetrying, setIsRetrying] = useState(false);
 
-  // Calculate current step based on status
+  // Query related content tables to determine real progress
+  const { data: progressData } = useQuery({
+    queryKey: ['material-progress', material.id],
+    queryFn: async () => {
+      const [tutorNotes, summaries, flashcards, questions, conceptMaps] = await Promise.all([
+        supabase.from('tutor_notes').select('id', { count: 'exact', head: true }).eq('material_id', material.id),
+        supabase.from('summaries').select('id', { count: 'exact', head: true }).eq('material_id', material.id),
+        supabase.from('material_flashcards').select('id', { count: 'exact', head: true }).eq('material_id', material.id),
+        supabase.from('practice_questions').select('id', { count: 'exact', head: true }).eq('material_id', material.id),
+        supabase.from('concept_maps').select('id', { count: 'exact', head: true }).eq('material_id', material.id),
+      ]);
+      return {
+        hasExtracted: !!material.extracted_content,
+        hasTutorNotes: (tutorNotes.count ?? 0) > 0,
+        hasSummaries: (summaries.count ?? 0) > 0,
+        hasFlashcards: (flashcards.count ?? 0) > 0,
+        hasQuestions: (questions.count ?? 0) > 0,
+        hasConceptMap: (conceptMaps.count ?? 0) > 0,
+      };
+    },
+    enabled: material.processing_status === 'processing' || material.processing_status === 'pending',
+    refetchInterval: 3000,
+  });
+
+  // Calculate current step based on content queries
   const getProgress = () => {
-    const progressMsg = material.processing_error || '';
-    
     if (material.processing_status === "completed") {
       return { step: processingSteps.length, progress: 100 };
     }
     if (material.processing_status === "failed") {
       return { step: -1, progress: 0 };
     }
-    if (material.processing_status === "pending") {
-      return { step: 0, progress: 5 };
+    if (!progressData) {
+      return { step: 0, progress: material.processing_status === "pending" ? 5 : 10 };
     }
-    
-    // Map progress messages from edge function to step index
-    if (progressMsg.includes('tutor notes')) return { step: 1, progress: 25 };
-    if (progressMsg.includes('summaries')) return { step: 2, progress: 40 };
-    if (progressMsg.includes('flashcards')) return { step: 3, progress: 55 };
-    if (progressMsg.includes('practice questions')) return { step: 4, progress: 70 };
-    if (progressMsg.includes('concept map')) return { step: 4, progress: 75 };
-    if (progressMsg.includes('Finalizing')) return { step: 5, progress: 90 };
-    
-    // Default processing state
-    return { step: 0, progress: 15 };
+
+    let completedSteps = 0;
+    if (progressData.hasExtracted) completedSteps++;
+    if (progressData.hasTutorNotes) completedSteps++;
+    if (progressData.hasSummaries) completedSteps++;
+    if (progressData.hasFlashcards) completedSteps++;
+    if (progressData.hasQuestions) completedSteps++;
+    if (progressData.hasConceptMap) completedSteps++;
+
+    const progress = Math.min(Math.round((completedSteps / 6) * 90) + 10, 95);
+    return { step: completedSteps, progress };
   };
 
   const { step: currentStep, progress } = getProgress();
@@ -102,27 +125,24 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
     }
   }, [material.processing_status, material.id, queryClient]);
 
-  const handleRetry = async () => {
+  const handleRetry = () => {
     setIsRetrying(true);
     
-    try {
-      await updateMaterial.mutateAsync({
-        id: material.id,
-        processing_status: "pending",
-        processing_error: null,
-      });
-
-      await runProcessingPipeline(material.id);
-
-      toast.success("Processing completed!");
-      queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
-    } catch (error) {
-      console.error('Retry error:', error);
-      toast.error("Processing failed. Please try again.");
-      queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
-    } finally {
+    updateMaterial.mutateAsync({
+      id: material.id,
+      processing_status: "pending",
+      processing_error: null,
+    }).then(() => {
+      toast.info("Retrying processing...");
+      runProcessingPipeline(material.id).catch((error) => {
+        console.error('Retry error:', error);
+        toast.error("Processing failed. Please try again.");
+        queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
+      }).finally(() => setIsRetrying(false));
+    }).catch(() => {
+      toast.error("Failed to restart processing.");
       setIsRetrying(false);
-    }
+    });
   };
 
   return (

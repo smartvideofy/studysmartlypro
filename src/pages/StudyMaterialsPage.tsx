@@ -13,7 +13,9 @@ import {
   FileAudio,
   FileImage,
   X,
-  Layers
+  Layers,
+  Globe,
+  Video
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Button } from "@/components/ui/button";
@@ -44,7 +46,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useIsMobile } from "@/hooks/use-mobile";
 
-type FileTypeFilter = 'pdf' | 'docx' | 'pptx' | 'audio' | 'image';
+type FileTypeFilter = 'pdf' | 'docx' | 'pptx' | 'audio' | 'image' | 'web_url' | 'youtube';
 
 export default function StudyMaterialsPage() {
   const isMobile = useIsMobile();
@@ -69,23 +71,21 @@ export default function StudyMaterialsPage() {
     queryClient.invalidateQueries({ queryKey: ['folders'] });
   };
 
-  const handleRetryProcessing = async (material: StudyMaterial) => {
-    try {
-      await updateMaterial.mutateAsync({
-        id: material.id,
-        processing_status: "pending",
-        processing_error: null,
+  const handleRetryProcessing = (material: StudyMaterial) => {
+    updateMaterial.mutateAsync({
+      id: material.id,
+      processing_status: "pending",
+      processing_error: null,
+    }).then(() => {
+      toast.info("Retrying processing...");
+      runProcessingPipeline(material.id).catch((error) => {
+        console.error('Retry error:', error);
+        toast.error("Processing failed. Please try again.");
+        queryClient.invalidateQueries({ queryKey: ['study-materials'] });
       });
-
-      await runProcessingPipeline(material.id);
-
-      toast.success("Processing completed!");
-      queryClient.invalidateQueries({ queryKey: ['study-materials'] });
-    } catch (error) {
-      console.error('Retry error:', error);
-      toast.error("Processing failed. Please try again.");
-      queryClient.invalidateQueries({ queryKey: ['study-materials'] });
-    }
+    }).catch(() => {
+      toast.error("Failed to restart processing.");
+    });
   };
 
   const toggleFileTypeFilter = (type: FileTypeFilter) => {
@@ -240,6 +240,22 @@ export default function StudyMaterialsPage() {
                   >
                     <FileImage className="w-4 h-4 mr-2 text-green-500" />
                     Image
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={fileTypeFilters.includes('web_url')}
+                    onCheckedChange={() => toggleFileTypeFilter('web_url')}
+                    className="touch-target"
+                  >
+                    <Globe className="w-4 h-4 mr-2 text-cyan-500" />
+                    Web URL
+                  </DropdownMenuCheckboxItem>
+                  <DropdownMenuCheckboxItem
+                    checked={fileTypeFilters.includes('youtube')}
+                    onCheckedChange={() => toggleFileTypeFilter('youtube')}
+                    className="touch-target"
+                  >
+                    <Video className="w-4 h-4 mr-2 text-red-500" />
+                    YouTube
                   </DropdownMenuCheckboxItem>
                   {fileTypeFilters.length > 0 && (
                     <>
