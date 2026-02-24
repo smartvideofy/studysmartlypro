@@ -22,6 +22,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useProfile } from "@/hooks/useProfile";
 import { useGamificationProfile } from "@/hooks/useGamification";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 import { XPProgress } from "@/components/gamification/XPProgress";
 import {
   Drawer,
@@ -59,6 +60,8 @@ export function MobileMenuDrawer({ open, onOpenChange }: MobileMenuDrawerProps) 
   const { data: profile } = useProfile();
   const { data: gamificationProfile } = useGamificationProfile();
   const { signOut } = useAuth();
+  const { data: subscription } = useSubscription();
+  const isPaidUser = subscription?.status === 'active' && subscription?.plan !== 'free' && !subscription?.is_trial;
 
   const isActive = (path: string) => {
     if (path === "/dashboard") {
@@ -184,22 +187,24 @@ export function MobileMenuDrawer({ open, onOpenChange }: MobileMenuDrawerProps) 
               </div>
 
               {/* Premium CTA */}
-              <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  <span className="font-display font-semibold">Go Premium</span>
+              {!isPaidUser && (
+                <div className="mt-6 p-4 rounded-xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/20">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    <span className="font-display font-semibold">Go Premium</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Unlock all features and study smarter
+                  </p>
+                  <Button 
+                    size="sm" 
+                    className="w-full"
+                    onClick={() => handleNavClick("/pricing")}
+                  >
+                    Upgrade Now
+                  </Button>
                 </div>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Unlock all features and study smarter
-                </p>
-                <Button 
-                  size="sm" 
-                  className="w-full"
-                  onClick={() => handleNavClick("/pricing")}
-                >
-                  Upgrade Now
-                </Button>
-              </div>
+              )}
             </nav>
 
             {/* Bottom navigation */}
