@@ -72,12 +72,22 @@ function isValidWebUrl(url: string): boolean {
   }
 }
 
+function getFileIcon(file: File) {
+  if (file.type.startsWith('audio/')) return FileAudio;
+  if (file.type.startsWith('image/')) return FileImage;
+  return FileText;
+}
+
+function fileNameToTitle(name: string): string {
+  return name.replace(/\.[^/.]+$/, '');
+}
+
 export default function UploadMaterialModal({ open, onOpenChange }: UploadMaterialModalProps) {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'file' | 'youtube' | 'web'>('file');
   
-  // File upload state
-  const [file, setFile] = useState<File | null>(null);
+  // File upload state — now supports multiple files
+  const [files, setFiles] = useState<File[]>([]);
   
   // YouTube state
   const [videoUrl, setVideoUrl] = useState('');
@@ -109,25 +119,36 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   const materialCount = materials?.length || 0;
   const maxDocuments = planFeatures.maxDocuments;
   const isAtLimit = maxDocuments !== 'unlimited' && materialCount >= maxDocuments;
+  const remainingSlots = maxDocuments === 'unlimited' ? Infinity : maxDocuments - materialCount;
   const canGenerateQuestions = planFeatures.practiceQuestions;
   const canGenerateConceptMap = planFeatures.conceptMaps;
 
+  const isMultiFile = files.length > 1;
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
-      const f = acceptedFiles[0];
-      setFile(f);
-      if (!title) {
-        setTitle(f.name.replace(/\.[^/.]+$/, ''));
+      setFiles(prev => {
+        const combined = [...prev, ...acceptedFiles];
+        // Cap at 10 files
+        return combined.slice(0, 10);
+      });
+      // Auto-set title only for the first single file drop when title is empty
+      if (acceptedFiles.length === 1 && files.length === 0 && !title) {
+        setTitle(fileNameToTitle(acceptedFiles[0].name));
       }
     }
-  }, [title]);
+  }, [title, files.length]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: acceptedFormats,
-    maxFiles: 1,
+    maxFiles: 10,
     maxSize: 50 * 1024 * 1024,
   });
+
+  const removeFile = (index: number) => {
+    setFiles(prev => prev.filter((_, i) => i !== index));
+  };
 
   const handleVideoUrlChange = (url: string) => {
     setVideoUrl(url);
@@ -140,30 +161,56 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   };
 
   const handleSubmitFile = async () => {
-    if (!file || !title.trim()) return;
+    if (files.length === 0) return;
+    // For single file, require title; for multi-file, auto-derive titles
+    if (!isMultiFile && !title.trim()) return;
 
     setIsUploading(true);
+    let successCount = 0;
+    let failCount = 0;
+
     try {
-      const uploadResult = await uploadFile.mutateAsync(file);
-      await createMaterial.mutateAsync({
-        title: title.trim(),
-        file_name: uploadResult.fileName,
-        file_type: uploadResult.fileType,
-        file_path: uploadResult.filePath,
-        file_size: uploadResult.fileSize,
-        subject: subject || null,
-        topic: topic || null,
-        folder_id: folderId || null,
-        language,
-        generate_tutor_notes: generateTutorNotes,
-        generate_flashcards: generateFlashcards,
-        generate_questions: generateQuestions,
-        generate_concept_map: generateConceptMap,
-      });
-      resetForm();
-      onOpenChange(false);
-    } catch (error) {
-      console.error('Upload failed:', error);
+      for (const f of files) {
+        try {
+          const uploadResult = await uploadFile.mutateAsync(f);
+          const fileTitle = isMultiFile ? fileNameToTitle(f.name) : title.trim();
+          await createMaterial.mutateAsync({
+            title: fileTitle,
+            file_name: uploadResult.fileName,
+            file_type: uploadResult.fileType,
+            file_path: uploadResult.filePath,
+            file_size: uploadResult.fileSize,
+            subject: subject || null,
+            topic: topic || null,
+            folder_id: folderId || null,
+            language,
+            generate_tutor_notes: generateTutorNotes,
+            generate_flashcards: generateFlashcards,
+            generate_questions: generateQuestions,
+            generate_concept_map: generateConceptMap,
+          });
+          successCount++;
+        } catch (error) {
+          console.error(`Upload failed for ${f.name}:`, error);
+          failCount++;
+        }
+      }
+
+      if (failCount > 0 && successCount > 0) {
+        toast.warning(`${successCount} uploaded, ${failCount} failed`);
+      } else if (failCount > 0) {
+        toast.error('All uploads failed');
+      }
+      // Success toast is handled by the mutation's onSuccess for single files.
+      // For multi-file, show a summary.
+      if (successCount > 0 && isMultiFile) {
+        toast.success(`${successCount} material${successCount > 1 ? 's' : ''} uploaded successfully`);
+      }
+
+      if (successCount > 0) {
+        resetForm();
+        onOpenChange(false);
+      }
     } finally {
       setIsUploading(false);
     }
@@ -226,7 +273,6 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
         return;
       }
 
-      // Create material record with web URL metadata
       await createMaterial.mutateAsync({
         title: title.trim(),
         file_name: webUrl,
@@ -264,9 +310,8 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
     }
   };
 
-
   const resetForm = () => {
-    setFile(null);
+    setFiles([]);
     setVideoUrl('');
     setIsValidUrl(false);
     setWebUrl('');
@@ -283,20 +328,15 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
     setActiveTab('file');
   };
 
-  const getFileIcon = () => {
-    if (!file) return FileText;
-    if (file.type.startsWith('audio/')) return FileAudio;
-    if (file.type.startsWith('image/')) return FileImage;
-    return FileText;
-  };
-
-  const FileIcon = getFileIcon();
-
+  // For multi-file, title is auto-derived so not required
   const canSubmit = activeTab === 'file' 
-    ? file && title.trim() && !isAtLimit
+    ? files.length > 0 && (isMultiFile || title.trim()) && !isAtLimit
     : activeTab === 'youtube'
     ? videoUrl && isValidUrl && title.trim() && !isAtLimit
     : webUrl && isValidWebUrlState && title.trim() && !isAtLimit;
+
+  // Check if files exceed remaining slots
+  const exceedsLimit = maxDocuments !== 'unlimited' && files.length > remainingSlots;
 
   // If at document limit, show upgrade prompt
   if (isAtLimit) {
@@ -375,39 +415,14 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
                 isDragActive 
                   ? 'border-primary bg-primary/5' 
                   : 'border-border hover:border-primary/50 hover:bg-secondary/50',
-                file && 'border-green-500 bg-green-500/5'
+                files.length > 0 && 'border-green-500 bg-green-500/5'
               )}
             >
               <input {...getInputProps()} />
               <AnimatePresence mode="wait">
-                {file ? (
+                {files.length === 0 ? (
                   <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.9 }}
-                    className="space-y-2"
-                  >
-                    <div className="w-14 h-14 md:w-16 md:h-16 rounded-xl bg-green-500/10 flex items-center justify-center mx-auto">
-                      <FileIcon className="w-7 h-7 md:w-8 md:h-8 text-green-500" />
-                    </div>
-                    <p className="font-medium text-foreground text-sm md:text-base">{file.name}</p>
-                    <p className="text-xs md:text-sm text-muted-foreground">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setFile(null);
-                      }}
-                    >
-                      <X className="w-4 h-4 mr-1" />
-                      Remove
-                    </Button>
-                  </motion.div>
-                ) : (
-                  <motion.div
+                    key="empty"
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     exit={{ opacity: 0, scale: 0.9 }}
@@ -418,16 +433,71 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
                     </div>
                     <div>
                       <p className="font-medium text-foreground text-sm md:text-base">
-                        {isDragActive ? 'Drop your file here' : 'Drag & drop your file'}
+                        {isDragActive ? 'Drop your files here' : 'Drag & drop your files'}
                       </p>
                       <p className="text-xs md:text-sm text-muted-foreground mt-1">
-                        PDF, Word, PowerPoint, Audio, or Images (max 50MB)
+                        PDF, Word, PowerPoint, Audio, or Images (max 50MB each, up to 10 files)
                       </p>
                     </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="files"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="space-y-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <p className="text-sm font-medium text-green-600 flex items-center justify-center gap-1.5 mb-3">
+                      <CheckCircle className="w-4 h-4" />
+                      {files.length} file{files.length > 1 ? 's' : ''} selected
+                    </p>
+                    <div className="max-h-40 overflow-y-auto space-y-1.5 text-left">
+                      {files.map((f, idx) => {
+                        const Icon = getFileIcon(f);
+                        return (
+                          <div key={idx} className="flex items-center gap-2 p-2 rounded-lg bg-background/60 border border-border/50">
+                            <Icon className="w-4 h-4 text-muted-foreground shrink-0" />
+                            <span className="text-xs text-foreground truncate flex-1">{f.name}</span>
+                            <span className="text-xs text-muted-foreground shrink-0">
+                              {(f.size / 1024 / 1024).toFixed(1)} MB
+                            </span>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFile(idx);
+                              }}
+                              className="p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors shrink-0"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <p
+                      className="text-xs text-primary cursor-pointer hover:underline pt-1"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        // Trigger file picker by clicking the hidden input
+                        const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+                        input?.click();
+                      }}
+                    >
+                      + Add more files
+                    </p>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
+
+            {exceedsLimit && (
+              <p className="text-sm text-destructive mt-2">
+                You can only upload {remainingSlots} more document{remainingSlots !== 1 ? 's' : ''} on your current plan.
+              </p>
+            )}
           </TabsContent>
 
           {/* YouTube URL Tab */}
@@ -540,15 +610,24 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
 
         {/* Metadata Form */}
         <div className="grid gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder={activeTab === 'youtube' ? "e.g., Calculus Lecture 5" : "e.g., Chapter 5 - Cell Biology"}
-            />
-          </div>
+          {/* Hide title field for multi-file (titles auto-derived from filenames) */}
+          {!isMultiFile && (
+            <div className="space-y-2">
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={activeTab === 'youtube' ? "e.g., Calculus Lecture 5" : "e.g., Chapter 5 - Cell Biology"}
+              />
+            </div>
+          )}
+
+          {isMultiFile && (
+            <p className="text-xs text-muted-foreground">
+              Titles will be auto-generated from file names.
+            </p>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -661,7 +740,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           Cancel
         </Button>
-        <Button onClick={handleSubmit} disabled={!canSubmit || isUploading}>
+        <Button onClick={handleSubmit} disabled={!canSubmit || isUploading || exceedsLimit}>
           {isUploading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -670,7 +749,11 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              {activeTab === 'youtube' ? 'Process Video' : 'Upload'}
+              {activeTab === 'youtube' 
+                ? 'Process Video' 
+                : activeTab === 'file' && files.length > 1
+                ? `Upload ${files.length} Files`
+                : 'Upload'}
             </>
           )}
         </Button>
