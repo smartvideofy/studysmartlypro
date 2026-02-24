@@ -11,7 +11,7 @@ const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY')!;
 
-const MAX_VISION_FILE_SIZE = 10 * 1024 * 1024; // 10MB max for vision processing
+const MAX_VISION_FILE_SIZE = 10 * 1024 * 1024;
 
 interface StudyMaterial {
   id: string;
@@ -21,6 +21,7 @@ interface StudyMaterial {
   file_name: string | null;
   file_type: string | null;
   file_size: number | null;
+  extracted_content: string | null;
   language: string;
   subject: string | null;
   topic: string | null;
@@ -30,8 +31,19 @@ interface StudyMaterial {
   generate_concept_map: boolean;
 }
 
+type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
+
+// ─── Helper: update progress message ───
+async function updateProgress(supabase: any, materialId: string, message: string) {
+  await supabase
+    .from('study_materials')
+    .update({ processing_error: message })
+    .eq('id', materialId);
+}
+
+// ─── Text extraction helpers ───
+
 async function extractTextFromFile(supabase: any, material: StudyMaterial): Promise<string> {
-  // Handle web URLs - fetch and extract content via AI
   if (material.file_type === 'web_url' && material.file_name) {
     console.log(`Fetching web URL: ${material.file_name}`);
     try {
@@ -40,7 +52,6 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const html = await resp.text();
-      // Use AI to extract meaningful text from HTML
       const extractResp = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
@@ -74,7 +85,6 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
 
   console.log(`Extracting text from file: ${material.file_path}, type: ${material.file_type}`);
 
-  // Download file from storage
   const { data: fileData, error: downloadError } = await supabase.storage
     .from('study-materials')
     .download(material.file_path);
@@ -100,7 +110,6 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
   }
 
   if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
-    // Try direct text extraction first (works for text-based PDFs)
     try {
       const text = await fileData.text();
       if (text && text.length > 100 && !text.includes('\x00') && isPrintableText(text)) {
@@ -111,10 +120,9 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
       console.log('Direct text extraction failed');
     }
     
-    // Check file size before attempting vision (base64 causes ~4x memory amplification)
     const fileSize = material.file_size || fileData.size;
     if (fileSize > MAX_VISION_FILE_SIZE) {
-      console.error(`File too large for vision processing: ${(fileSize / (1024 * 1024)).toFixed(1)}MB (max ${MAX_VISION_FILE_SIZE / (1024 * 1024)}MB)`);
+      console.error(`File too large for vision processing: ${(fileSize / (1024 * 1024)).toFixed(1)}MB`);
       throw new Error(`This file is too large (${(fileSize / (1024 * 1024)).toFixed(0)}MB) for AI processing. Please upload a file under 10MB, or split it into smaller parts.`);
     }
 
@@ -133,7 +141,6 @@ function isPrintableText(text: string): boolean {
 async function blobToBase64(blob: Blob): Promise<string> {
   const arrayBuffer = await blob.arrayBuffer();
   const bytes = new Uint8Array(arrayBuffer);
-  // Process in chunks to reduce peak memory usage
   const CHUNK_SIZE = 32768;
   const chunks: string[] = [];
   for (let i = 0; i < bytes.length; i += CHUNK_SIZE) {
@@ -197,12 +204,8 @@ Be thorough and comprehensive. The extracted content will be used to generate st
   if (!response.ok) {
     const errorText = await response.text();
     console.error('Vision API error:', response.status, errorText);
-    if (response.status === 429) {
-      throw new Error('RATE_LIMIT_EXCEEDED');
-    }
-    if (response.status === 402) {
-      throw new Error('PAYMENT_REQUIRED');
-    }
+    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (response.status === 402) throw new Error('PAYMENT_REQUIRED');
     throw new Error(`Failed to extract content from ${fileType}`);
   }
 
@@ -211,6 +214,8 @@ Be thorough and comprehensive. The extracted content will be used to generate st
   console.log(`Extracted ${extractedContent.length} characters from ${fileType}`);
   return extractedContent;
 }
+
+// ─── AI Generation functions ───
 
 async function generateTutorNotes(content: string, material: StudyMaterial): Promise<object> {
   console.log('Generating comprehensive tutor notes...');
@@ -239,7 +244,7 @@ Respond ONLY with valid JSON in this exact structure:
       "subtopics": [
         {
           "title": "Subtopic Title",
-          "content": "Comprehensive explanation of 200-300 words covering the concept in depth, including background, key principles, significance, and applications...",
+          "content": "Comprehensive explanation of 200-300 words...",
           "definitions": [
             {"term": "Key Term 1", "definition": "Detailed academic definition"},
             {"term": "Key Term 2", "definition": "Detailed academic definition"},
@@ -320,7 +325,6 @@ async function generateSummaries(content: string, material: StudyMaterial): Prom
   
   const summaries: { type: string; content: string }[] = [];
 
-  // Generate Quick Summary
   const quickPrompt = `Create a concise 2-minute summary of this study material. Focus on the main idea and 3-5 key takeaways.
 
 Title: ${material.title}
@@ -329,7 +333,7 @@ Subject: ${material.subject || 'General'}
 Content:
 ${content.substring(0, 30000)}
 
-Format: Write 2-3 paragraphs that capture the essence of the material. A student should be able to read this in under 2 minutes and understand the core concepts.`;
+Format: Write 2-3 paragraphs that capture the essence of the material.`;
 
   const quickResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -349,13 +353,9 @@ Format: Write 2-3 paragraphs that capture the essence of the material. A student
 
   if (quickResponse.ok) {
     const quickData = await quickResponse.json();
-    summaries.push({ 
-      type: 'quick', 
-      content: quickData.choices?.[0]?.message?.content || '' 
-    });
+    summaries.push({ type: 'quick', content: quickData.choices?.[0]?.message?.content || '' });
   }
 
-  // Generate Detailed Summary
   const detailedPrompt = `Create a comprehensive, detailed summary of this study material.
 
 Title: ${material.title}
@@ -365,24 +365,7 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 40000)}
 
-Structure your summary as follows:
-
-Overview
-A brief introduction to the material's main theme and purpose.
-
-Key Concepts
-Explain each major concept covered in the material with clear definitions and examples.
-
-Important Details
-Include significant facts, figures, dates, formulas, and specific information that students need to know.
-
-Connections and Relationships
-Describe how different concepts relate to each other and build upon one another.
-
-Summary
-A final paragraph consolidating the most critical points for study.
-
-Write in clear, flowing paragraphs. Use proper headings and organize content logically. Avoid excessive formatting markers.`;
+Structure your summary with: Overview, Key Concepts, Important Details, Connections and Relationships, Summary.`;
 
   const detailedResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -398,13 +381,9 @@ Write in clear, flowing paragraphs. Use proper headings and organize content log
 
   if (detailedResponse.ok) {
     const detailedData = await detailedResponse.json();
-    summaries.push({ 
-      type: 'detailed', 
-      content: detailedData.choices?.[0]?.message?.content || '' 
-    });
+    summaries.push({ type: 'detailed', content: detailedData.choices?.[0]?.message?.content || '' });
   }
 
-  // Generate Bullet Points / Key Points
   const bulletPrompt = `Extract the key points from this study material as a numbered list.
 
 Title: ${material.title}
@@ -413,14 +392,7 @@ Subject: ${material.subject || 'General'}
 Content:
 ${content.substring(0, 30000)}
 
-Create 10-15 key points that capture the most important information. Each point should be a complete, standalone statement that a student should remember.
-
-Format each point as a simple sentence without any special formatting characters like asterisks or bullet markers. Just plain numbered points.
-
-Example format:
-1. First key point here
-2. Second key point here
-3. Third key point here`;
+Create 10-15 key points. Each point should be a complete, standalone statement.`;
 
   const bulletResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -436,10 +408,7 @@ Example format:
 
   if (bulletResponse.ok) {
     const bulletData = await bulletResponse.json();
-    summaries.push({ 
-      type: 'bullet_points', 
-      content: bulletData.choices?.[0]?.message?.content || '' 
-    });
+    summaries.push({ type: 'bullet_points', content: bulletData.choices?.[0]?.message?.content || '' });
   }
 
   return summaries;
@@ -452,36 +421,24 @@ async function generatePracticeQuestions(content: string, material: StudyMateria
 
 Include a balanced mix of:
 - 6 Multiple choice questions (MCQ) - with 4 plausible options
-- 4 Short answer questions - requiring 2-3 sentence responses
-- 3 Application-based questions - real-world scenario applications
-- 2 Analytical questions - requiring critical thinking
-
-For EACH question:
-1. Make it specific to the content provided
-2. Test genuine understanding, not just memorization
-3. Provide a detailed explanation of the correct answer
-4. For MCQs, make all options plausible (no obvious wrong answers)
+- 4 Short answer questions
+- 3 Application-based questions
+- 2 Analytical questions
 
 Return ONLY valid JSON array:
 [
   {
     "question_type": "mcq",
-    "question": "Detailed question that tests understanding?",
-    "options": ["Option A - plausible", "Option B - plausible", "Option C - plausible", "Option D - plausible"],
+    "question": "Detailed question?",
+    "options": ["Option A", "Option B", "Option C", "Option D"],
     "correct_answer": "The full correct option text",
-    "explanation": "Detailed explanation of why this is correct and why other options are wrong"
+    "explanation": "Detailed explanation"
   },
   {
     "question_type": "short_answer",
-    "question": "Question requiring a concise response?",
-    "correct_answer": "Model answer demonstrating expected response",
+    "question": "Question?",
+    "correct_answer": "Model answer",
     "explanation": "What key points the answer should include"
-  },
-  {
-    "question_type": "application",
-    "question": "Scenario-based question applying concepts?",
-    "correct_answer": "Expected application of the concept",
-    "explanation": "How to approach this type of problem"
   }
 ]`;
 
@@ -494,7 +451,7 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 40000)}
 
-Generate 15 diverse, challenging practice questions that thoroughly test understanding of this material.`;
+Generate 15 diverse, challenging practice questions.`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -536,27 +493,14 @@ Generate 15 diverse, challenging practice questions that thoroughly test underst
 async function generateFlashcards(content: string, material: StudyMaterial): Promise<object[]> {
   console.log('Generating comprehensive flashcards...');
   
-  const systemPrompt = `You are an expert at creating effective flashcards for learning and memorization. Create 20 high-quality flashcards that cover the key concepts from the study material.
-
-Flashcard Types to Include:
-- Definition cards (term → definition)
-- Concept cards (concept → explanation)
-- Q&A cards (question → answer)
-- Application cards (scenario → solution)
-
-Guidelines:
-1. Front should be concise and clear
-2. Back should be comprehensive but focused
-3. Include hints for difficult cards
-4. Cover all major topics in the material
-5. Progress from basic to advanced concepts
+  const systemPrompt = `You are an expert at creating effective flashcards for learning. Create 20 high-quality flashcards covering the key concepts.
 
 Return ONLY valid JSON array:
 [
   {
     "front": "Clear question or term",
     "back": "Comprehensive answer or definition",
-    "hint": "Optional hint to help recall",
+    "hint": "Optional hint",
     "difficulty": "easy|medium|hard"
   }
 ]`;
@@ -568,9 +512,7 @@ Subject: ${material.subject || 'General'}
 Topic: ${material.topic || 'Not specified'}
 
 Content:
-${content.substring(0, 40000)}
-
-Generate flashcards covering all key concepts, definitions, and important facts.`;
+${content.substring(0, 40000)}`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -612,30 +554,15 @@ Generate flashcards covering all key concepts, definitions, and important facts.
 async function generateConceptMap(content: string, material: StudyMaterial): Promise<object> {
   console.log('Generating comprehensive concept map...');
   
-  const systemPrompt = `You are an expert at creating visual concept maps for learning. Analyze the content and create a comprehensive concept map showing how different concepts relate.
-
-Create a map with:
-- 10-15 nodes representing key concepts
-- Clear relationships between connected concepts
-- Hierarchical layout (main concepts at top, sub-concepts below)
-- Meaningful edge labels describing relationships
-
-Layout Guidelines:
-- Main concept at center-top (x: 400, y: 50)
-- Second level nodes at y: 150, spaced across x: 100-700
-- Third level at y: 250
-- Keep nodes evenly spaced
+  const systemPrompt = `You are an expert at creating visual concept maps. Analyze the content and create a comprehensive concept map with 10-15 nodes.
 
 Return ONLY valid JSON:
 {
   "nodes": [
-    {"id": "1", "label": "Main Concept", "x": 400, "y": 50, "description": "Detailed description of this concept"},
-    {"id": "2", "label": "Sub Concept 1", "x": 200, "y": 150, "description": "Description"},
-    {"id": "3", "label": "Sub Concept 2", "x": 600, "y": 150, "description": "Description"}
+    {"id": "1", "label": "Main Concept", "x": 400, "y": 50, "description": "Description"}
   ],
   "edges": [
-    {"source": "1", "target": "2", "label": "includes"},
-    {"source": "1", "target": "3", "label": "leads to"}
+    {"source": "1", "target": "2", "label": "includes"}
   ]
 }`;
 
@@ -646,9 +573,7 @@ Subject: ${material.subject || 'General'}
 Topic: ${material.topic || 'Not specified'}
 
 Content:
-${content.substring(0, 30000)}
-
-Generate a detailed concept map with 10-15 interconnected nodes.`;
+${content.substring(0, 30000)}`;
 
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -687,6 +612,161 @@ Generate a detailed concept map with 10-15 interconnected nodes.`;
   }
 }
 
+// ─── Step handlers ───
+
+async function handleExtractStep(supabase: any, material: StudyMaterial, materialId: string) {
+  // If extracted_content already exists and is substantial, skip re-extraction
+  if (material.extracted_content && material.extracted_content.length > 100) {
+    console.log('Extracted content already exists, skipping extraction');
+    return;
+  }
+
+  await updateProgress(supabase, materialId, '⏳ Extracting content...');
+
+  let extractedContent = '';
+  try {
+    extractedContent = await extractTextFromFile(supabase, material);
+    console.log(`Extracted ${extractedContent.length} characters`);
+    
+    await supabase
+      .from('study_materials')
+      .update({ 
+        extracted_content: extractedContent.substring(0, 65000),
+        processing_status: 'processing',
+      })
+      .eq('id', materialId);
+  } catch (extractError) {
+    console.error('Content extraction error:', extractError);
+    extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
+    await supabase
+      .from('study_materials')
+      .update({ 
+        extracted_content: extractedContent,
+        processing_status: 'processing',
+      })
+      .eq('id', materialId);
+  }
+}
+
+async function handleTutorNotesStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
+  if (!material.generate_tutor_notes) return;
+  
+  await updateProgress(supabase, materialId, '⏳ Generating tutor notes...');
+  
+  const content = material.extracted_content || '';
+  const tutorNotes = await generateTutorNotes(content, material);
+  await supabase
+    .from('tutor_notes')
+    .insert({
+      material_id: materialId,
+      user_id: userId,
+      content: tutorNotes,
+    });
+  console.log('Tutor notes generated');
+}
+
+async function handleSummariesStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
+  await updateProgress(supabase, materialId, '⏳ Generating summaries...');
+  
+  const content = material.extracted_content || '';
+  const summaries = await generateSummaries(content, material);
+  for (const summary of summaries) {
+    await supabase
+      .from('summaries')
+      .insert({
+        material_id: materialId,
+        user_id: userId,
+        summary_type: summary.type,
+        content: summary.content,
+      });
+  }
+  console.log('Summaries generated');
+}
+
+async function handleFlashcardsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
+  if (!material.generate_flashcards) return;
+  
+  await updateProgress(supabase, materialId, '⏳ Generating flashcards...');
+  
+  const content = material.extracted_content || '';
+  const flashcards = await generateFlashcards(content, material);
+  for (const card of flashcards) {
+    await supabase
+      .from('material_flashcards')
+      .insert({
+        material_id: materialId,
+        user_id: userId,
+        front: (card as any).front,
+        back: (card as any).back,
+        hint: (card as any).hint || null,
+        difficulty: (card as any).difficulty || 'medium',
+      });
+  }
+  console.log('Flashcards generated');
+}
+
+async function handleQuestionsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string, isPremium: boolean) {
+  if (!material.generate_questions) return;
+  if (!isPremium) {
+    console.log('Skipping practice questions - requires Pro plan');
+    return;
+  }
+  
+  await updateProgress(supabase, materialId, '⏳ Generating practice questions...');
+  
+  const content = material.extracted_content || '';
+  const questions = await generatePracticeQuestions(content, material);
+  for (const q of questions) {
+    await supabase
+      .from('practice_questions')
+      .insert({
+        material_id: materialId,
+        user_id: userId,
+        question_type: (q as any).question_type || 'short_answer',
+        question: (q as any).question,
+        options: (q as any).options || null,
+        correct_answer: (q as any).correct_answer || null,
+        explanation: (q as any).explanation || null,
+      });
+  }
+  console.log('Practice questions generated');
+}
+
+async function handleConceptMapStep(supabase: any, material: StudyMaterial, materialId: string, userId: string, isPremium: boolean) {
+  if (!material.generate_concept_map) return;
+  if (!isPremium) {
+    console.log('Skipping concept map - requires Pro plan');
+    return;
+  }
+  
+  await updateProgress(supabase, materialId, '⏳ Generating concept map...');
+  
+  const content = material.extracted_content || '';
+  const conceptMap = await generateConceptMap(content, material);
+  await supabase
+    .from('concept_maps')
+    .insert({
+      material_id: materialId,
+      user_id: userId,
+      nodes: (conceptMap as any).nodes || [],
+      edges: (conceptMap as any).edges || [],
+    });
+  console.log('Concept map generated');
+}
+
+async function handleCompleteStep(supabase: any, materialId: string) {
+  await supabase
+    .from('study_materials')
+    .update({ 
+      processing_status: 'completed',
+      processing_error: null,
+    })
+    .eq('id', materialId);
+  console.log('Processing completed successfully');
+}
+
+// ─── Main handler ───
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -695,7 +775,6 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(
@@ -704,7 +783,6 @@ serve(async (req) => {
       );
     }
 
-    // Create authenticated client to verify user
     const supabaseAuth = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
       global: { headers: { Authorization: authHeader } }
     });
@@ -722,15 +800,15 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
     console.log(`Authenticated user: ${userId}`);
 
-    const { materialId } = await req.json();
+    const { materialId, step } = await req.json();
     
     if (!materialId) {
       throw new Error('Material ID is required');
     }
 
-    console.log(`Processing material: ${materialId}`);
+    console.log(`Processing material: ${materialId}, step: ${step || 'full'}`);
 
-    // Fetch the material
+    // Fetch the material (fresh read each invocation)
     const { data: material, error: fetchError } = await supabase
       .from('study_materials')
       .select('*')
@@ -743,26 +821,79 @@ serve(async (req) => {
 
     const materialUserId = material.user_id;
 
-    // Check user's plan for feature gating
+    // Check user's plan
     const { data: userPlan } = await supabase.rpc('get_user_plan', { p_user_id: materialUserId });
     const plan = userPlan || 'free';
     const isPremium = plan !== 'free';
     
     console.log(`User ${materialUserId} has plan: ${plan}, isPremium: ${isPremium}`);
 
-    // Check document limit for free users
+    // ─── Stepped pipeline mode ───
+    if (step) {
+      switch (step as PipelineStep) {
+        case 'extract':
+          // Check document limit for free users
+          if (!isPremium) {
+            const { count, error: countError } = await supabase
+              .from('study_materials')
+              .select('id', { count: 'exact', head: true })
+              .eq('user_id', materialUserId);
+            if (!countError && count !== null && count > 5) {
+              throw new Error('Document limit reached. Please upgrade to Pro for unlimited uploads.');
+            }
+          }
+          await supabase
+            .from('study_materials')
+            .update({ processing_status: 'processing' })
+            .eq('id', materialId);
+          await handleExtractStep(supabase, material, materialId);
+          break;
+        case 'tutor_notes':
+          // Re-fetch material to get extracted_content
+          const { data: matTN } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleTutorNotesStep(supabase, matTN || material, materialId, materialUserId);
+          break;
+        case 'summaries':
+          const { data: matS } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleSummariesStep(supabase, matS || material, materialId, materialUserId);
+          break;
+        case 'flashcards':
+          const { data: matF } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleFlashcardsStep(supabase, matF || material, materialId, materialUserId);
+          break;
+        case 'questions':
+          const { data: matQ } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleQuestionsStep(supabase, matQ || material, materialId, materialUserId, isPremium);
+          break;
+        case 'concept_map':
+          const { data: matC } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleConceptMapStep(supabase, matC || material, materialId, materialUserId, isPremium);
+          break;
+        case 'complete':
+          await handleCompleteStep(supabase, materialId);
+          break;
+        default:
+          throw new Error(`Unknown step: ${step}`);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, step }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // ─── Legacy full pipeline mode (backward compat) ───
+
     if (!isPremium) {
       const { count, error: countError } = await supabase
         .from('study_materials')
         .select('id', { count: 'exact', head: true })
         .eq('user_id', materialUserId);
-
       if (!countError && count !== null && count > 5) {
         throw new Error('Document limit reached. Please upgrade to Pro for unlimited uploads.');
       }
     }
 
-    // Update status to processing
     await supabase
       .from('study_materials')
       .update({ processing_status: 'processing' })
@@ -770,137 +901,72 @@ serve(async (req) => {
 
     console.log('Status updated to processing');
 
-    // Extract content from file
+    // Extract
     let extractedContent = '';
     try {
       extractedContent = await extractTextFromFile(supabase, material);
       console.log(`Extracted ${extractedContent.length} characters`);
-      
-      // Save extracted content
       await supabase
         .from('study_materials')
         .update({ extracted_content: extractedContent.substring(0, 65000) })
         .eq('id', materialId);
     } catch (extractError) {
       console.error('Content extraction error:', extractError);
-      // Continue with metadata-based generation
       extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
-      // Save fallback content so regenerate-content can use it later
       await supabase
         .from('study_materials')
         .update({ extracted_content: extractedContent })
         .eq('id', materialId);
     }
 
-    // Generate tutor notes
+    // Generate all content
     if (material.generate_tutor_notes) {
       try {
         const tutorNotes = await generateTutorNotes(extractedContent, material);
-        await supabase
-          .from('tutor_notes')
-          .insert({
-            material_id: materialId,
-            user_id: materialUserId,
-            content: tutorNotes,
-          });
+        await supabase.from('tutor_notes').insert({ material_id: materialId, user_id: materialUserId, content: tutorNotes });
         console.log('Tutor notes generated');
-      } catch (e) {
-        console.error('Error generating tutor notes:', e);
-      }
+      } catch (e) { console.error('Error generating tutor notes:', e); }
     }
 
-    // Generate summaries
     try {
       const summaries = await generateSummaries(extractedContent, material);
       for (const summary of summaries) {
-        await supabase
-          .from('summaries')
-          .insert({
-            material_id: materialId,
-            user_id: materialUserId,
-            summary_type: summary.type,
-            content: summary.content,
-          });
+        await supabase.from('summaries').insert({ material_id: materialId, user_id: materialUserId, summary_type: summary.type, content: summary.content });
       }
       console.log('Summaries generated');
-    } catch (e) {
-      console.error('Error generating summaries:', e);
-    }
+    } catch (e) { console.error('Error generating summaries:', e); }
 
-    // Generate practice questions (Pro feature only)
     if (material.generate_questions && isPremium) {
       try {
         const questions = await generatePracticeQuestions(extractedContent, material);
         for (const q of questions) {
-          await supabase
-            .from('practice_questions')
-            .insert({
-              material_id: materialId,
-              user_id: materialUserId,
-              question_type: (q as any).question_type || 'short_answer',
-              question: (q as any).question,
-              options: (q as any).options || null,
-              correct_answer: (q as any).correct_answer || null,
-              explanation: (q as any).explanation || null,
-            });
+          await supabase.from('practice_questions').insert({ material_id: materialId, user_id: materialUserId, question_type: (q as any).question_type || 'short_answer', question: (q as any).question, options: (q as any).options || null, correct_answer: (q as any).correct_answer || null, explanation: (q as any).explanation || null });
         }
         console.log('Practice questions generated');
-      } catch (e) {
-        console.error('Error generating questions:', e);
-      }
-    } else if (material.generate_questions && !isPremium) {
-      console.log('Skipping practice questions - requires Pro plan');
+      } catch (e) { console.error('Error generating questions:', e); }
     }
 
-    // Generate flashcards
     if (material.generate_flashcards) {
       try {
         const flashcards = await generateFlashcards(extractedContent, material);
         for (const card of flashcards) {
-          await supabase
-            .from('material_flashcards')
-            .insert({
-              material_id: materialId,
-              user_id: materialUserId,
-              front: (card as any).front,
-              back: (card as any).back,
-              hint: (card as any).hint || null,
-              difficulty: (card as any).difficulty || 'medium',
-            });
+          await supabase.from('material_flashcards').insert({ material_id: materialId, user_id: materialUserId, front: (card as any).front, back: (card as any).back, hint: (card as any).hint || null, difficulty: (card as any).difficulty || 'medium' });
         }
         console.log('Flashcards generated');
-      } catch (e) {
-        console.error('Error generating flashcards:', e);
-      }
+      } catch (e) { console.error('Error generating flashcards:', e); }
     }
 
-    // Generate concept map (Pro feature only)
     if (material.generate_concept_map && isPremium) {
       try {
         const conceptMap = await generateConceptMap(extractedContent, material);
-        await supabase
-          .from('concept_maps')
-          .insert({
-            material_id: materialId,
-            user_id: materialUserId,
-            nodes: (conceptMap as any).nodes || [],
-            edges: (conceptMap as any).edges || [],
-          });
+        await supabase.from('concept_maps').insert({ material_id: materialId, user_id: materialUserId, nodes: (conceptMap as any).nodes || [], edges: (conceptMap as any).edges || [] });
         console.log('Concept map generated');
-      } catch (e) {
-        console.error('Error generating concept map:', e);
-      }
-    } else if (material.generate_concept_map && !isPremium) {
-      console.log('Skipping concept map - requires Pro plan');
+      } catch (e) { console.error('Error generating concept map:', e); }
     }
 
-    // Update status to completed
     await supabase
       .from('study_materials')
-      .update({ 
-        processing_status: 'completed',
-        processing_error: null
-      })
+      .update({ processing_status: 'completed', processing_error: null })
       .eq('id', materialId);
 
     console.log('Processing completed successfully');
@@ -912,7 +978,6 @@ serve(async (req) => {
   } catch (error) {
     console.error('Processing error:', error);
     
-    // Map technical errors to user-friendly messages
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     let userFriendlyError = errorMessage;
     
@@ -930,16 +995,12 @@ serve(async (req) => {
       userFriendlyError = 'Study material not found. It may have been deleted.';
     }
     
-    // Try to update material status to failed
     try {
       const { materialId } = await req.clone().json();
       if (materialId) {
         await supabase
           .from('study_materials')
-          .update({ 
-            processing_status: 'failed',
-            processing_error: userFriendlyError
-          })
+          .update({ processing_status: 'failed', processing_error: userFriendlyError })
           .eq('id', materialId);
       }
     } catch {

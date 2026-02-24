@@ -2,6 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import { runProcessingPipeline } from '@/lib/processMaterialPipeline';
 
 export interface StudyMaterial {
   id: string;
@@ -157,15 +158,14 @@ export function useCreateStudyMaterial() {
 
       if (error) throw error;
       
-      // Trigger processing in the background
+      // Trigger processing via stepped pipeline in the background
       const createdMaterial = data as StudyMaterial;
       try {
-        await supabase.functions.invoke('process-material', {
-          body: { materialId: createdMaterial.id },
-        });
+        await runProcessingPipeline(createdMaterial.id);
       } catch (processingError) {
         // Don't throw - material is created, processing can be retried
-        toast.info('Material uploaded. Processing will start shortly.');
+        console.error('Pipeline error:', processingError);
+        toast.info('Material uploaded but processing encountered an issue. You can retry from the materials page.');
       }
       
       return createdMaterial;
