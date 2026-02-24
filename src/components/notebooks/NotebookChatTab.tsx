@@ -6,6 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import ReactMarkdown from "react-markdown";
+import { Citation, renderWithCitations } from "@/components/materials/tabs/CitationChip";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 interface Props {
   notebookId: string;
@@ -31,7 +34,12 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  const handleCitationClick = useCallback((citation: Citation) => {
+    toast.info(`Source [${citation.id}]`, { description: citation.text, duration: 6000 });
+  }, []);
 
   useEffect(() => {
     if (messages.length > 0) sessionStorage.setItem(`nb-chat-${notebookId}`, JSON.stringify(messages));
@@ -78,6 +86,16 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
       if (resp.status === 402) { toast.error("AI credits exhausted."); setIsLoading(false); return; }
       if (!resp.ok || !resp.body) throw new Error("Failed to start stream");
 
+      // Parse citation chunks from header
+      try {
+        const chunksHeader = resp.headers.get("X-Citation-Chunks");
+        if (chunksHeader) {
+          const decoded = decodeURIComponent(escape(atob(chunksHeader)));
+          const parsed = JSON.parse(decoded);
+          if (Array.isArray(parsed)) setCitationChunks(parsed);
+        }
+      } catch (e) { console.warn("Failed to parse citation chunks:", e); }
+
       const reader = resp.body.getReader();
       const decoder = new TextDecoder();
       let buf = "";
@@ -111,6 +129,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   ];
 
   return (
+    <TooltipProvider>
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-2 p-4 border-b border-border/50">
         <MessageSquare className="w-5 h-5 text-primary" />
@@ -135,7 +154,15 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
                   {m.role === "assistant" && <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0"><Bot className="w-4 h-4 text-primary" /></div>}
                   <div className="max-w-[85%]">
                     <div className={`rounded-lg p-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
-                      <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                      {m.role === "assistant" ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          {citationChunks.length > 0
+                            ? renderWithCitations(m.content, citationChunks, handleCitationClick)
+                            : <ReactMarkdown>{m.content}</ReactMarkdown>}
+                        </div>
+                      ) : (
+                        <p className="text-sm whitespace-pre-wrap">{m.content}</p>
+                      )}
                       <p className="text-xs opacity-60 mt-1">{m.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</p>
                     </div>
                   </div>
@@ -161,5 +188,6 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
         <p className="text-xs text-muted-foreground mt-2 text-center"><Sparkles className="w-3 h-3 inline mr-1" />AI uses context from all notebook sources</p>
       </div>
     </div>
+    </TooltipProvider>
   );
 }
