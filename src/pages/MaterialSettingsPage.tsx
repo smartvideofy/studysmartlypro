@@ -21,7 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useStudyMaterial, useUpdateStudyMaterial, useDeleteStudyMaterial } from "@/hooks/useStudyMaterials";
 import { useFolders } from "@/hooks/useNotes";
-import { supabase } from "@/integrations/supabase/client";
+import { runProcessingPipeline } from "@/lib/processMaterialPipeline";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { toast } from "sonner";
 import {
@@ -103,13 +103,12 @@ export default function MaterialSettingsPage() {
       await updateMaterial.mutateAsync({
         id: material.id,
         processing_status: 'pending',
+        processing_error: null,
       });
       
-      await supabase.functions.invoke('process-material', {
-        body: { materialId: material.id },
-      });
+      await runProcessingPipeline(material.id);
       
-      toast.success("Material reprocessing started");
+      toast.success("Material reprocessing completed");
       navigate(`/materials/${material.id}`);
     } catch (error) {
       console.error("Failed to reprocess:", error);

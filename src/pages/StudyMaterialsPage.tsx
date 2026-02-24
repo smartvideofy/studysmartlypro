@@ -35,6 +35,7 @@ import DeleteMaterialModal from "@/components/materials/DeleteMaterialModal";
 import { CreateFolderModal } from "@/components/notes/CreateFolderModal";
 import { useStudyMaterials, useDeleteStudyMaterial, useUpdateStudyMaterial, StudyMaterial } from "@/hooks/useStudyMaterials";
 import { supabase } from "@/integrations/supabase/client";
+import { runProcessingPipeline } from "@/lib/processMaterialPipeline";
 import { toast } from "sonner";
 import { useFolders } from "@/hooks/useNotes";
 import { SkeletonMaterialCard } from "@/components/ui/skeleton";
@@ -76,20 +77,14 @@ export default function StudyMaterialsPage() {
         processing_error: null,
       });
 
-      const { error } = await supabase.functions.invoke('process-material', {
-        body: { materialId: material.id },
-      });
+      await runProcessingPipeline(material.id);
 
-      if (error) {
-        console.error('Retry processing error:', error);
-        toast.error("Failed to restart processing. Please try again.");
-      } else {
-        toast.success("Processing restarted!");
-        queryClient.invalidateQueries({ queryKey: ['study-materials'] });
-      }
+      toast.success("Processing completed!");
+      queryClient.invalidateQueries({ queryKey: ['study-materials'] });
     } catch (error) {
       console.error('Retry error:', error);
-      toast.error("An error occurred. Please try again.");
+      toast.error("Processing failed. Please try again.");
+      queryClient.invalidateQueries({ queryKey: ['study-materials'] });
     }
   };
 

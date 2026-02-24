@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { StudyMaterial, useUpdateStudyMaterial } from "@/hooks/useStudyMaterials";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { runProcessingPipeline } from "@/lib/processMaterialPipeline";
 import { toast } from "sonner";
 
 interface ProcessingStatusProps {
@@ -23,8 +23,11 @@ interface ProcessingStatusProps {
 
 const processingSteps = [
   { id: "extracting", label: "Extracting content", icon: FileText },
-  { id: "structuring", label: "Structuring topics", icon: Brain },
-  { id: "generating", label: "Generating study aids", icon: Lightbulb },
+  { id: "tutor_notes", label: "Generating tutor notes", icon: Brain },
+  { id: "summaries", label: "Generating summaries", icon: Brain },
+  { id: "flashcards", label: "Generating flashcards", icon: Lightbulb },
+  { id: "questions", label: "Generating questions", icon: Lightbulb },
+  { id: "finalizing", label: "Finalizing", icon: CheckCircle2 },
 ];
 
 export default function ProcessingStatus({ material }: ProcessingStatusProps) {
@@ -35,18 +38,28 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
 
   // Calculate current step based on status
   const getProgress = () => {
-    switch (material.processing_status) {
-      case "pending":
-        return { step: 0, progress: 10 };
-      case "processing":
-        return { step: 1, progress: 50 };
-      case "completed":
-        return { step: 3, progress: 100 };
-      case "failed":
-        return { step: -1, progress: 0 };
-      default:
-        return { step: 0, progress: 0 };
+    const progressMsg = material.processing_error || '';
+    
+    if (material.processing_status === "completed") {
+      return { step: processingSteps.length, progress: 100 };
     }
+    if (material.processing_status === "failed") {
+      return { step: -1, progress: 0 };
+    }
+    if (material.processing_status === "pending") {
+      return { step: 0, progress: 5 };
+    }
+    
+    // Map progress messages from edge function to step index
+    if (progressMsg.includes('tutor notes')) return { step: 1, progress: 25 };
+    if (progressMsg.includes('summaries')) return { step: 2, progress: 40 };
+    if (progressMsg.includes('flashcards')) return { step: 3, progress: 55 };
+    if (progressMsg.includes('practice questions')) return { step: 4, progress: 70 };
+    if (progressMsg.includes('concept map')) return { step: 4, progress: 75 };
+    if (progressMsg.includes('Finalizing')) return { step: 5, progress: 90 };
+    
+    // Default processing state
+    return { step: 0, progress: 15 };
   };
 
   const { step: currentStep, progress } = getProgress();
@@ -78,37 +91,20 @@ export default function ProcessingStatus({ material }: ProcessingStatusProps) {
     setIsRetrying(true);
     
     try {
-      // First, reset the status to pending
       await updateMaterial.mutateAsync({
         id: material.id,
         processing_status: "pending",
         processing_error: null,
       });
 
-      // Get access token for invoking the edge function
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error("Please sign in to retry processing");
-        setIsRetrying(false);
-        return;
-      }
+      await runProcessingPipeline(material.id);
 
-      // Re-invoke the process-material edge function
-      const { error } = await supabase.functions.invoke('process-material', {
-        body: { materialId: material.id },
-      });
-
-      if (error) {
-        console.error('Retry processing error:', error);
-        toast.error("Failed to restart processing. Please try again.");
-      } else {
-        toast.success("Processing restarted successfully!");
-        // Invalidate the query to refresh the status
-        queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
-      }
+      toast.success("Processing completed!");
+      queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
     } catch (error) {
       console.error('Retry error:', error);
-      toast.error("An error occurred while retrying. Please try again.");
+      toast.error("Processing failed. Please try again.");
+      queryClient.invalidateQueries({ queryKey: ["study-material", material.id] });
     } finally {
       setIsRetrying(false);
     }
