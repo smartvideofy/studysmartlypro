@@ -118,9 +118,13 @@ export function useSubscription() {
       }
 
       try {
+        // Refresh session to ensure we have a valid (non-expired) token
+        const { data: refreshed } = await supabase.auth.getSession();
+        const token = refreshed?.session?.access_token || session.access_token;
+
         const { data, error } = await supabase.functions.invoke('paystack/subscription', {
           headers: {
-            Authorization: `Bearer ${session.access_token}`,
+            Authorization: `Bearer ${token}`,
           },
         });
 
