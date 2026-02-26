@@ -73,44 +73,31 @@ serve(async (req) => {
     const userId = claimsData.claims.sub as string;
     console.log(`Authenticated user: ${userId}`);
 
-    const { materialId, messages, extractedContent } = await req.json();
+    const { materialId, notebookId, messages, extractedContent } = await req.json();
 
-    if (!materialId) {
-      throw new Error('Material ID is required');
+    if (!materialId && !notebookId) {
+      throw new Error('Material ID or Notebook ID is required');
     }
 
-    console.log(`Chat request for material: ${materialId}`);
+    const isNotebook = !!notebookId;
+    const lookupId = notebookId || materialId;
+    console.log(`Chat request for ${isNotebook ? 'notebook' : 'material'}: ${lookupId}`);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Try study_materials first, then notebooks
     let content = extractedContent || '';
-    
-    const { data: material } = await supabase
-      .from('study_materials')
-      .select('extracted_content, title, subject, topic, user_id')
-      .eq('id', materialId)
-      .maybeSingle();
 
-    if (material) {
-      if (material.user_id !== userId) {
-        return new Response(
-          JSON.stringify({ error: 'Access denied' }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
-      if (!content) content = material.extracted_content || `Title: ${material.title}`;
-    } else {
-      // Check if it's a notebook
+    if (isNotebook) {
+      // Notebook path: verify ownership, then gather combined content from all sources
       const { data: notebook } = await supabase
         .from('notebooks')
         .select('title, user_id')
-        .eq('id', materialId)
+        .eq('id', notebookId)
         .maybeSingle();
 
       if (!notebook) {
         return new Response(
-          JSON.stringify({ error: 'Material not found' }),
+          JSON.stringify({ error: 'Notebook not found' }),
           { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
@@ -120,7 +107,45 @@ serve(async (req) => {
           { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
-      if (!content) content = `Notebook: ${notebook.title}`;
+
+      if (!content) {
+        // Fetch extracted content from all materials in the notebook
+        const { data: materials } = await supabase
+          .from('study_materials')
+          .select('title, extracted_content')
+          .eq('notebook_id', notebookId)
+          .not('extracted_content', 'is', null);
+
+        if (materials && materials.length > 0) {
+          content = materials
+            .map((m, i) => `=== Source ${i + 1}: ${m.title} ===\n${m.extracted_content}`)
+            .join('\n\n---\n\n');
+        } else {
+          content = `Notebook: ${notebook.title}`;
+        }
+      }
+    } else {
+      // Single material path
+      const { data: material } = await supabase
+        .from('study_materials')
+        .select('extracted_content, title, subject, topic, user_id')
+        .eq('id', materialId)
+        .maybeSingle();
+
+      if (material) {
+        if (material.user_id !== userId) {
+          return new Response(
+            JSON.stringify({ error: 'Access denied' }),
+            { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+        if (!content) content = material.extracted_content || `Title: ${material.title}`;
+      } else {
+        return new Response(
+          JSON.stringify({ error: 'Material not found' }),
+          { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     if (!content || content.trim().length === 0) {
