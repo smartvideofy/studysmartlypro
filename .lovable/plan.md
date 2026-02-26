@@ -1,61 +1,80 @@
 
-Goal: fix the “not fixed yet” formatting issue in Notebook AI Chat where markdown syntax (like `**bold**`) and raw citation markers appear unformatted.
+# Fix Notebook Audit Issues
 
-What I found
-- The screenshot text (“AI Chat • Multi-source context”) matches the Notebook chat UI, not Material chat.
-- `src/components/notebooks/NotebookChatTab.tsx` still renders assistant messages as plain text:
-  - `&lt;p className="text-sm whitespace-pre-wrap"&gt;{m.content}&lt;/p&gt;`
-- Notebook chat currently does not:
-  - render markdown via `react-markdown`
-  - parse `X-Citation-Chunks` header
-  - use citation chip rendering
-- Material chat already has this implemented in:
-  - `src/components/materials/tabs/AIChatTab.tsx`
-  - `src/components/materials/tabs/CitationChip.tsx`
+## Issues to Fix
 
-Root cause
-- The markdown/citation formatting upgrade was applied to Material chat only.
-- Notebook chat still uses the older plain-text renderer, so users see raw markdown symbols (`**`, list markers, etc.) and plain `[n]` citations.
+### 1. JWT Expiry in Notebook Pipeline
+The `processNotebookPipeline.ts` calls `supabase.functions.invoke()` without refreshing the session first, causing "JWT has expired" errors on long-running pipelines.
 
-Implementation approach
-1. Update Notebook chat to support markdown rendering
-   - File: `src/components/notebooks/NotebookChatTab.tsx`
-   - Add `ReactMarkdown` import.
-   - For assistant messages:
-     - wrap output in a prose container (same typography pattern used in Material chat)
-     - render markdown instead of plain text
-   - Keep user messages as plain text with `whitespace-pre-wrap` (unchanged behavior).
+**Fix:** Call `supabase.auth.getSession()` before each step invocation to get a fresh token, matching the pattern already applied in `useSubscription.tsx`.
 
-2. Add citation chunk support to Notebook chat
-   - File: `src/components/notebooks/NotebookChatTab.tsx`
-   - Add `citationChunks` state typed as `Citation[]`.
-   - Parse `X-Citation-Chunks` response header from `material-chat` (base64 decode + JSON parse), same logic as Material chat.
-   - On assistant render:
-     - if citation chunks exist, use `renderWithCitations(...)`
-     - otherwise fallback to `&lt;ReactMarkdown&gt;`.
+**File:** `src/lib/processNotebookPipeline.ts`
 
-3. Add citation interaction behavior
-   - File: `src/components/notebooks/NotebookChatTab.tsx`
-   - Add a simple `handleCitationClick` callback (toast with source preview), matching Material chat UX so notebook and material experiences are consistent.
+### 2. Notebook Chat Passes Wrong Parameter
+`NotebookChatTab.tsx` line 79 sends `materialId: notebookId` to the `material-chat` edge function. The edge function likely looks up `study_materials` by that ID and fails to find it, breaking citation context.
 
-4. Keep scope tight (no backend changes)
-   - `supabase/functions/material-chat/index.ts` already emits citation header and markdown-formatted content.
-   - No edge-function update required for this fix.
+**Fix:** Add a `notebookId` parameter alongside `materialId` so the edge function can check `notebooks` table when `materialId` lookup fails. Also refresh session before the fetch call.
 
-Technical notes
-- Reuse existing citation utilities from `src/components/materials/tabs/CitationChip.tsx` to avoid duplicate parsing/render logic.
-- Preserve all existing streaming behavior and message persistence logic.
-- Do not alter current notebook layout/scroll fixes (`min-h-0`, `overflow-hidden`) as they are unrelated and already correct.
+**Files:** `src/components/notebooks/NotebookChatTab.tsx`, `supabase/functions/material-chat/index.ts`
 
-Validation checklist (end-to-end)
-1. Open a notebook chat and ask for a response likely to include formatting:
-   - “Give bullet points with bold key terms.”
-2. Confirm assistant output renders as formatted markdown (not raw `**` text).
-3. Ask a citation-heavy question and confirm:
-   - citation chips render inline instead of plain `[1]` text
-   - clicking a citation shows source preview toast
-4. Regression check Material chat still renders correctly.
-5. Test on mobile + desktop to ensure formatting works and tab content remains scrollable/visible.
+### 3. Concept Map Stale State
+`NotebookConceptMapTab.tsx` passes `initialNodes` to `useNodesState()` on mount. When data loads asynchronously, the hook already initialized with empty arrays and never updates.
 
-Expected outcome
-- Notebook AI chat displays clean rich text formatting (bold/lists/paragraphs) and citation chips, matching Material workspace behavior and removing the raw-symbol issue users are seeing.
+**Fix:** Use a `useEffect` to call the setter from `useNodesState`/`useEdgesState` when `initialNodes`/`initialEdges` change.
+
+**File:** `src/components/notebooks/NotebookConceptMapTab.tsx`
+
+### 4. Pipeline Resilience (Destructive Retries)
+Each pipeline step does `DELETE` then `INSERT` for its content type. If a retry occurs after partial success, previously completed steps get wiped and re-run unnecessarily.
+
+**Fix:** In `processNotebookPipeline.ts`, track which steps already have data and skip them on retry. Add a `startFromStep` parameter or check existing content before invoking each step.
+
+**File:** `src/lib/processNotebookPipeline.ts`
+
+### 5. Chat Persistence (sessionStorage)
+Notebook chat history is stored in `sessionStorage` and lost on page refresh. This is a lower-priority UX issue.
+
+**Fix:** Migrate chat storage to `localStorage` with a size cap (keep last 50 messages per notebook). This is a minimal change with meaningful UX improvement.
+
+**File:** `src/components/notebooks/NotebookChatTab.tsx`
+
+---
+
+## Technical Implementation Details
+
+### processNotebookPipeline.ts
+```typescript
+export async function runNotebookPipeline(notebookId: string): Promise<void> {
+  for (const step of NOTEBOOK_PIPELINE_STEPS) {
+    // Refresh session before each step to prevent JWT expiry
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Session expired. Please sign in again.');
+
+    const { data, error } = await supabase.functions.invoke('process-notebook', {
+      body: { notebookId, step },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    // ... existing error handling
+  }
+}
+```
+
+### NotebookConceptMapTab.tsx
+```typescript
+const [nodes, setNodes, onNodesChange] = useNodesState([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+useEffect(() => {
+  setNodes(initialNodes);
+  setEdges(initialEdges);
+}, [initialNodes, initialEdges]);
+```
+
+### NotebookChatTab.tsx
+- Change `sessionStorage` to `localStorage`
+- Add session refresh before fetch
+- Pass `notebookId` explicitly in request body
+
+### material-chat edge function
+- Accept optional `notebookId` param
+- When present, fetch combined content from notebook materials instead of single material lookup
