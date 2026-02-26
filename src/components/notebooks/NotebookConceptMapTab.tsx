@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { ReactFlow, Controls, Background, useNodesState, useEdgesState, Node, Edge, MarkerType, BackgroundVariant, Panel } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Network, Loader2 } from "lucide-react";
@@ -45,8 +45,13 @@ export default function NotebookConceptMapTab({ notebookId }: Props) {
     return { initialNodes: nodes, initialEdges: edges };
   }, [conceptMap]);
 
-  const [nodes, , onNodesChange] = useNodesState(initialNodes);
-  const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+  useEffect(() => {
+    setNodes(initialNodes);
+    setEdges(initialEdges);
+  }, [initialNodes, initialEdges, setNodes, setEdges]);
 
   if (isLoading) return <div className="flex items-center justify-center h-full"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 

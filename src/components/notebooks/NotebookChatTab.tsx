@@ -27,8 +27,12 @@ const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/material-cha
 export default function NotebookChatTab({ notebookId, extractedContent }: Props) {
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
-      const saved = sessionStorage.getItem(`nb-chat-${notebookId}`);
-      if (saved) return JSON.parse(saved).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      const saved = localStorage.getItem(`nb-chat-${notebookId}`);
+      if (saved) {
+        const parsed = JSON.parse(saved) as any[];
+        // Keep last 50 messages to cap storage
+        return parsed.slice(-50).map((m: any) => ({ ...m, timestamp: new Date(m.timestamp) }));
+      }
     } catch {}
     return [];
   });
@@ -42,7 +46,11 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   }, []);
 
   useEffect(() => {
-    if (messages.length > 0) sessionStorage.setItem(`nb-chat-${notebookId}`, JSON.stringify(messages));
+    if (messages.length > 0) {
+      // Store last 50 messages in localStorage
+      const toStore = messages.slice(-50);
+      localStorage.setItem(`nb-chat-${notebookId}`, JSON.stringify(toStore));
+    }
   }, [messages, notebookId]);
 
   useEffect(() => {
@@ -76,7 +84,8 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
         body: JSON.stringify({
-          materialId: notebookId, // just used for context keying
+          materialId: notebookId,
+          notebookId, // explicit notebook flag for edge function
           messages: [...messages, userMessage].map(m => ({ role: m.role, content: m.content })),
           extractedContent,
         }),
