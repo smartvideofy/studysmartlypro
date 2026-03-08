@@ -415,7 +415,119 @@ export default function PricingPage() {
             </Button>
           </motion.div>
         )}
+
+        {/* Feature Comparison Table */}
+        <FeatureComparisonTable />
       </div>
     </DashboardLayout>
+  );
+}
+
+/* ─── Feature Comparison Table ─── */
+
+const COMPARISON_ROWS: { feature: string; free: boolean | string; pro: boolean | string; team: boolean | string }[] = [
+  { feature: 'Document Uploads', free: false, pro: 'Unlimited', team: 'Unlimited' },
+  { feature: 'AI Summaries', free: false, pro: true, team: true },
+  { feature: 'Flashcard Generation', free: false, pro: 'Unlimited', team: 'Unlimited' },
+  { feature: 'Practice Questions', free: false, pro: true, team: true },
+  { feature: 'Concept Maps', free: false, pro: true, team: true },
+  { feature: 'Advanced Tutor Notes', free: false, pro: true, team: true },
+  { feature: 'AI Chat with Materials', free: false, pro: true, team: true },
+  { feature: 'Audio Overview', free: false, pro: true, team: true },
+  { feature: 'Export to Anki', free: false, pro: true, team: true },
+  { feature: 'Priority Support', free: false, pro: true, team: true },
+  { feature: 'Team Members', free: false, pro: false, team: 'Up to 5' },
+  { feature: 'Shared Library', free: false, pro: false, team: true },
+  { feature: 'Team Analytics', free: false, pro: false, team: true },
+];
+
+function FeatureComparisonTable() {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="mt-16 max-w-4xl mx-auto"
+    >
+      <h2 className="text-2xl font-bold text-center mb-6 font-display">Compare Plans</h2>
+      <div className="bg-card border border-border rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-4 text-sm font-medium border-b border-border bg-secondary/30">
+          <div className="p-4 text-muted-foreground">Feature</div>
+          <div className="p-4 text-center text-muted-foreground">Free</div>
+          <div className="p-4 text-center text-primary font-semibold">Pro</div>
+          <div className="p-4 text-center text-foreground">Team</div>
+        </div>
+        {/* Rows */}
+        {COMPARISON_ROWS.map((row, i) => (
+          <div
+            key={row.feature}
+            className={cn(
+              "grid grid-cols-4 text-sm",
+              i < COMPARISON_ROWS.length - 1 && "border-b border-border/50"
+            )}
+          >
+            <div className="p-3.5 text-foreground">{row.feature}</div>
+            {(['free', 'pro', 'team'] as const).map((plan) => (
+              <div key={plan} className="p-3.5 flex justify-center items-center">
+                {row[plan] === true ? (
+                  <Check className="w-4 h-4 text-success" />
+                ) : row[plan] === false ? (
+                  <X className="w-4 h-4 text-muted-foreground/40" />
+                ) : (
+                  <span className="text-xs font-medium text-foreground">{row[plan]}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─── Welcome Back Banner ─── */
+
+function WelcomeBackBanner() {
+  const [countdown, setCountdown] = useState('');
+
+  useEffect(() => {
+    const key = 'expired_offer_start';
+    let start = localStorage.getItem(key);
+    if (!start) {
+      start = Date.now().toString();
+      localStorage.setItem(key, start);
+    }
+    const endTime = parseInt(start) + 72 * 60 * 60 * 1000;
+    const tick = () => {
+      const remaining = endTime - Date.now();
+      if (remaining <= 0) { setCountdown(''); return; }
+      const h = Math.floor(remaining / 3600000);
+      const m = Math.floor((remaining % 3600000) / 60000);
+      setCountdown(`${h}h ${m}m`);
+    };
+    tick();
+    const interval = setInterval(tick, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!countdown) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="mb-8 bg-gradient-to-r from-warning/15 via-warning/10 to-primary/10 border border-warning/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-center gap-3 text-center"
+    >
+      <Sparkles className="w-6 h-6 text-warning shrink-0" />
+      <div>
+        <p className="font-semibold text-foreground">Welcome back! Get 30% off your first month</p>
+        <p className="text-sm text-muted-foreground">Limited-time offer for returning learners</p>
+      </div>
+      <Badge variant="outline" className="border-warning/40 text-warning text-sm">
+        <Clock className="w-3.5 h-3.5 mr-1" />
+        {countdown} left
+      </Badge>
+    </motion.div>
   );
 }
