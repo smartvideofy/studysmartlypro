@@ -1,54 +1,80 @@
 
+# Fix Notebook Audit Issues
 
-# Improve Trial-to-Paid Conversion
+## Issues to Fix
 
-## Overview
-Enhance three key touchpoints: the SubscriptionBlock (shown when trial expires), the PricingPage (where users land to convert), and add a limited-time special offer for expired trial users.
+### 1. JWT Expiry in Notebook Pipeline
+The `processNotebookPipeline.ts` calls `supabase.functions.invoke()` without refreshing the session first, causing "JWT has expired" errors on long-running pipelines.
 
-## Changes
+**Fix:** Call `supabase.auth.getSession()` before each step invocation to get a fresh token, matching the pattern already applied in `useSubscription.tsx`.
 
-### 1. Enhanced SubscriptionBlock with Feature Comparison
-**File:** `src/components/subscription/SubscriptionBlock.tsx`
+**File:** `src/lib/processNotebookPipeline.ts`
 
-Replace the simple bullet list with a visual "What you're missing" feature comparison grid showing Free (locked) vs Pro (unlocked). Add usage stats pulled from the user's actual data (e.g., "You have 12 materials waiting") to create urgency. Include a countdown-style special offer banner.
+### 2. Notebook Chat Passes Wrong Parameter
+`NotebookChatTab.tsx` line 79 sends `materialId: notebookId` to the `material-chat` edge function. The edge function likely looks up `study_materials` by that ID and fails to find it, breaking citation context.
 
-Key elements:
-- Show personalized stats: number of materials, flashcards, notes the user created during trial
-- Side-by-side mini comparison: Free (nothing) vs Pro (everything)
-- Special offer badge: "Come back offer: 30% off your first month" with a code or auto-applied discount
-- Two CTAs: "Subscribe Now" (primary) and "View Plans" (secondary)
+**Fix:** Add a `notebookId` parameter alongside `materialId` so the edge function can check `notebooks` table when `materialId` lookup fails. Also refresh session before the fetch call.
 
-### 2. Feature Comparison Table on Pricing Page
-**File:** `src/pages/PricingPage.tsx`
+**Files:** `src/components/notebooks/NotebookChatTab.tsx`, `supabase/functions/material-chat/index.ts`
 
-Add a detailed feature comparison table below the plan cards. Show a grid with features as rows and Free/Pro/Team as columns, using check/cross icons. This helps users see the full value proposition at a glance.
+### 3. Concept Map Stale State
+`NotebookConceptMapTab.tsx` passes `initialNodes` to `useNodesState()` on mount. When data loads asynchronously, the hook already initialized with empty arrays and never updates.
 
-Features to compare:
-- Document uploads, AI summaries, flashcards, practice questions, concept maps, tutor notes, AI chat, audio overview, export to Anki, priority support, team features
+**Fix:** Use a `useEffect` to call the setter from `useNodesState`/`useEdgesState` when `initialNodes`/`initialEdges` change.
 
-### 3. Special Offer Banner for Expired Trial Users
-**File:** `src/pages/PricingPage.tsx`
+**File:** `src/components/notebooks/NotebookConceptMapTab.tsx`
 
-When `isExpiredUser` is true, show a prominent "Welcome Back" banner at the top of pricing with:
-- "Get 30% off your first month" messaging
-- A countdown timer (72 hours from first visit after expiry, stored in localStorage)
-- Visual urgency with amber/gradient styling
+### 4. Pipeline Resilience (Destructive Retries)
+Each pipeline step does `DELETE` then `INSERT` for its content type. If a retry occurs after partial success, previously completed steps get wiped and re-run unnecessarily.
 
-### 4. Expired Trial Banner in Dashboard Layout
-**File:** `src/components/subscription/ExpiredTrialBanner.tsx` (new)
+**Fix:** In `processNotebookPipeline.ts`, track which steps already have data and skip them on retry. Add a `startFromStep` parameter or check existing content before invoking each step.
 
-Create a persistent banner that shows for expired trial users on every page (before SubscriptionBlock fully blocks). This catches users in the brief window and nudges them to pricing with the special offer mention.
+**File:** `src/lib/processNotebookPipeline.ts`
 
-## Technical Details
+### 5. Chat Persistence (sessionStorage)
+Notebook chat history is stored in `sessionStorage` and lost on page refresh. This is a lower-priority UX issue.
 
-- **Personalized stats** in SubscriptionBlock: Query `study_materials`, `flashcard_decks`, `notebooks` counts via Supabase in the component
-- **Countdown timer**: Store `expired_offer_start` timestamp in localStorage on first render of pricing page as expired user. Calculate remaining time from 72 hours.
-- **No backend changes needed**: The 30% off messaging is a front-end nudge; actual discount would be applied via Paystack coupon code passed to the `initialize` endpoint (future backend enhancement). For now, display the offer and pass a `coupon` param that the edge function can handle later.
-- **Feature comparison data**: Extract into a shared constant used by both PricingPage and SubscriptionBlock
+**Fix:** Migrate chat storage to `localStorage` with a size cap (keep last 50 messages per notebook). This is a minimal change with meaningful UX improvement.
 
-## Files Modified
-- `src/components/subscription/SubscriptionBlock.tsx` -- Enhanced with stats, comparison, special offer
-- `src/pages/PricingPage.tsx` -- Add feature comparison table + expired user offer banner
-- `src/components/subscription/ExpiredTrialBanner.tsx` -- New persistent banner component
-- `src/components/layout/DashboardLayout.tsx` -- Import and render ExpiredTrialBanner
+**File:** `src/components/notebooks/NotebookChatTab.tsx`
 
+---
+
+## Technical Implementation Details
+
+### processNotebookPipeline.ts
+```typescript
+export async function runNotebookPipeline(notebookId: string): Promise<void> {
+  for (const step of NOTEBOOK_PIPELINE_STEPS) {
+    // Refresh session before each step to prevent JWT expiry
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) throw new Error('Session expired. Please sign in again.');
+
+    const { data, error } = await supabase.functions.invoke('process-notebook', {
+      body: { notebookId, step },
+      headers: { Authorization: `Bearer ${session.access_token}` },
+    });
+    // ... existing error handling
+  }
+}
+```
+
+### NotebookConceptMapTab.tsx
+```typescript
+const [nodes, setNodes, onNodesChange] = useNodesState([]);
+const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+
+useEffect(() => {
+  setNodes(initialNodes);
+  setEdges(initialEdges);
+}, [initialNodes, initialEdges]);
+```
+
+### NotebookChatTab.tsx
+- Change `sessionStorage` to `localStorage`
+- Add session refresh before fetch
+- Pass `notebookId` explicitly in request body
+
+### material-chat edge function
+- Accept optional `notebookId` param
+- When present, fetch combined content from notebook materials instead of single material lookup
