@@ -33,6 +33,7 @@ import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useIsBlocked } from "@/hooks/useSubscription";
 import { SubscriptionBlock } from "@/components/subscription/SubscriptionBlock";
+import { ExpiredTrialBanner } from "@/components/subscription/ExpiredTrialBanner";
 import logoImage from "@/assets/logo.png";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { useOfflineSync } from "@/hooks/useOfflineStorage";
