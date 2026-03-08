@@ -118,6 +118,7 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-background">
       <OfflineBanner />
+      <ExpiredTrialBanner />
       {/* Mobile Header - Only render on mobile */}
       {isMobile && (
         <MobileHeader 
