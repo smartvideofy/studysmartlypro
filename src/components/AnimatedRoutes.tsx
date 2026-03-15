@@ -26,6 +26,7 @@ import PricingPage from "@/pages/PricingPage";
 import AchievementsPage from "@/pages/AchievementsPage";
 import SitemapRedirect from "@/pages/SitemapRedirect";
 import UnsubscribePage from "@/pages/UnsubscribePage";
+import InstallPage from "@/pages/InstallPage";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
