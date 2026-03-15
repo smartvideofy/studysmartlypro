@@ -26,6 +26,7 @@ import PricingPage from "@/pages/PricingPage";
 import AchievementsPage from "@/pages/AchievementsPage";
 import SitemapRedirect from "@/pages/SitemapRedirect";
 import UnsubscribePage from "@/pages/UnsubscribePage";
+import InstallPage from "@/pages/InstallPage";
 import NotFound from "@/pages/NotFound";
 
 export const AnimatedRoutes = () => {
@@ -202,6 +203,12 @@ export const AnimatedRoutes = () => {
         <Route path="/unsubscribe/:token" element={
           <PageTransition>
             <UnsubscribePage />
+          </PageTransition>
+        } />
+        {/* PWA Install page - public route */}
+        <Route path="/install" element={
+          <PageTransition>
+            <InstallPage />
           </PageTransition>
         } />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
