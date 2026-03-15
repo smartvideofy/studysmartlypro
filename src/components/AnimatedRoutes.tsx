@@ -205,6 +205,12 @@ export const AnimatedRoutes = () => {
             <UnsubscribePage />
           </PageTransition>
         } />
+        {/* PWA Install page - public route */}
+        <Route path="/install" element={
+          <PageTransition>
+            <InstallPage />
+          </PageTransition>
+        } />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={
           <PageTransition>

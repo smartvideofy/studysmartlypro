@@ -52,7 +52,7 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
 
   // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (isTimerRunning) {
       interval = setInterval(() => {
         setTimer(prev => prev + 1);
