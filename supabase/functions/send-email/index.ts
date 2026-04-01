@@ -415,22 +415,18 @@ function generateEmailContent(
 
     case "trial_expired":
       return {
-        subject: "Your access has been paused 💜",
+        subject: "Your access has been paused – 30% off inside 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
-            <p>Your 7-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
-            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <p style="margin: 0 0 12px 0;"><strong>To continue, you'll need access to:</strong></p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li>Your uploaded study materials</li>
-                <li>Your flashcard decks</li>
-                <li>Practice questions & concept maps</li>
-                <li>Advanced tutor notes</li>
-              </ul>
+            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
+            <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <p style="font-size: 32px; margin: 0;">🎁</p>
+              <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Welcome back offer: 30% off</h3>
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe within 72 hours to claim your discount</p>
             </div>
-            <a href="${appUrl}/pricing" style="${buttonStyle}">Subscribe Now</a>
+            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% Off</a>
             <p style="margin-top: 24px; color: #6b7280;">
               Thanks for trying Studily – we'd love to have you continue with us!
             </p>
