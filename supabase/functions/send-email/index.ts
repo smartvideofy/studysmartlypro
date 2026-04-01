@@ -360,11 +360,11 @@ function generateEmailContent(
 
     case "trial_started":
       return {
-        subject: "Welcome to your 7-day Pro trial! 🎉",
+        subject: "Welcome to your 3-day Pro trial! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Your Pro trial has started, ${userName}! 🚀</h1>
-            <p>You now have <strong>7 days of full Pro access</strong> – no credit card required.</p>
+            <p>You now have <strong>3 days of full Pro access</strong> – no credit card required.</p>
             <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
               <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you can do now:</h3>
               <ul style="margin: 0; padding-left: 20px; color: #1f2937;">
@@ -376,7 +376,7 @@ function generateEmailContent(
               </ul>
             </div>
             <p style="background: #fef3c7; padding: 12px 16px; border-radius: 8px; font-size: 14px;">
-              ⏰ <strong>Your trial ends:</strong> ${data.trialEndDate || "in 7 days"}
+              ⏰ <strong>Your trial ends:</strong> ${data.trialEndDate || "in 3 days"}
             </p>
             <a href="${appUrl}/materials" style="${buttonStyle}">Start Exploring Pro Features</a>
             <p style="margin-top: 24px; color: #6b7280;">
