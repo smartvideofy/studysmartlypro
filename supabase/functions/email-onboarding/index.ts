@@ -18,8 +18,6 @@ interface OnboardingEmail {
 // This cron job handles the follow-up drip sequence
 const ONBOARDING_SEQUENCE: OnboardingEmail[] = [
   { day: 2, template: "onboarding_day2" },
-  { day: 5, template: "onboarding_day5" },
-  { day: 7, template: "onboarding_day7" },
 ];
 
 serve(async (req) => {
