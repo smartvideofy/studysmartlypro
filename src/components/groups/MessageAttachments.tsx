@@ -1,6 +1,8 @@
 import { FileText, Image, File, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface Attachment {
   id: string;
