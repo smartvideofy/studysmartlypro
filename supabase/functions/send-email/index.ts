@@ -389,11 +389,11 @@ function generateEmailContent(
 
     case "trial_ending":
       return {
-        subject: "Your Pro trial ends in 2 days ⏰",
+        subject: "Your Pro trial ends tomorrow ⏰",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #f59e0b; font-size: 24px;">Your trial ends soon, ${userName}! ⏰</h1>
-            <p>Just a heads up – your 7-day Pro trial expires in <strong>2 days</strong> (${data.trialEndDate || "soon"}).</p>
+            <h1 style="color: #f59e0b; font-size: 24px;">Your trial ends tomorrow, ${userName}! ⏰</h1>
+            <p>Just a heads up – your 3-day Pro trial expires <strong>tomorrow</strong> (${data.trialEndDate || "soon"}).</p>
             <div style="background: #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <p style="margin: 0 0 12px 0;"><strong>Don't lose access to:</strong></p>
               <ul style="margin: 0; padding-left: 20px;">
