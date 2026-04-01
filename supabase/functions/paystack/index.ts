@@ -546,7 +546,7 @@ async function startTrial(user: { id: string; email: string }, supabase: any) {
 
   const trialStart = new Date();
   const trialEnd = new Date();
-  trialEnd.setDate(trialEnd.getDate() + 7);
+  trialEnd.setDate(trialEnd.getDate() + 3);
 
   const { error: upsertError } = await supabase
     .from('subscriptions')
