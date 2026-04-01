@@ -30,6 +30,7 @@ type EmailTemplate =
   | "trial_ending"
   | "trial_expired"
   | "trial_day1"
+  | "trial_day2"
   | "trial_day3"
   | "reactivation"
   | "nudge_3day"
