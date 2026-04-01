@@ -459,11 +459,11 @@ function generateEmailContent(
 
     case "trial_day1":
       return {
-        subject: "Here's what to try first on your Pro trial 🎯",
+        subject: "Here's what to try first – 2 days left 🎯",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Day 1 of Pro – let's make it count, ${userName}! 🎯</h1>
-            <p>You've got 6 days left on your trial. Here's the fastest way to see the value:</p>
+            <h1 style="color: #8b5cf6; font-size: 24px;">2 days left on Pro – make them count, ${userName}! 🎯</h1>
+            <p>Your trial ends in <strong>2 days</strong>. Here's the fastest way to see the value:</p>
             <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <h3 style="margin: 0 0 12px 0; color: #7c3aed;">⚡ Quick-win in 2 minutes:</h3>
               <ol style="margin: 0; padding-left: 20px;">
