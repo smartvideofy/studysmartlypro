@@ -61,6 +61,7 @@ const templatePreferenceMap: Record<EmailTemplate, string | null> = {
   trial_ending: null, // Always send (transactional)
   trial_expired: null, // Always send (transactional)
   trial_day1: null, // Always send (transactional)
+  trial_day2: null, // Always send (transactional)
   trial_day3: null, // Always send (transactional)
   reactivation: "product_updates",
   nudge_3day: "streak_reminders",
