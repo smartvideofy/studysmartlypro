@@ -12,7 +12,7 @@
  
    if (!isOnTrial) return null;
  
-   const urgency = trialDaysRemaining <= 2 ? 'high' : trialDaysRemaining <= 4 ? 'medium' : 'low';
+   const urgency = trialDaysRemaining <= 1 ? 'high' : trialDaysRemaining <= 2 ? 'medium' : 'low';
    
    // Calculate progress (7 days total trial)
    const totalTrialDays = 3;

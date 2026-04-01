@@ -362,7 +362,7 @@ export default function PricingPage() {
                       ) : plan.planType === 'pro' && canStartTrial ? (
                         <>
                           <Sparkles className="h-4 w-4 mr-2" />
-                          Start 7-Day Free Trial
+                          Start 3-Day Free Trial
                         </>
                     ) : isOnTrial && plan.planType === 'pro' ? (
                       'Subscribe Now'
