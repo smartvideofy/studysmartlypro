@@ -119,74 +119,44 @@ export function useJoinByInvite() {
     mutationFn: async (inviteCode: string) => {
       if (!user?.id) throw new Error('Not authenticated');
 
-      // Find the invite
-      const { data: invite, error: findError } = await supabase
-        .from('group_invites')
-        .select('*')
-        .eq('invite_code', inviteCode)
-        .gt('expires_at', new Date().toISOString())
-        .single();
+      // Use secure RPC to validate and join - prevents invite code enumeration
+      const { data, error } = await supabase.rpc('validate_and_join_invite', {
+        p_invite_code: inviteCode,
+      });
 
-      if (findError || !invite) {
-        throw new Error('Invalid or expired invite code');
+      if (error) throw error;
+      
+      const result = data as { error?: string; success?: boolean; group_id?: string };
+      
+      if (result.error) {
+        throw new Error(result.error);
       }
 
-      // Check max uses
-      if (invite.max_uses !== null && invite.use_count >= invite.max_uses) {
-        throw new Error('This invite has reached its maximum uses');
-      }
-
-      // Check if already a member
-      const { data: existing } = await supabase
-        .from('group_members')
-        .select('id')
-        .eq('group_id', invite.group_id)
-        .eq('user_id', user.id)
-        .single();
-
-      if (existing) {
-        throw new Error('You are already a member of this group');
-      }
-
-      // Join the group
-      const { error: joinError } = await supabase
-        .from('group_members')
-        .insert({
-          group_id: invite.group_id,
-          user_id: user.id,
-          role: 'member',
-        });
-
-      if (joinError) throw joinError;
-
-      // Increment use count
-      await supabase
-        .from('group_invites')
-        .update({ use_count: invite.use_count + 1 })
-        .eq('id', invite.id);
+      const groupId = result.group_id;
+      if (!groupId) throw new Error('Failed to join group');
 
       // Notify existing group members about the new joiner
       try {
         const [{ data: group }, { data: profile }] = await Promise.all([
-          supabase.from("study_groups").select("name").eq("id", invite.group_id).single(),
+          supabase.from("study_groups").select("name").eq("id", groupId).single(),
           supabase.from("profiles").select("full_name").eq("user_id", user.id).single(),
         ]);
         const joinerName = profile?.full_name || "Someone";
         const groupName = group?.name || "the group";
 
         await supabase.rpc("notify_group_members", {
-          p_group_id: invite.group_id,
+          p_group_id: groupId,
           p_sender_id: user.id,
           p_type: "group_member_joined",
           p_title: `${joinerName} joined ${groupName}`,
           p_message: "",
-          p_data: { group_id: invite.group_id },
+          p_data: { group_id: groupId },
         });
       } catch (notifError) {
         console.error("Failed to send join notifications:", notifError);
       }
 
-      return invite.group_id;
+      return groupId;
     },
     onSuccess: (groupId) => {
       queryClient.invalidateQueries({ queryKey: ['groups'] });

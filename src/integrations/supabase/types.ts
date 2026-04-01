@@ -2226,6 +2226,10 @@ export type Database = {
           user_id: string
         }[]
       }
+      validate_and_join_invite: {
+        Args: { p_invite_code: string }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
