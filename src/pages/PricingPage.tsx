@@ -183,7 +183,7 @@ export default function PricingPage() {
               : isOnTrial 
                 ? `You have ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left. Subscribe now to keep full access.`
                 : canStartTrial
-                  ? 'Start with a 7-day free trial. No credit card required.'
+                  ? 'Start with a 3-day free trial. No credit card required.'
                   : 'All plans include everything you need to study smarter.'
             }
           </p>
