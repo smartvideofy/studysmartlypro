@@ -30,6 +30,7 @@ type EmailTemplate =
   | "trial_ending"
   | "trial_expired"
   | "trial_day1"
+  | "trial_day2"
   | "trial_day3"
   | "reactivation"
   | "nudge_3day"
@@ -60,6 +61,7 @@ const templatePreferenceMap: Record<EmailTemplate, string | null> = {
   trial_ending: null, // Always send (transactional)
   trial_expired: null, // Always send (transactional)
   trial_day1: null, // Always send (transactional)
+  trial_day2: null, // Always send (transactional)
   trial_day3: null, // Always send (transactional)
   reactivation: "product_updates",
   nudge_3day: "streak_reminders",
@@ -358,11 +360,11 @@ function generateEmailContent(
 
     case "trial_started":
       return {
-        subject: "Welcome to your 7-day Pro trial! 🎉",
+        subject: "Welcome to your 3-day Pro trial! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Your Pro trial has started, ${userName}! 🚀</h1>
-            <p>You now have <strong>7 days of full Pro access</strong> – no credit card required.</p>
+            <p>You now have <strong>3 days of full Pro access</strong> – no credit card required.</p>
             <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
               <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you can do now:</h3>
               <ul style="margin: 0; padding-left: 20px; color: #1f2937;">
@@ -374,7 +376,7 @@ function generateEmailContent(
               </ul>
             </div>
             <p style="background: #fef3c7; padding: 12px 16px; border-radius: 8px; font-size: 14px;">
-              ⏰ <strong>Your trial ends:</strong> ${data.trialEndDate || "in 7 days"}
+              ⏰ <strong>Your trial ends:</strong> ${data.trialEndDate || "in 3 days"}
             </p>
             <a href="${appUrl}/materials" style="${buttonStyle}">Start Exploring Pro Features</a>
             <p style="margin-top: 24px; color: #6b7280;">
@@ -387,11 +389,11 @@ function generateEmailContent(
 
     case "trial_ending":
       return {
-        subject: "Your Pro trial ends in 2 days ⏰",
+        subject: "Your Pro trial ends tomorrow ⏰",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #f59e0b; font-size: 24px;">Your trial ends soon, ${userName}! ⏰</h1>
-            <p>Just a heads up – your 7-day Pro trial expires in <strong>2 days</strong> (${data.trialEndDate || "soon"}).</p>
+            <h1 style="color: #f59e0b; font-size: 24px;">Your trial ends tomorrow, ${userName}! ⏰</h1>
+            <p>Just a heads up – your 3-day Pro trial expires <strong>tomorrow</strong> (${data.trialEndDate || "soon"}).</p>
             <div style="background: #fef3c7; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <p style="margin: 0 0 12px 0;"><strong>Don't lose access to:</strong></p>
               <ul style="margin: 0; padding-left: 20px;">
@@ -413,22 +415,18 @@ function generateEmailContent(
 
     case "trial_expired":
       return {
-        subject: "Your access has been paused 💜",
+        subject: "Your access has been paused – 30% off inside 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
-            <p>Your 7-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
-            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <p style="margin: 0 0 12px 0;"><strong>To continue, you'll need access to:</strong></p>
-              <ul style="margin: 0; padding-left: 20px;">
-                <li>Your uploaded study materials</li>
-                <li>Your flashcard decks</li>
-                <li>Practice questions & concept maps</li>
-                <li>Advanced tutor notes</li>
-              </ul>
+            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
+            <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <p style="font-size: 32px; margin: 0;">🎁</p>
+              <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Welcome back offer: 30% off</h3>
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe within 72 hours to claim your discount</p>
             </div>
-            <a href="${appUrl}/pricing" style="${buttonStyle}">Subscribe Now</a>
+            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% Off</a>
             <p style="margin-top: 24px; color: #6b7280;">
               Thanks for trying Studily – we'd love to have you continue with us!
             </p>
@@ -461,11 +459,11 @@ function generateEmailContent(
 
     case "trial_day1":
       return {
-        subject: "Here's what to try first on your Pro trial 🎯",
+        subject: "Here's what to try first – 2 days left 🎯",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Day 1 of Pro – let's make it count, ${userName}! 🎯</h1>
-            <p>You've got 6 days left on your trial. Here's the fastest way to see the value:</p>
+            <h1 style="color: #8b5cf6; font-size: 24px;">2 days left on Pro – make them count, ${userName}! 🎯</h1>
+            <p>Your trial ends in <strong>2 days</strong>. Here's the fastest way to see the value:</p>
             <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <h3 style="margin: 0 0 12px 0; color: #7c3aed;">⚡ Quick-win in 2 minutes:</h3>
               <ol style="margin: 0; padding-left: 20px;">
@@ -483,13 +481,13 @@ function generateEmailContent(
         `,
       };
 
-    case "trial_day3":
+    case "trial_day2":
       return {
-        subject: "You're halfway through your trial – how's it going? 📊",
+        subject: "Tomorrow is your last day – here's what you've built 📊",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Halfway there, ${userName}! 📊</h1>
-            <p>You're 3 days into your Pro trial. Here's what you've accomplished so far:</p>
+            <h1 style="color: #f59e0b; font-size: 24px;">Tomorrow is your last day, ${userName}! 📊</h1>
+            <p>Your Pro trial ends <strong>tomorrow</strong>. Here's what you've accomplished:</p>
             <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <p style="margin: 0 0 8px 0;"><strong>📚 Materials uploaded:</strong> ${data.materialsCount || 0}</p>
               <p style="margin: 0 0 8px 0;"><strong>🎴 Flashcards generated:</strong> ${data.flashcardsCount || 0}</p>
@@ -497,14 +495,36 @@ function generateEmailContent(
             </div>
             ${(data.materialsCount || 0) === 0 ? `
               <p style="background: #fef3c7; padding: 12px 16px; border-radius: 8px;">
-                💡 <strong>Tip:</strong> Upload your first material to see the magic! You have 4 days left.
+                💡 <strong>Tip:</strong> Upload a material now to see the magic before your trial ends!
               </p>
             ` : `
-              <p>Students who study with Studily Pro score <strong>23% higher</strong> on exams. Keep it up!</p>
+              <p>Don't lose access to everything you've created. Subscribe to keep your Pro features.</p>
             `}
-            <a href="${appUrl}/dashboard" style="${buttonStyle}">Continue Studying</a>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Subscribe Now – Keep Everything</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              ⏰ Your trial ends ${data.trialEndDate || "in 4 days"}
+              ⏰ Your trial ends ${data.trialEndDate || "tomorrow"}
+            </p>
+            ${footer}
+          </div>
+        `,
+      };
+
+    case "trial_day3":
+      return {
+        subject: "⚡ Trial ends TODAY – 30% off if you subscribe now",
+        html: `
+          <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+            <h1 style="color: #ef4444; font-size: 24px;">Your trial ends today, ${userName}! ⚡</h1>
+            <p>This is it – your Pro access expires at the end of today.</p>
+            <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
+              <p style="font-size: 40px; margin: 0;">🎁</p>
+              <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Special offer: 30% off your first month</h3>
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe today and save – this offer won't last</p>
+            </div>
+            <p>Plans start at just <strong>$9/month</strong> – that's less than a coffee a week for unlimited AI study tools.</p>
+            <a href="${appUrl}/pricing" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ef4444, #8b5cf6); color: white; text-decoration: none; border-radius: 8px; font-weight: 700; margin: 16px 0; font-size: 16px;">Claim 30% Off Now</a>
+            <p style="margin-top: 24px; color: #6b7280;">
+              Your data is safe either way – but you'll lose access to Pro features after today.
             </p>
             ${footer}
           </div>

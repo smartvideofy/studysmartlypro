@@ -80,7 +80,7 @@ export function SidebarUpgradeCTA({ collapsed }: SidebarUpgradeCTAProps) {
               ? 'Access paused - subscribe now' 
               : isTrialActive 
                 ? 'Subscribe to continue access'
-                : '7 days free, then $9/month'
+                : '3 days free, then $9/month'
             }
           </p>
         </Link>

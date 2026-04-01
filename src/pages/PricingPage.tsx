@@ -183,7 +183,7 @@ export default function PricingPage() {
               : isOnTrial 
                 ? `You have ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left. Subscribe now to keep full access.`
                 : canStartTrial
-                  ? 'Start with a 7-day free trial. No credit card required.'
+                  ? 'Start with a 3-day free trial. No credit card required.'
                   : 'All plans include everything you need to study smarter.'
             }
           </p>
@@ -362,7 +362,7 @@ export default function PricingPage() {
                       ) : plan.planType === 'pro' && canStartTrial ? (
                         <>
                           <Sparkles className="h-4 w-4 mr-2" />
-                          Start 7-Day Free Trial
+                          Start 3-Day Free Trial
                         </>
                     ) : isOnTrial && plan.planType === 'pro' ? (
                       'Subscribe Now'

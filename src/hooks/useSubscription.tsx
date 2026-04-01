@@ -280,7 +280,7 @@ export function useStartTrial() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      toast.success(data.message || 'Trial started! Enjoy 7 days of Pro features.');
+      toast.success(data.message || 'Trial started! Enjoy 3 days of Pro features.');
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to start trial');

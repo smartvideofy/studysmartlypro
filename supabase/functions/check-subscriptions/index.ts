@@ -46,18 +46,10 @@ serve(async (req) => {
   }
 
   try {
-    // This function can be called by:
-    // 1. Supabase cron job (pg_cron)
-    // 2. External cron service
-    // 3. Manual invocation for testing
-
-    // Optional: Verify a shared secret for external cron calls
     const authHeader = req.headers.get('Authorization');
     const cronSecret = Deno.env.get('CRON_SECRET');
     
-    // If CRON_SECRET is set, verify it (for external cron services)
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      // Also allow service role key for internal calls
       if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY!)) {
         console.log('Unauthorized cron call attempt');
         return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -73,9 +65,9 @@ serve(async (req) => {
 
     console.log(`Running subscription check at ${nowISO}`);
 
-  // ============ TRIAL DRIP SEQUENCE ============
+  // ============ TRIAL DRIP SEQUENCE (3-day trial) ============
 
-  // Trial Day 1: started yesterday
+  // Trial Day 1: started yesterday → "2 days left" email
   const oneDayAgo = new Date(now);
   oneDayAgo.setDate(oneDayAgo.getDate() - 1);
   const oneDayStart = new Date(oneDayAgo); oneDayStart.setHours(0, 0, 0, 0);
@@ -89,7 +81,7 @@ serve(async (req) => {
     .lte('trial_start_date', oneDayEnd.toISOString());
 
   if (day1Trials && day1Trials.length > 0) {
-    console.log(`Found ${day1Trials.length} trials for day 1 email`);
+    console.log(`Found ${day1Trials.length} trials for day 1 email (2 days left)`);
     for (const trial of day1Trials) {
       const { data: existingLog } = await supabase
         .from('email_logs').select('id')
@@ -100,27 +92,26 @@ serve(async (req) => {
     }
   }
 
-  // Trial Day 3: started 3 days ago
-  const threeDaysAgo = new Date(now);
-  threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-  const threeDayStart = new Date(threeDaysAgo); threeDayStart.setHours(0, 0, 0, 0);
-  const threeDayEnd = new Date(threeDaysAgo); threeDayEnd.setHours(23, 59, 59, 999);
+  // Trial Day 2: started 2 days ago → "last full day" email with stats
+  const twoDaysAgo = new Date(now);
+  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+  const twoDayStart = new Date(twoDaysAgo); twoDayStart.setHours(0, 0, 0, 0);
+  const twoDayEnd = new Date(twoDaysAgo); twoDayEnd.setHours(23, 59, 59, 999);
 
-  const { data: day3Trials } = await supabase
+  const { data: day2Trials } = await supabase
     .from('subscriptions')
     .select('id, user_id, trial_end_date')
     .eq('status', 'trial')
-    .gte('trial_start_date', threeDayStart.toISOString())
-    .lte('trial_start_date', threeDayEnd.toISOString());
+    .gte('trial_start_date', twoDayStart.toISOString())
+    .lte('trial_start_date', twoDayEnd.toISOString());
 
-  if (day3Trials && day3Trials.length > 0) {
-    console.log(`Found ${day3Trials.length} trials for day 3 email`);
-    for (const trial of day3Trials) {
+  if (day2Trials && day2Trials.length > 0) {
+    console.log(`Found ${day2Trials.length} trials for day 2 email (last full day)`);
+    for (const trial of day2Trials) {
       const { data: existingLog } = await supabase
         .from('email_logs').select('id')
-        .eq('user_id', trial.user_id).eq('template_name', 'trial_day3').limit(1).single();
+        .eq('user_id', trial.user_id).eq('template_name', 'trial_day2').limit(1).single();
       if (!existingLog) {
-        // Get user stats for personalization
         const { data: materials } = await supabase
           .from('study_materials').select('id').eq('user_id', trial.user_id);
         const { data: flashcards } = await supabase
@@ -128,39 +119,42 @@ serve(async (req) => {
         const { data: profile } = await supabase
           .from('profiles').select('xp').eq('user_id', trial.user_id).single();
 
-        await sendSubscriptionEmail(trial.user_id, 'trial_day3', {
+        await sendSubscriptionEmail(trial.user_id, 'trial_day2', {
           materialsCount: materials?.length || 0,
           flashcardsCount: flashcards?.length || 0,
           xpEarned: profile?.xp || 0,
           trialEndDate: trial.trial_end_date ? new Date(trial.trial_end_date).toLocaleDateString('en-US', {
             weekday: 'long', month: 'long', day: 'numeric',
-          }) : 'in 4 days',
+          }) : 'tomorrow',
         });
       }
     }
   }
 
+  // Trial Day 3: expires today → "expires today + 30% off" email
+  // This is handled by the trial_ending reminder below (1 day before expiry)
+
   // ============ TRIAL EXPIRY HANDLING ============
   
-  // Find trials expiring in 2 days (for reminder emails)
-  const twoDaysFromNow = new Date(now);
-  twoDaysFromNow.setDate(twoDaysFromNow.getDate() + 2);
-  const twoDaysStart = new Date(twoDaysFromNow);
-  twoDaysStart.setHours(0, 0, 0, 0);
-  const twoDaysEnd = new Date(twoDaysFromNow);
-  twoDaysEnd.setHours(23, 59, 59, 999);
+  // Find trials expiring in 1 day (for "expires tomorrow" reminder)
+  const oneDayFromNow = new Date(now);
+  oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
+  const oneDayFutureStart = new Date(oneDayFromNow);
+  oneDayFutureStart.setHours(0, 0, 0, 0);
+  const oneDayFutureEnd = new Date(oneDayFromNow);
+  oneDayFutureEnd.setHours(23, 59, 59, 999);
 
   const { data: expiringTrials, error: expiringTrialsError } = await supabase
     .from('subscriptions')
     .select('id, user_id, trial_end_date')
     .eq('status', 'trial')
-    .gte('trial_end_date', twoDaysStart.toISOString())
-    .lte('trial_end_date', twoDaysEnd.toISOString());
+    .gte('trial_end_date', oneDayFutureStart.toISOString())
+    .lte('trial_end_date', oneDayFutureEnd.toISOString());
 
   if (expiringTrialsError) {
     console.error('Error fetching expiring trials:', expiringTrialsError);
   } else if (expiringTrials && expiringTrials.length > 0) {
-    console.log(`Found ${expiringTrials.length} trials expiring in 2 days`);
+    console.log(`Found ${expiringTrials.length} trials expiring in 1 day`);
 
     for (const trial of expiringTrials) {
       const { data: existingLog } = await supabase
@@ -168,12 +162,11 @@ serve(async (req) => {
         .select('id')
         .eq('user_id', trial.user_id)
         .eq('email_type', 'trial_ending')
-        .gte('sent_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
+        .gte('sent_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString())
         .single();
 
       if (!existingLog) {
-        await sendSubscriptionEmail(trial.user_id, 'trial_ending', {
-          daysRemaining: 2,
+        await sendSubscriptionEmail(trial.user_id, 'trial_day3', {
           trialEndDate: new Date(trial.trial_end_date).toLocaleDateString('en-US', {
             weekday: 'long',
             year: 'numeric',
@@ -255,7 +248,6 @@ serve(async (req) => {
     } else if (expiringSubscriptions && expiringSubscriptions.length > 0) {
       console.log(`Found ${expiringSubscriptions.length} subscriptions expiring in 3 days`);
       
-      // Check if we already sent an expiry reminder (using email_logs)
       for (const subscription of expiringSubscriptions) {
         const { data: existingLog } = await supabase
           .from('email_logs')
@@ -266,7 +258,6 @@ serve(async (req) => {
           .single();
 
         if (!existingLog) {
-          // Send expiry reminder
           await sendSubscriptionEmail(subscription.user_id, 'subscription_expiring', {
             planName: subscription.plan === 'pro' ? 'Studily Pro' : 'Studily Team',
             expiryDate: new Date(subscription.current_period_end).toLocaleDateString('en-US', {
