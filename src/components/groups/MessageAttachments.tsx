@@ -1,6 +1,8 @@
 import { FileText, Image, File, Download, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 
 interface Attachment {
   id: string;
@@ -38,11 +40,30 @@ function isImageType(mimeType?: string): boolean {
 }
 
 export function MessageAttachments({ attachments, isMe }: MessageAttachmentsProps) {
+  const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (!attachments?.length) return;
+    const paths = attachments.map((a) => a.file_path);
+    supabase.storage
+      .from("group-attachments")
+      .createSignedUrls(paths, 3600)
+      .then(({ data }) => {
+        if (data) {
+          const map: Record<string, string> = {};
+          data.forEach((item) => {
+            if (item.signedUrl && item.path) map[item.path] = item.signedUrl;
+          });
+          setSignedUrls(map);
+        }
+      });
+  }, [attachments]);
+
   if (!attachments?.length) return null;
 
   const handleDownload = (attachment: Attachment) => {
-    const url = `https://ngcmmvyebvekyutbixee.supabase.co/storage/v1/object/public/group-attachments/${attachment.file_path}`;
-    window.open(url, "_blank");
+    const url = signedUrls[attachment.file_path];
+    if (url) window.open(url, "_blank");
   };
 
   return (
@@ -50,9 +71,9 @@ export function MessageAttachments({ attachments, isMe }: MessageAttachmentsProp
       {attachments.map((attachment) => {
         const isImage = isImageType(attachment.mime_type);
         const FileIcon = getFileIcon(attachment.mime_type);
-        const url = `https://ngcmmvyebvekyutbixee.supabase.co/storage/v1/object/public/group-attachments/${attachment.file_path}`;
+        const url = signedUrls[attachment.file_path] || "";
 
-        if (isImage) {
+        if (isImage && url) {
           return (
             <div key={attachment.id} className="relative group/attachment">
               <img
