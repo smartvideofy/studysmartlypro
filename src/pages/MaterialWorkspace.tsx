@@ -201,7 +201,7 @@ export default function MaterialWorkspace() {
                     </TabsList>
                   </div>
 
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden min-h-0">
                     <TabsContent value="tutor-notes" className="m-0 h-full">
                       <TutorNotesTab materialId={material.id} />
                     </TabsContent>
