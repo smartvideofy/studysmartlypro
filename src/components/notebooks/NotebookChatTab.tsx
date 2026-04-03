@@ -147,7 +147,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
         <h3 className="font-semibold">AI Chat</h3>
         <span className="text-xs text-muted-foreground ml-auto">Multi-source context</span>
       </div>
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4" ref={scrollRef} viewportRef={viewportRef}>
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4"><MessageSquare className="w-8 h-8 text-primary" /></div>
