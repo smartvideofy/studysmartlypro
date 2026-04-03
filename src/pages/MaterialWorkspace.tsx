@@ -310,7 +310,7 @@ export default function MaterialWorkspace() {
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab}
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col min-h-0"
           >
             <div className="flex items-center justify-between border-b border-border">
               <div className="overflow-x-auto scrollbar-hide flex-1 relative">
