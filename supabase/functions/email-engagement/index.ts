@@ -52,6 +52,15 @@ serve(async (req) => {
   }
 
   try {
+    // Auth guard: only allow service role
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "all";
 

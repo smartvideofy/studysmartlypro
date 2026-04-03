@@ -26,6 +26,15 @@ serve(async (req) => {
   }
 
   try {
+    // Auth guard: only allow service role
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY)) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const now = new Date();
     const results: { template: string; userId: string; status: string }[] = [];
