@@ -265,6 +265,7 @@
   
   .flashcard-flip-container {
     perspective: 1200px;
+    overflow: hidden;
   }
   
   .flashcard-inner {
