@@ -55,7 +55,8 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   }, [messages, notebookId]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const vp = viewportRef.current;
+    if (vp) vp.scrollTop = vp.scrollHeight;
   }, [messages]);
 
   const handleSend = async () => {
