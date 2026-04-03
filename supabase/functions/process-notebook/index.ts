@@ -415,6 +415,15 @@ serve(async (req) => {
 
     if (nbError || !notebook) throw new Error('Notebook not found');
 
+    // Ownership check — prevent IDOR
+    if (notebook.user_id !== userId) {
+      console.error(`Ownership mismatch: user ${userId} tried to process notebook owned by ${notebook.user_id}`);
+      return new Response(
+        JSON.stringify({ error: 'You do not have permission to process this notebook' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // For the 'complete' step, skip fetching combined content — it's not needed
     if (step === 'complete') {
       await supabase.from('notebooks').update({
