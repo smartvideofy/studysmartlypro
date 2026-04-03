@@ -33,7 +33,7 @@ export default function NotebookQuestionsTab({ notebookId }: Props) {
   const shortAnswer = questions.filter(q => q.question_type !== 'mcq');
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       <div className="p-6 border-b border-border/50">
         <h3 className="font-semibold text-lg flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Combined Practice Questions</h3>
         <p className="text-sm text-muted-foreground">{questions.length} questions from all sources</p>
