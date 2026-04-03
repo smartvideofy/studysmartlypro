@@ -244,8 +244,8 @@ export function FlashcardStudyDrawer({
                     </span>
                   </div>
                   
-                  <div className="flex-1 flex items-center justify-center text-center px-6 md:px-8">
-                    <p className="font-display text-xl md:text-2xl lg:text-4xl font-semibold leading-relaxed">
+                  <div className="flex-1 flex items-center justify-center text-center px-6 md:px-8 overflow-y-auto max-h-[60%]">
+                    <p className="font-display text-xl md:text-2xl lg:text-4xl font-semibold leading-relaxed break-words">
                       {currentCard.front}
                     </p>
                   </div>
