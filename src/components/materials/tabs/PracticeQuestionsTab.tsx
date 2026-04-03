@@ -304,7 +304,7 @@ function QuestionCard({
                     letter
                   )}
                 </span>
-                <span className="text-sm">{option}</span>
+                <span className="text-sm break-words">{option}</span>
               </button>
             );
           })}

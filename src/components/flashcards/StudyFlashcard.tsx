@@ -86,9 +86,9 @@ export function StudyFlashcard({
             </span>
           </div>
           
-          <div className="flex-1 flex items-center justify-center text-center px-4">
+          <div className="flex-1 flex items-center justify-center text-center px-4 overflow-y-auto max-h-[65%]">
             <p className={cn(
-              "font-display font-medium leading-relaxed text-foreground",
+              "font-display font-medium leading-relaxed text-foreground break-words",
               isMobile ? "text-lg" : "text-xl md:text-2xl"
             )}>
               {back}

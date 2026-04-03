@@ -353,7 +353,7 @@ export default function MaterialWorkspace() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-hidden">
               <TabsContent value="tutor-notes" className="m-0 h-full">
                 <TutorNotesTab materialId={material.id} />
               </TabsContent>
