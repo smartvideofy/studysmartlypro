@@ -40,6 +40,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   const [isLoading, setIsLoading] = useState(false);
   const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const handleCitationClick = useCallback((citation: Citation) => {
     toast.info(`Source [${citation.id}]`, { description: citation.text, duration: 6000 });
@@ -54,7 +55,8 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   }, [messages, notebookId]);
 
   useEffect(() => {
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const vp = viewportRef.current;
+    if (vp) vp.scrollTop = vp.scrollHeight;
   }, [messages]);
 
   const handleSend = async () => {
@@ -145,7 +147,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
         <h3 className="font-semibold">AI Chat</h3>
         <span className="text-xs text-muted-foreground ml-auto">Multi-source context</span>
       </div>
-      <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+      <ScrollArea className="flex-1 p-4" ref={scrollRef} viewportRef={viewportRef}>
         {messages.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-center p-8">
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4"><MessageSquare className="w-8 h-8 text-primary" /></div>
@@ -164,7 +166,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
                   <div className="max-w-[85%]">
                     <div className={`rounded-lg p-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                       {m.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm dark:prose-invert max-w-none break-words overflow-x-hidden">
                           {citationChunks.length > 0
                             ? renderWithCitations(m.content, citationChunks, handleCitationClick)
                             : <ReactMarkdown>{m.content}</ReactMarkdown>}

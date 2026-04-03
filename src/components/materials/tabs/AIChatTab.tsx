@@ -64,6 +64,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const saveResponse = useSaveResponse();
   const { data: savedResponses } = useSavedResponses(materialId);
@@ -87,8 +88,9 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const vp = viewportRef.current;
+    if (vp) {
+      vp.scrollTop = vp.scrollHeight;
     }
   }, [messages]);
 
@@ -290,7 +292,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
         </div>
 
         {/* Chat Messages */}
-        <ScrollArea className="flex-1 p-4" ref={scrollRef}>
+        <ScrollArea className="flex-1 p-4" ref={scrollRef} viewportRef={viewportRef}>
           {messages.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center p-8">
               <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
@@ -342,7 +344,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
                       >
                         <div className="text-sm">
                           {message.role === "assistant" ? (
-                            <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1">
+                            <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 break-words overflow-x-hidden">
                               {citationChunks.length > 0
                                 ? renderWithCitations(message.content, citationChunks, handleCitationClick)
                                 : <ReactMarkdown>{message.content}</ReactMarkdown>

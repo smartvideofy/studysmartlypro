@@ -284,7 +284,7 @@ export default function NotebookWorkspace() {
   if (isMobile) {
     return (
       <DashboardLayout title={notebook.title}>
-        <div className="flex flex-col h-[calc(100dvh-9rem)] -mx-4 overflow-hidden pb-safe">
+        <div className="flex flex-col h-[calc(100dvh-11rem)] -mx-4 overflow-hidden pb-safe">
           {/* Panel Toggle */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
             <Button
@@ -361,7 +361,7 @@ export default function NotebookWorkspace() {
   // Desktop layout - split view
   return (
     <DashboardLayout title={notebook.title}>
-      <div className="flex h-[calc(100vh-8rem)] -m-6 mt-0 overflow-hidden">
+      <div className="flex h-[calc(100vh-7rem)] -m-6 mt-0 overflow-hidden">
         {/* Left Panel - Sources */}
         <div className="w-[280px] border-r border-border overflow-hidden shrink-0">
           <div className="flex items-center gap-2 p-4 border-b border-border">
