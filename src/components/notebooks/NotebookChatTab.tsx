@@ -40,6 +40,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
   const [isLoading, setIsLoading] = useState(false);
   const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const handleCitationClick = useCallback((citation: Citation) => {
     toast.info(`Source [${citation.id}]`, { description: citation.text, duration: 6000 });
