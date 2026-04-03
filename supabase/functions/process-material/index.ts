@@ -752,6 +752,15 @@ serve(async (req) => {
       throw new Error('Material not found');
     }
 
+    // Ownership check — prevent IDOR
+    if (material.user_id !== userId) {
+      console.error(`Ownership mismatch: user ${userId} tried to process material owned by ${material.user_id}`);
+      return new Response(
+        JSON.stringify({ error: 'You do not have permission to process this material' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const materialUserId = material.user_id;
 
     // Check user's plan

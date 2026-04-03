@@ -589,7 +589,7 @@ function generateEmailContent(
                 <li>Collaborative study groups</li>
               </ul>
               <p style="margin: 16px 0 0 0; font-size: 18px; font-weight: bold; color: #7c3aed;">
-                ${data.amount ? `Just ${data.billingInterval === 'yearly' ? '₦' + Math.round(data.amount / 100) + '/year' : '₦' + Math.round(data.amount / 100) + '/month'}` : "Starting at ₦3,500/month"}
+                ${data.amount ? `Just ${data.billingInterval === 'yearly' ? '$' + Math.round(data.amount / 100) + '/year' : '$' + Math.round(data.amount / 100) + '/month'}` : "Starting at $9/month"}
               </p>
             </div>
             <a href="${appUrl}/pricing" style="${buttonStyle}">Complete Your Purchase</a>
