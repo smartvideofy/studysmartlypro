@@ -244,12 +244,12 @@ export function FlashcardStudyDrawer({
                     </span>
                   </div>
                   
-                  <div className="flex-1 flex items-center justify-center text-center px-6 md:px-8 overflow-y-auto max-h-[60%]">
-                    <p className="font-display text-xl md:text-2xl lg:text-4xl font-semibold leading-relaxed break-words">
+                  <div className="flashcard-text-viewport px-6 md:px-8">
+                    <p className="font-display text-lg md:text-xl lg:text-3xl font-semibold leading-relaxed break-words">
                       {currentCard.front}
                     </p>
                   </div>
-                  
+
                   <div className="absolute bottom-4 md:bottom-6 flex flex-col items-center gap-2">
                     <span className="text-xs md:text-sm text-muted-foreground">
                       {isMobile ? "Tap to reveal" : "Click or press Space to reveal"}
