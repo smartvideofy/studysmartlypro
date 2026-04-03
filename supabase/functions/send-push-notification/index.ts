@@ -225,20 +225,28 @@ const handler = async (req: Request): Promise<Response> => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
 
-    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
+    // Check if caller is service role (for server-to-server cron calls)
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+    const isServiceRole = authHeader.includes(serviceRoleKey);
 
-    const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
-    if (claimsError || !claimsData?.claims) {
-      return new Response(
-        JSON.stringify({ error: "Invalid authentication" }),
-        { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+    let callerUserId: string | null = null;
+
+    if (!isServiceRole) {
+      // User JWT flow — validate claims
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(
+          JSON.stringify({ error: "Invalid authentication" }),
+          { status: 401, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+      callerUserId = claimsData.claims.sub as string;
     }
-
-    const callerUserId = claimsData.claims.sub as string;
 
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY");
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY");
@@ -247,21 +255,21 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("VAPID keys not configured");
     }
 
-    const supabaseClient = createClient(
-      supabaseUrl,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey);
 
     const { userId, userIds, title, body, icon, badge, data, tag }: PushNotificationRequest = await req.json();
 
-    // Authorization: users can only send notifications to themselves
     const requestedUserIds = userIds || (userId ? [userId] : []);
-    const allTargetsSelf = requestedUserIds.every((id: string) => id === callerUserId);
-    if (!allTargetsSelf) {
-      return new Response(
-        JSON.stringify({ error: "You can only send notifications to yourself" }),
-        { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
-      );
+
+    // Authorization: service role can send to anyone; users can only send to themselves
+    if (!isServiceRole) {
+      const allTargetsSelf = requestedUserIds.every((id: string) => id === callerUserId);
+      if (!allTargetsSelf) {
+        return new Response(
+          JSON.stringify({ error: "You can only send notifications to yourself" }),
+          { status: 403, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
     }
 
     const targetUserIds = requestedUserIds;

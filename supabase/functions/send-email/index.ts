@@ -622,6 +622,32 @@ serve(async (req) => {
   }
 
   try {
+    // Auth guard: only allow service role or authenticated users
+    const authHeader = req.headers.get("Authorization");
+    const isServiceRole = authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY);
+
+    if (!isServiceRole) {
+      // If not service role, validate user JWT
+      if (!authHeader?.startsWith("Bearer ")) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const supabaseAuth = createClient(SUPABASE_URL, Deno.env.get("SUPABASE_ANON_KEY")!, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const token = authHeader.replace("Bearer ", "");
+      const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+      if (claimsError || !claimsData?.claims) {
+        return new Response(JSON.stringify({ error: "Invalid authentication" }), {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
     const { user_id, template, data = {}, force = false }: SendEmailRequest = await req.json();
 
