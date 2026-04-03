@@ -64,6 +64,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [citationChunks, setCitationChunks] = useState<Citation[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   const saveResponse = useSaveResponse();
   const { data: savedResponses } = useSavedResponses(materialId);
