@@ -95,7 +95,7 @@ export default function PracticeQuestionsTab({ materialId }: PracticeQuestionsTa
   const caseBasedQuestions = questions.filter(q => q.question_type === 'case_based');
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       {/* Header with Quiz Mode CTA */}
       <div className="p-6 border-b border-border/50">
         <div className="flex items-center justify-between mb-4">

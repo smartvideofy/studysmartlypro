@@ -287,7 +287,19 @@
     -webkit-backface-visibility: hidden;
     @apply rounded-2xl flex flex-col items-center justify-center p-8 bg-card border border-border;
     box-shadow: var(--shadow-lg);
+    overflow: hidden;
+  }
+
+  .flashcard-face .flashcard-text-viewport {
     overflow-y: auto;
+    max-height: 60%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
 
   .study-flashcard-face {

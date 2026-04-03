@@ -151,7 +151,7 @@ export default function MaterialWorkspace() {
                 <Tabs 
                   value={activeTab} 
                   onValueChange={setActiveTab}
-                  className="flex-1 flex flex-col"
+                  className="flex-1 flex flex-col min-h-0"
                 >
                   {/* Mobile Scrollable Tabs */}
                   <div className="border-b border-border overflow-x-auto scrollbar-hide">
@@ -201,7 +201,7 @@ export default function MaterialWorkspace() {
                     </TabsList>
                   </div>
 
-                  <div className="flex-1 overflow-hidden">
+                  <div className="flex-1 overflow-hidden min-h-0">
                     <TabsContent value="tutor-notes" className="m-0 h-full">
                       <TutorNotesTab materialId={material.id} />
                     </TabsContent>
@@ -310,7 +310,7 @@ export default function MaterialWorkspace() {
           <Tabs 
             value={activeTab} 
             onValueChange={setActiveTab}
-            className="flex-1 flex flex-col"
+            className="flex-1 flex flex-col min-h-0"
           >
             <div className="flex items-center justify-between border-b border-border">
               <div className="overflow-x-auto scrollbar-hide flex-1 relative">
@@ -353,7 +353,7 @@ export default function MaterialWorkspace() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-hidden">
+            <div className="flex-1 overflow-hidden min-h-0">
               <TabsContent value="tutor-notes" className="m-0 h-full">
                 <TutorNotesTab materialId={material.id} />
               </TabsContent>

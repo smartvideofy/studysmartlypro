@@ -270,7 +270,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
 
   const ChatContent = ({ inDialog = false }: { inDialog?: boolean }) => (
     <TooltipProvider>
-      <div className={`flex flex-col ${inDialog ? 'h-[80vh]' : 'h-full'}`}>
+      <div className={`flex flex-col min-h-0 ${inDialog ? 'h-[80vh]' : 'h-full'}`}>
         {/* Chat Header */}
         <div className="flex items-center justify-between p-4 border-b border-border/50">
           <div className="flex items-center gap-2">
