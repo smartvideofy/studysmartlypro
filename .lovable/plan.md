@@ -1,118 +1,78 @@
 
 
-# Edge Function API Audit
+# Fix Truncated Content & Card Text Overflow
 
-## Summary
+## Root Cause Analysis
 
-Audited all 17 edge functions for correctness, security, and reliability. Found **3 critical bugs**, **2 medium issues**, and **2 low-priority issues**.
+There are two interconnected problems:
 
----
+### Problem 1: ScrollArea gets no height constraint — content truncates without scrolling
 
-## Critical Issues
-
-### 1. Welcome emails are BROKEN — `send_welcome_email_on_signup` trigger uses anon key
-**Impact:** No new user receives a welcome email.
-
-The database trigger `send_welcome_email_on_signup` calls `send-email` with the **anon key** in the `Authorization` header. But the recent security hardening of `send-email` requires either the **service role key** or a valid **user JWT**. The anon key is neither — so `send-email` returns 401 for every welcome email attempt.
-
-**Fix:** Update the SQL trigger to use the service role key instead of the anon key. This requires a database migration to alter the `send_welcome_email_on_signup()` function.
-
-### 2. `process-material` — IDOR (Insecure Direct Object Reference)
-**Impact:** Any authenticated user can trigger processing on ANY other user's material.
-
-The function authenticates the caller via `getClaims()` and stores their `userId`, but **never compares it** to `material.user_id`. It proceeds to process any `materialId` passed in the body, regardless of ownership.
-
-**Fix:** Add `if (material.user_id !== userId) return 403` after fetching the material (around line 755).
-
-### 3. `process-notebook` — IDOR (same pattern)
-**Impact:** Any authenticated user can trigger notebook processing for any other user's notebook.
-
-Same issue — authenticates the user but never checks `notebook.user_id === userId`.
-
-**Fix:** Add ownership check after fetching the notebook (around line 416).
-
----
-
-## Medium Issues
-
-### 4. `check-subscriptions` — Inconsistent duplicate-email check columns
-The `trial_day1` and `trial_day2` drip checks use `template_name` column:
+The layout chain is:
+```text
+Container div (flex-1 overflow-y-auto OR overflow-hidden)
+  └─ TabsContent (h-full, but mt-2 default from Tabs component)
+      └─ Tab component root (h-full flex flex-col)
+          └─ ScrollArea (h-full or flex-1)
 ```
-.eq('template_name', 'trial_day1')
-```
-But the `trial_ending` (trial_day3) check uses `email_type` column:
-```
-.eq('email_type', 'trial_ending')
-```
-Since `send-email` logs both `email_type` and `template_name` with the same value, this works by coincidence. But the `trial_day3` template is being sent while checking for `trial_ending` — these are different values. This means the duplicate check will never match, and **trial_day3 emails could be sent repeatedly**.
 
-**Fix:** Standardize all drip duplicate checks to use `template_name` and match the actual template being sent (`trial_day3`, not `trial_ending`).
+**Issue A — MaterialWorkspace desktop (line 356):** The tab content wrapper uses `overflow-y-auto`, which means it becomes the scroll container. But the child `ScrollArea` inside each tab also tries to scroll. Two nested scroll contexts fight each other — the outer one scrolls but the inner `ScrollArea` has no fixed height (`h-full` resolves to nothing because `overflow-y-auto` doesn't constrain height). Content gets cut off.
 
-### 5. `abandoned_checkout` email template shows ₦ (Naira) but plans are priced in USD
-The template hardcodes Naira symbol `₦` and `₦3,500/month` fallback, but all plan pricing is configured in USD ($9/month, $90/year).
+**Fix:** Change `overflow-y-auto` to `overflow-hidden` on the tab content wrapper. This gives `h-full` children a real height constraint, allowing the internal `ScrollArea` to handle scrolling properly.
 
-**Fix:** Update the abandoned checkout template to use `$` currency symbol and correct USD amounts.
+**Issue B — MaterialWorkspace mobile (line 204):** Same problem — `overflow-y-auto` instead of `overflow-hidden`.
 
----
+**Issue C — TabsContent default `mt-2`:** The Tabs component adds `mt-2` by default, but all TabsContent in both workspaces already override with `m-0`. However, the `mt-2` in the base component can cause 8px of content to be pushed below the container boundary in edge cases. Since workspace tabs universally pass `m-0`, this is not the primary issue but worth noting.
 
-## Low-Priority Issues
+**Issue D — NotebookWorkspace:** Both mobile (line 344) and desktop (line 412) already use `overflow-hidden` correctly. These should be fine.
 
-### 6. `generate-sitemap` — No authentication (intentional but worth noting)
-This endpoint is open to anyone. It only reads public help articles/categories, so the risk is low — but it could be used for reconnaissance or to enumerate content.
+### Problem 2: Flashcard text overflows card boundaries
 
-**Action:** No change needed — public sitemap is standard practice. Note for awareness.
+The `.flashcard-face` CSS uses `position: absolute; inset: 0` with `p-8` padding and `flex items-center justify-center`. Long text overflows because:
+- There is no `overflow-hidden` or `overflow-y-auto` on the face
+- The text container has no `max-h` or `overflow` constraint
+- The `FlashcardStudyDrawer` card uses `aspect-[4/3]` which can be too small for long answers
 
-### 7. `process-video` — Missing `ELEVENLABS_API_KEY` secret reference
-`generate-audio-overview` references `ELEVENLABS_API_KEY` which isn't in the project secrets list. It handles this gracefully (returns script without audio), but audio generation won't work.
-
-**Action:** This is a known limitation — ElevenLabs integration is optional. No fix needed unless audio overview is desired.
-
----
-
-## Functions That Passed Audit
-
-| Function | Auth | Ownership | Input Validation | Error Handling |
-|---|---|---|---|---|
-| `ai-notes` | JWT via getClaims | N/A (user's own content) | Thorough (Zod-like) | Good |
-| `material-chat` | JWT via getClaims | Checks `user_id` match | Good | Good |
-| `regenerate-content` | JWT via getClaims | Checks `user_id` match | Good | Good |
-| `paystack` | JWT + webhook signature | Checks user claims | Good | Good |
-| `generate-audio-overview` | JWT via getClaims | Checks `user_id` match | Good | Good |
-| `process-video` | JWT via getClaims | Inserts as own user | Good | Good |
-| `send-push-notification` | JWT or service role | Self-only or service role | Good | Good |
-| `send-email` | Service role or JWT | N/A (admin action) | Good | Good |
-| `email-engagement` | Service role only | N/A (system) | Good | Good |
-| `email-onboarding` | Service role only | N/A (system) | Good | Good |
-| `schedule-study-reminder` | Service role only | N/A (system) | Good | Good |
-| `schedule-session-reminder` | Service role only | N/A (system) | Good | Good |
-| `check-subscriptions` | CRON_SECRET or service role | N/A (system) | Good | Good |
-| `unsubscribe` | Token-based (intentional) | Token validates user | Good | Good |
+Similarly in `StudyFlashcard.tsx`, the card has fixed heights (`h-[320px]` mobile, `h-[400px]` desktop) with no text overflow handling.
 
 ---
 
 ## Fix Plan
 
-### 1. Database migration — Fix welcome email trigger
-Update `send_welcome_email_on_signup()` to use a reference to the service role key instead of the hardcoded anon key. Since `pg_net` in a trigger can't read Supabase vault secrets easily, the pragmatic fix is to use `SUPABASE_SERVICE_ROLE_KEY` from vault or pass it directly.
+### 1. MaterialWorkspace — Fix scroll containers
+**Files:** `src/pages/MaterialWorkspace.tsx`
 
-### 2. `process-material` — Add ownership check
-After fetching the material, verify `material.user_id === userId`. Return 403 if mismatch.
+- **Line 204 (mobile):** Change `overflow-y-auto` → `overflow-hidden`
+- **Line 356 (desktop):** Change `overflow-y-auto` → `overflow-hidden`
 
-### 3. `process-notebook` — Add ownership check
-After fetching the notebook, verify `notebook.user_id === userId`. Return 403 if mismatch.
+This single change fixes truncation for all tabs (tutor notes, summaries, practice questions, flashcards, chat) because the child `ScrollArea` components can now properly resolve `h-full`.
 
-### 4. `check-subscriptions` — Fix duplicate check for trial_day3
-Change `.eq('email_type', 'trial_ending')` to `.eq('template_name', 'trial_day3')`.
+### 2. Flashcard face text overflow
+**File:** `src/index.css`
 
-### 5. `send-email` — Fix currency in abandoned checkout template
-Replace `₦` with `$` and update fallback pricing to `$9/month`.
+Add `overflow-y-auto` to `.flashcard-face` so long text scrolls within the card rather than overflowing outside. Also add `overflow-hidden` to `.flashcard-flip-container` as a safety net.
+
+### 3. FlashcardStudyDrawer — Add text overflow safety
+**File:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
+
+Add `overflow-y-auto` and `max-h` constraints to the text containers inside the front/back card faces (lines 247-249, 281-283) so long answers scroll within the card.
+
+### 4. StudyFlashcard — Same overflow fix
+**File:** `src/components/flashcards/StudyFlashcard.tsx`
+
+Add `overflow-y-auto` to the text content divs so long flashcard text doesn't escape the card boundaries.
+
+### 5. PracticeQuestionsTab — Card text overflow
+**File:** `src/components/materials/tabs/PracticeQuestionsTab.tsx`
+
+The MCQ option buttons use fixed classes but long option text can overflow. Add `break-words` to the option text `<span>` elements.
 
 ---
 
 ## Files Modified
-- New migration SQL — Fix `send_welcome_email_on_signup` trigger to use service role key
-- `supabase/functions/process-material/index.ts` — Add ownership check
-- `supabase/functions/process-notebook/index.ts` — Add ownership check
-- `supabase/functions/check-subscriptions/index.ts` — Fix duplicate email check
-- `supabase/functions/send-email/index.ts` — Fix currency in abandoned checkout template
+- `src/pages/MaterialWorkspace.tsx` — Fix `overflow-y-auto` → `overflow-hidden` (2 lines)
+- `src/index.css` — Add overflow handling to flashcard CSS
+- `src/components/materials/tabs/FlashcardStudyDrawer.tsx` — Add text overflow constraints
+- `src/components/flashcards/StudyFlashcard.tsx` — Add text overflow handling
+- `src/components/materials/tabs/PracticeQuestionsTab.tsx` — Add `break-words` to option text
 
