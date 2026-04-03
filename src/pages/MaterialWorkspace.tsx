@@ -151,7 +151,7 @@ export default function MaterialWorkspace() {
                 <Tabs 
                   value={activeTab} 
                   onValueChange={setActiveTab}
-                  className="flex-1 flex flex-col"
+                  className="flex-1 flex flex-col min-h-0"
                 >
                   {/* Mobile Scrollable Tabs */}
                   <div className="border-b border-border overflow-x-auto scrollbar-hide">
