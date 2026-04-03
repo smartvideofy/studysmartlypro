@@ -88,8 +88,9 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
   }, []);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const vp = viewportRef.current;
+    if (vp) {
+      vp.scrollTop = vp.scrollHeight;
     }
   }, [messages]);
 
