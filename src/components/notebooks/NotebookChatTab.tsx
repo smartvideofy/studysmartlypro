@@ -166,7 +166,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
                   <div className="max-w-[85%]">
                     <div className={`rounded-lg p-3 ${m.role === "user" ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>
                       {m.role === "assistant" ? (
-                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <div className="prose prose-sm dark:prose-invert max-w-none break-words overflow-x-hidden">
                           {citationChunks.length > 0
                             ? renderWithCitations(m.content, citationChunks, handleCitationClick)
                             : <ReactMarkdown>{m.content}</ReactMarkdown>}

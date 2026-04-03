@@ -251,7 +251,7 @@ export default function MaterialWorkspace() {
       onStudyTabChange={setActiveTab}
     >
       {/* Main Content - Split View */}
-      <div className="flex h-[calc(100vh-8rem)] -m-6 mt-0 overflow-hidden">
+      <div className="flex h-[calc(100vh-7rem)] -m-6 mt-0 overflow-hidden">
         {/* Left Panel - Material Viewer */}
         <motion.div
           initial={false}

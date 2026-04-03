@@ -361,7 +361,7 @@ export default function NotebookWorkspace() {
   // Desktop layout - split view
   return (
     <DashboardLayout title={notebook.title}>
-      <div className="flex h-[calc(100vh-8rem)] -m-6 mt-0 overflow-hidden">
+      <div className="flex h-[calc(100vh-7rem)] -m-6 mt-0 overflow-hidden">
         {/* Left Panel - Sources */}
         <div className="w-[280px] border-r border-border overflow-hidden shrink-0">
           <div className="flex items-center gap-2 p-4 border-b border-border">
