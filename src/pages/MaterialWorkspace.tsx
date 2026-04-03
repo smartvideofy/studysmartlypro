@@ -89,7 +89,7 @@ export default function MaterialWorkspace() {
         activeStudyTab={activeTab}
         onStudyTabChange={setActiveTab}
       >
-        <div className="flex flex-col h-[calc(100dvh-9rem)] -mx-4 overflow-hidden pb-safe">
+        <div className="flex flex-col h-[calc(100dvh-11rem)] -mx-4 overflow-hidden pb-safe">
           {/* Mobile Panel Toggle */}
           <div className="flex items-center gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
             <Button
