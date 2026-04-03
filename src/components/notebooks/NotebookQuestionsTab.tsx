@@ -90,7 +90,7 @@ function QuestionCard({ question: q, index, selected, onSelect, isRevealed, onTo
                 )}>
                   {isRevealed && isCorrect ? <CheckCircle2 className="w-4 h-4" /> : isRevealed && isSel && !isCorrect ? <XCircle className="w-4 h-4" /> : letter}
                 </span>
-                <span className="text-sm">{opt}</span>
+                <span className="text-sm break-words">{opt}</span>
               </button>
             );
           })}

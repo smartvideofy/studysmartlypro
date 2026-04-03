@@ -86,15 +86,15 @@ export function StudyFlashcard({
             </span>
           </div>
           
-          <div className="flex-1 flex items-center justify-center text-center px-4 overflow-y-auto max-h-[65%]">
+          <div className="flashcard-text-viewport px-4">
             <p className={cn(
               "font-display font-medium leading-relaxed text-foreground break-words",
-              isMobile ? "text-lg" : "text-xl md:text-2xl"
+              isMobile ? "text-base" : "text-lg md:text-xl"
             )}>
               {back}
             </p>
           </div>
-          
+
           <div className="absolute bottom-6 text-sm text-muted-foreground">
             {isMobile ? "Tap to see question" : "Click to see question"}
           </div>

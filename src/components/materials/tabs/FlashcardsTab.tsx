@@ -238,7 +238,7 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
   const hardCount = flashcards.filter(c => c.difficulty === 'hard').length;
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col min-h-0">
       {/* Header with Stats */}
       <div className="p-6 border-b border-border/50">
         <div className="flex items-center justify-between mb-4">

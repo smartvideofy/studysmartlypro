@@ -139,7 +139,7 @@ export default function NotebookChatTab({ notebookId, extractedContent }: Props)
 
   return (
     <TooltipProvider>
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="flex items-center gap-2 p-4 border-b border-border/50">
         <MessageSquare className="w-5 h-5 text-primary" />
         <h3 className="font-semibold">AI Chat</h3>
