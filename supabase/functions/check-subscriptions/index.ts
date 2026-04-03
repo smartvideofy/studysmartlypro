@@ -161,8 +161,8 @@ serve(async (req) => {
         .from('email_logs')
         .select('id')
         .eq('user_id', trial.user_id)
-        .eq('email_type', 'trial_ending')
-        .gte('sent_at', new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString())
+        .eq('template_name', 'trial_day3')
+        .limit(1)
         .single();
 
       if (!existingLog) {
