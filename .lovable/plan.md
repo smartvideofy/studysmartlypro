@@ -1,78 +1,79 @@
 
+The earlier patch only fixed part of the problem. I checked the current code, and the outer `overflow-hidden` changes are already there, but the real scroll chain is still incomplete.
 
-# Fix Truncated Content & Card Text Overflow
-
-## Root Cause Analysis
-
-There are two interconnected problems:
-
-### Problem 1: ScrollArea gets no height constraint — content truncates without scrolling
-
-The layout chain is:
 ```text
-Container div (flex-1 overflow-y-auto OR overflow-hidden)
-  └─ TabsContent (h-full, but mt-2 default from Tabs component)
-      └─ Tab component root (h-full flex flex-col)
-          └─ ScrollArea (h-full or flex-1)
+Workspace panel
+  -> Tabs
+     -> TabsContent
+        -> tab body (flex column)
+           -> ScrollArea
+              -> Radix viewport
 ```
 
-**Issue A — MaterialWorkspace desktop (line 356):** The tab content wrapper uses `overflow-y-auto`, which means it becomes the scroll container. But the child `ScrollArea` inside each tab also tries to scroll. Two nested scroll contexts fight each other — the outer one scrolls but the inner `ScrollArea` has no fixed height (`h-full` resolves to nothing because `overflow-y-auto` doesn't constrain height). Content gets cut off.
+Right now, that chain still breaks in two places:
+- `MaterialWorkspace` tabs are still missing key `min-h-0` flex constraints.
+- The shared `ScrollArea` primitive itself does not have `min-h-0`, so in flex layouts it can grow to content height instead of becoming the scrollable area.
 
-**Fix:** Change `overflow-y-auto` to `overflow-hidden` on the tab content wrapper. This gives `h-full` children a real height constraint, allowing the internal `ScrollArea` to handle scrolling properly.
+That is why Notes, Summaries, Questions, Flashcards, and Chat can still look clipped with no usable vertical scroll.
 
-**Issue B — MaterialWorkspace mobile (line 204):** Same problem — `overflow-y-auto` instead of `overflow-hidden`.
+The flashcard issue is separate: text is still rendered inside a centered card face with top/bottom overlays, so long AI wording can collide with the badge/hint area and spill outside.
 
-**Issue C — TabsContent default `mt-2`:** The Tabs component adds `mt-2` by default, but all TabsContent in both workspaces already override with `m-0`. However, the `mt-2` in the base component can cause 8px of content to be pushed below the container boundary in edge cases. Since workspace tabs universally pass `m-0`, this is not the primary issue but worth noting.
+Plan
 
-**Issue D — NotebookWorkspace:** Both mobile (line 344) and desktop (line 412) already use `overflow-hidden` correctly. These should be fine.
+1. Fix the shared scroll foundation
+- Update `src/components/ui/scroll-area.tsx` so the root always includes `min-h-0 min-w-0`.
+- Expose a viewport ref/hook so chat tabs can scroll the actual Radix viewport, not the outer root.
+- Only make a small shared `TabsContent` adjustment if needed; avoid broad risky styling changes.
 
-### Problem 2: Flashcard text overflows card boundaries
+2. Repair the workspace height chain
+- `src/pages/MaterialWorkspace.tsx`: add `min-h-0` to the mobile and desktop study-tool wrappers, the `Tabs` roots, the inner `flex-1 overflow-hidden` containers, and the `TabsContent` blocks.
+- Apply the same height-chain hardening in `src/pages/NotebookWorkspace.tsx` for consistency.
+- Keep the outer wrappers `overflow-hidden` so each tab has one clear internal scroll container.
 
-The `.flashcard-face` CSS uses `position: absolute; inset: 0` with `p-8` padding and `flex items-center justify-center`. Long text overflows because:
-- There is no `overflow-hidden` or `overflow-y-auto` on the face
-- The text container has no `max-h` or `overflow` constraint
-- The `FlashcardStudyDrawer` card uses `aspect-[4/3]` which can be too small for long answers
+3. Harden the tab bodies that depend on scrolling
+- Add `min-h-0` to tab components that use a fixed header plus a scrollable body:
+  - `PracticeQuestionsTab`
+  - `FlashcardsTab`
+  - `AIChatTab`
+  - notebook equivalents
+- Let Tutor Notes and Summaries keep using full-height `ScrollArea`, but make sure their parents now provide a real constrained height.
 
-Similarly in `StudyFlashcard.tsx`, the card has fixed heights (`h-[320px]` mobile, `h-[400px]` desktop) with no text overflow handling.
+4. Fix chat behavior properly
+- In `AIChatTab` and `NotebookChatTab`, move auto-scroll logic to the ScrollArea viewport so new streamed messages remain reachable.
+- Add stronger text wrapping to chat markdown/bubbles so long AI answers do not overflow narrow panels.
+- Keep the input/footer pinned while only the message list scrolls.
 
----
+5. Rebuild flashcard text handling
+- In `src/index.css`, change `.flashcard-face` to keep the card shell fixed (`overflow-hidden`) and move scrolling to an inner text viewport.
+- Reserve space for the top badge and bottom hint so content never overlaps those areas.
+- Slightly reduce the largest text sizes and enforce wrapping on card text.
+- Apply the same structure to:
+  - `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
+  - `src/components/flashcards/StudyFlashcard.tsx`
 
-## Fix Plan
+6. Close the remaining overflow gaps
+- `src/components/notebooks/NotebookQuestionsTab.tsx`: add `break-words` to answer option text; the material version already has this, but the notebook version still does not.
+- Review chat bubbles and narrow card/question text blocks for `min-w-0` + wrapping where needed.
 
-### 1. MaterialWorkspace — Fix scroll containers
-**Files:** `src/pages/MaterialWorkspace.tsx`
+Files likely touched
+- `src/components/ui/scroll-area.tsx`
+- `src/components/ui/tabs.tsx` if a minimal shared fix is needed
+- `src/pages/MaterialWorkspace.tsx`
+- `src/pages/NotebookWorkspace.tsx`
+- `src/components/materials/tabs/PracticeQuestionsTab.tsx`
+- `src/components/materials/tabs/FlashcardsTab.tsx`
+- `src/components/materials/tabs/AIChatTab.tsx`
+- `src/components/notebooks/NotebookQuestionsTab.tsx`
+- `src/components/notebooks/NotebookFlashcardsTab.tsx`
+- `src/components/notebooks/NotebookChatTab.tsx`
+- `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
+- `src/components/flashcards/StudyFlashcard.tsx`
+- `src/index.css`
 
-- **Line 204 (mobile):** Change `overflow-y-auto` → `overflow-hidden`
-- **Line 356 (desktop):** Change `overflow-y-auto` → `overflow-hidden`
-
-This single change fixes truncation for all tabs (tutor notes, summaries, practice questions, flashcards, chat) because the child `ScrollArea` components can now properly resolve `h-full`.
-
-### 2. Flashcard face text overflow
-**File:** `src/index.css`
-
-Add `overflow-y-auto` to `.flashcard-face` so long text scrolls within the card rather than overflowing outside. Also add `overflow-hidden` to `.flashcard-flip-container` as a safety net.
-
-### 3. FlashcardStudyDrawer — Add text overflow safety
-**File:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
-
-Add `overflow-y-auto` and `max-h` constraints to the text containers inside the front/back card faces (lines 247-249, 281-283) so long answers scroll within the card.
-
-### 4. StudyFlashcard — Same overflow fix
-**File:** `src/components/flashcards/StudyFlashcard.tsx`
-
-Add `overflow-y-auto` to the text content divs so long flashcard text doesn't escape the card boundaries.
-
-### 5. PracticeQuestionsTab — Card text overflow
-**File:** `src/components/materials/tabs/PracticeQuestionsTab.tsx`
-
-The MCQ option buttons use fixed classes but long option text can overflow. Add `break-words` to the option text `<span>` elements.
-
----
-
-## Files Modified
-- `src/pages/MaterialWorkspace.tsx` — Fix `overflow-y-auto` → `overflow-hidden` (2 lines)
-- `src/index.css` — Add overflow handling to flashcard CSS
-- `src/components/materials/tabs/FlashcardStudyDrawer.tsx` — Add text overflow constraints
-- `src/components/flashcards/StudyFlashcard.tsx` — Add text overflow handling
-- `src/components/materials/tabs/PracticeQuestionsTab.tsx` — Add `break-words` to option text
-
+Success criteria
+- Tutor Notes, Summaries, Questions, Flashcards, and Chat all scroll fully on desktop and mobile.
+- No clipped content at the bottom of tabs.
+- No double-scroll conflict between workspace wrappers and tab bodies.
+- Chat always reaches the latest streamed message.
+- Long flashcard text stays inside the card and becomes internally scrollable when necessary.
+- Long MCQ options wrap cleanly instead of escaping their buttons/cards.
