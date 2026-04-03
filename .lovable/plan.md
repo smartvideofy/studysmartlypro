@@ -1,79 +1,78 @@
 
-The earlier patch only fixed part of the problem. I checked the current code, and the outer `overflow-hidden` changes are already there, but the real scroll chain is still incomplete.
 
-```text
-Workspace panel
-  -> Tabs
-     -> TabsContent
-        -> tab body (flex column)
-           -> ScrollArea
-              -> Radix viewport
-```
+# Audit: What the Previous Fixes Got Right and What's Still Broken
 
-Right now, that chain still breaks in two places:
-- `MaterialWorkspace` tabs are still missing key `min-h-0` flex constraints.
-- The shared `ScrollArea` primitive itself does not have `min-h-0`, so in flex layouts it can grow to content height instead of becoming the scrollable area.
+## What's Already Fixed (Confirmed Working)
 
-That is why Notes, Summaries, Questions, Flashcards, and Chat can still look clipped with no usable vertical scroll.
+1. **ScrollArea root** now has `min-h-0 min-w-0` -- correct
+2. **MaterialWorkspace & NotebookWorkspace** both have `Tabs` with `flex-1 flex flex-col min-h-0` -- correct
+3. **Content wrappers** have `flex-1 overflow-hidden min-h-0` -- correct
+4. **TabsContent** uses `m-0 h-full` overriding the default `mt-2` -- correct
+5. **Flashcard CSS** has `.flashcard-text-viewport` with `overflow-y: auto; max-height: 60%` -- correct
+6. **Tab components** (FlashcardsTab, PracticeQuestionsTab) use `h-full flex flex-col min-h-0` -- correct
 
-The flashcard issue is separate: text is still rendered inside a centered card face with top/bottom overlays, so long AI wording can collide with the badge/hint area and spill outside.
+## Remaining Issues Found
 
-Plan
+### Issue 1: Radix ScrollArea Viewport is NOT the scroll target (Chat auto-scroll broken)
 
-1. Fix the shared scroll foundation
-- Update `src/components/ui/scroll-area.tsx` so the root always includes `min-h-0 min-w-0`.
-- Expose a viewport ref/hook so chat tabs can scroll the actual Radix viewport, not the outer root.
-- Only make a small shared `TabsContent` adjustment if needed; avoid broad risky styling changes.
+In `AIChatTab` and `NotebookChatTab`, the `ref={scrollRef}` is passed to `<ScrollArea>`, which forwards it to the Radix `Root` element. But the Root has `overflow: hidden` -- it is NOT the scrollable element. The actual scrollable element is the **Viewport** (a child div rendered by Radix). So `scrollRef.current.scrollTop = scrollRef.current.scrollHeight` does absolutely nothing. Chat messages stream in but the view never scrolls to show them.
 
-2. Repair the workspace height chain
-- `src/pages/MaterialWorkspace.tsx`: add `min-h-0` to the mobile and desktop study-tool wrappers, the `Tabs` roots, the inner `flex-1 overflow-hidden` containers, and the `TabsContent` blocks.
-- Apply the same height-chain hardening in `src/pages/NotebookWorkspace.tsx` for consistency.
-- Keep the outer wrappers `overflow-hidden` so each tab has one clear internal scroll container.
+**Fix:** Update `ScrollArea` to expose a `viewportRef` prop. Update both chat tabs to use `viewportRef` for auto-scrolling instead of the root ref.
 
-3. Harden the tab bodies that depend on scrolling
-- Add `min-h-0` to tab components that use a fixed header plus a scrollable body:
-  - `PracticeQuestionsTab`
-  - `FlashcardsTab`
-  - `AIChatTab`
-  - notebook equivalents
-- Let Tutor Notes and Summaries keep using full-height `ScrollArea`, but make sure their parents now provide a real constrained height.
+### Issue 2: Mobile height calculation is wrong -- content clipped behind bottom nav
 
-4. Fix chat behavior properly
-- In `AIChatTab` and `NotebookChatTab`, move auto-scroll logic to the ScrollArea viewport so new streamed messages remain reachable.
-- Add stronger text wrapping to chat markdown/bubbles so long AI answers do not overflow narrow panels.
-- Keep the input/footer pinned while only the message list scrolls.
+Both workspaces use `h-[calc(100dvh-9rem)]` on mobile. The actual space consumed:
+- MobileHeader: ~3.5rem (56px)
+- `<main>` padding-top: 1rem (from `p-4`)
+- `<main>` padding-bottom: 6rem (`pb-24`, to clear the fixed bottom nav)
 
-5. Rebuild flashcard text handling
-- In `src/index.css`, change `.flashcard-face` to keep the card shell fixed (`overflow-hidden`) and move scrolling to an inner text viewport.
-- Reserve space for the top badge and bottom hint so content never overlaps those areas.
-- Slightly reduce the largest text sizes and enforce wrapping on card text.
-- Apply the same structure to:
-  - `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
-  - `src/components/flashcards/StudyFlashcard.tsx`
+Total = **10.5rem**, but the calc only subtracts **9rem**. This means the container extends ~1.5rem (24px) behind the bottom navigation bar, clipping the bottom of every tab's content.
 
-6. Close the remaining overflow gaps
-- `src/components/notebooks/NotebookQuestionsTab.tsx`: add `break-words` to answer option text; the material version already has this, but the notebook version still does not.
-- Review chat bubbles and narrow card/question text blocks for `min-w-0` + wrapping where needed.
+**Fix:** Change both mobile containers from `h-[calc(100dvh-9rem)]` to `h-[calc(100dvh-11rem)]` (or restructure so the workspace bypasses the `pb-24` padding by using negative bottom margin).
 
-Files likely touched
-- `src/components/ui/scroll-area.tsx`
-- `src/components/ui/tabs.tsx` if a minimal shared fix is needed
-- `src/pages/MaterialWorkspace.tsx`
-- `src/pages/NotebookWorkspace.tsx`
-- `src/components/materials/tabs/PracticeQuestionsTab.tsx`
-- `src/components/materials/tabs/FlashcardsTab.tsx`
-- `src/components/materials/tabs/AIChatTab.tsx`
-- `src/components/notebooks/NotebookQuestionsTab.tsx`
-- `src/components/notebooks/NotebookFlashcardsTab.tsx`
-- `src/components/notebooks/NotebookChatTab.tsx`
-- `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
-- `src/components/flashcards/StudyFlashcard.tsx`
-- `src/index.css`
+### Issue 3: Desktop height calculation may clip bottom content
 
-Success criteria
-- Tutor Notes, Summaries, Questions, Flashcards, and Chat all scroll fully on desktop and mobile.
-- No clipped content at the bottom of tabs.
-- No double-scroll conflict between workspace wrappers and tab bodies.
-- Chat always reaches the latest streamed message.
-- Long flashcard text stays inside the card and becomes internally scrollable when necessary.
-- Long MCQ options wrap cleanly instead of escaping their buttons/cards.
+Desktop uses `h-[calc(100vh-8rem)]` with `-m-6 mt-0`. The desktop header is 4rem, and the content area has `p-6` (1.5rem) padding. The negative margin `-m-6` removes 1.5rem on all sides except top (`mt-0`). The effective bottom edge: the container starts at ~5.5rem from viewport top, height is `100vh - 8rem`, so it ends at `100vh - 2.5rem`. With `-mb-6` compensation, it reaches `100vh - 1rem`. This leaves a ~1rem gap at the bottom where content might be hidden.
+
+**Fix:** Adjust to `h-[calc(100vh-7rem)]` or use a more reliable approach like making the DashboardLayout content area itself a flex column with `flex-1 overflow-hidden`.
+
+### Issue 4: TabsContent default `mt-2` still applies in some contexts
+
+The `cn()` merging of `mt-2` (from TabsContent default) and `m-0` (from workspace usage) works correctly via Tailwind Merge. However, if any OTHER usage of TabsContent in the app (Summaries tab's inner tabs, for example) doesn't override `m-0`, those nested TabsContent elements will have `mt-2` eating into the height chain.
+
+In `SummariesTab`, the inner `<Tabs>/<TabsContent>` at lines 200-262 do NOT have `m-0 h-full` -- these are inside a ScrollArea so it doesn't break scrolling, but it does add unnecessary top margin.
+
+**Fix:** Minor -- not a scrolling issue since it's inside ScrollArea, but should be cleaned up.
+
+### Issue 5: Prose content in chat can overflow horizontally
+
+Chat assistant messages use `<ReactMarkdown>` inside a `prose prose-sm` container. Long code blocks, URLs, or pre-formatted text can exceed the bubble width. There's no `overflow-wrap: break-word` or `overflow-x: auto` on the prose container.
+
+**Fix:** Add `break-words overflow-hidden` to the chat message bubble's prose wrapper.
+
+---
+
+## Plan
+
+### Step 1: Fix ScrollArea to expose viewport ref
+Update `src/components/ui/scroll-area.tsx` to accept a `viewportRef` prop and forward it to the Radix Viewport element, keeping backward compatibility.
+
+### Step 2: Fix chat auto-scroll
+Update `AIChatTab` and `NotebookChatTab` to use the new `viewportRef` instead of the root ref for scrolling to the latest message.
+
+### Step 3: Fix mobile height calculation
+Change `h-[calc(100dvh-9rem)]` to `h-[calc(100dvh-11rem)]` in both `MaterialWorkspace.tsx` and `NotebookWorkspace.tsx` to account for the `pb-24` on `<main>`.
+
+### Step 4: Fix desktop height calculation
+Change `h-[calc(100vh-8rem)]` to `h-[calc(100vh-7rem)]` in both workspace pages to prevent bottom clipping.
+
+### Step 5: Add text overflow protection to chat
+Add `break-words overflow-x-hidden` to the prose containers in both chat tabs.
+
+## Files Modified
+- `src/components/ui/scroll-area.tsx` -- Add viewportRef prop
+- `src/components/materials/tabs/AIChatTab.tsx` -- Fix scroll target + text overflow
+- `src/components/notebooks/NotebookChatTab.tsx` -- Fix scroll target + text overflow
+- `src/pages/MaterialWorkspace.tsx` -- Fix height calcs (mobile & desktop)
+- `src/pages/NotebookWorkspace.tsx` -- Fix height calcs (mobile & desktop)
+
