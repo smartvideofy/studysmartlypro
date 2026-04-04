@@ -324,15 +324,26 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
           </Button>
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="flex-1 gap-2"
-              onClick={() => setShowSaveDialog(true)}
-            >
-              <FolderPlus className="w-4 h-4" />
-              Save to Deck
-            </Button>
-            {savedDeckId && (
+            {linkedDeck ? (
+              <Button 
+                variant="secondary" 
+                className="flex-1 gap-2"
+                onClick={() => navigate(`/flashcards/${linkedDeck.id}`)}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Saved Deck
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={() => setShowSaveDialog(true)}
+              >
+                <FolderPlus className="w-4 h-4" />
+                Save to Deck
+              </Button>
+            )}
+            {savedDeckId && savedDeckId !== linkedDeck?.id && (
               <Button 
                 variant="secondary" 
                 className="flex-1 gap-2"
