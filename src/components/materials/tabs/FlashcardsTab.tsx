@@ -80,6 +80,22 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
     enabled: !!user && !!materialId,
   });
 
+  // Fetch auto-saved deck linked to this material
+  const { data: linkedDeck } = useQuery({
+    queryKey: ['linked-deck', materialId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flashcard_decks')
+        .select('id, name')
+        .eq('source_material_id', materialId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!materialId,
+  });
+
   // Fetch user's flashcard decks
   const { data: decks } = useQuery({
     queryKey: ['flashcard-decks'],
