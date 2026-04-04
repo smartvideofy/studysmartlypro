@@ -345,6 +345,7 @@ export type Database = {
           is_public: boolean | null
           name: string
           note_id: string | null
+          source_material_id: string | null
           subject: string | null
           updated_at: string
           user_id: string
@@ -357,6 +358,7 @@ export type Database = {
           is_public?: boolean | null
           name: string
           note_id?: string | null
+          source_material_id?: string | null
           subject?: string | null
           updated_at?: string
           user_id: string
@@ -369,6 +371,7 @@ export type Database = {
           is_public?: boolean | null
           name?: string
           note_id?: string | null
+          source_material_id?: string | null
           subject?: string | null
           updated_at?: string
           user_id?: string
@@ -379,6 +382,13 @@ export type Database = {
             columns: ["note_id"]
             isOneToOne: false
             referencedRelation: "notes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "flashcard_decks_source_material_id_fkey"
+            columns: ["source_material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
             referencedColumns: ["id"]
           },
         ]

@@ -1,0 +1,1 @@
+ALTER TABLE public.flashcard_decks ADD COLUMN source_material_id uuid REFERENCES public.study_materials(id) ON DELETE SET NULL;
