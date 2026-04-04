@@ -636,6 +636,59 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
       });
   }
   console.log('Flashcards generated');
+
+  // Auto-save to flashcard_decks + flashcards
+  try {
+    // Check if a deck already exists for this material
+    const { data: existingDeck } = await supabase
+      .from('flashcard_decks')
+      .select('id')
+      .eq('source_material_id', materialId)
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    let deckId: string;
+
+    if (existingDeck) {
+      deckId = existingDeck.id;
+      // Delete old cards on reprocessing
+      await supabase.from('flashcards').delete().eq('deck_id', deckId);
+      // Reset card count
+      await supabase.from('flashcard_decks').update({ card_count: 0 }).eq('id', deckId);
+    } else {
+      const { data: newDeck, error: deckError } = await supabase
+        .from('flashcard_decks')
+        .insert({
+          name: material.title,
+          user_id: userId,
+          description: `Auto-generated from "${material.title}"`,
+          subject: material.subject || null,
+          source_material_id: materialId,
+          card_count: 0,
+        })
+        .select('id')
+        .single();
+
+      if (deckError) {
+        console.error('Failed to create auto-save deck:', deckError);
+        return;
+      }
+      deckId = newDeck.id;
+    }
+
+    // Insert cards into the flashcards table
+    for (const card of flashcards) {
+      await supabase.from('flashcards').insert({
+        deck_id: deckId,
+        front: (card as any).front,
+        back: (card as any).back,
+        hint: (card as any).hint || null,
+      });
+    }
+    console.log(`Auto-saved ${flashcards.length} flashcards to deck ${deckId}`);
+  } catch (autoSaveError) {
+    console.error('Auto-save to deck failed (non-fatal):', autoSaveError);
+  }
 }
 
 async function handleQuestionsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string, isPremium: boolean) {

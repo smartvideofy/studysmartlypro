@@ -80,6 +80,22 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
     enabled: !!user && !!materialId,
   });
 
+  // Fetch auto-saved deck linked to this material
+  const { data: linkedDeck } = useQuery({
+    queryKey: ['linked-deck', materialId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('flashcard_decks')
+        .select('id, name')
+        .eq('source_material_id', materialId)
+        .maybeSingle();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user && !!materialId,
+  });
+
   // Fetch user's flashcard decks
   const { data: decks } = useQuery({
     queryKey: ['flashcard-decks'],
@@ -308,15 +324,26 @@ export default function FlashcardsTab({ materialId }: FlashcardsTabProps) {
           </Button>
 
           <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              className="flex-1 gap-2"
-              onClick={() => setShowSaveDialog(true)}
-            >
-              <FolderPlus className="w-4 h-4" />
-              Save to Deck
-            </Button>
-            {savedDeckId && (
+            {linkedDeck ? (
+              <Button 
+                variant="secondary" 
+                className="flex-1 gap-2"
+                onClick={() => navigate(`/flashcards/${linkedDeck.id}`)}
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open Saved Deck
+              </Button>
+            ) : (
+              <Button 
+                variant="outline" 
+                className="flex-1 gap-2"
+                onClick={() => setShowSaveDialog(true)}
+              >
+                <FolderPlus className="w-4 h-4" />
+                Save to Deck
+              </Button>
+            )}
+            {savedDeckId && savedDeckId !== linkedDeck?.id && (
               <Button 
                 variant="secondary" 
                 className="flex-1 gap-2"

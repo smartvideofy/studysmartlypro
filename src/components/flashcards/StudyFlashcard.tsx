@@ -3,6 +3,18 @@ import { haptics } from "@/lib/haptics";
 import { useSwipeGesture } from "@/hooks/useSwipeGesture";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+function getTextSizeClass(text: string, isMobile: boolean, isFront: boolean) {
+  const len = text.length;
+  if (isMobile) {
+    if (len < 50) return isFront ? "text-lg" : "text-base";
+    if (len < 150) return "text-sm";
+    return "text-xs";
+  }
+  if (len < 50) return isFront ? "text-xl md:text-2xl" : "text-lg md:text-xl";
+  if (len < 150) return isFront ? "text-base md:text-lg" : "text-sm md:text-base";
+  return isFront ? "text-sm md:text-base" : "text-xs md:text-sm";
+}
+
 interface StudyFlashcardProps {
   front: string;
   back: string;
@@ -22,7 +34,6 @@ export function StudyFlashcard({
 }: StudyFlashcardProps) {
   const isMobile = useIsMobile();
   
-  // Swipe gesture for mobile navigation
   const swipeHandlers = useSwipeGesture({
     onSwipeLeft: () => {
       if (onSwipeLeft) {
@@ -67,7 +78,7 @@ export function StudyFlashcard({
           <div className="flashcard-text-viewport px-4">
             <p className={cn(
               "font-display font-semibold leading-relaxed break-words",
-              isMobile ? "text-lg" : "text-xl md:text-2xl"
+              getTextSizeClass(front, isMobile, true)
             )}>
               {front}
             </p>
@@ -89,7 +100,7 @@ export function StudyFlashcard({
           <div className="flashcard-text-viewport px-4">
             <p className={cn(
               "font-display font-medium leading-relaxed text-foreground break-words",
-              isMobile ? "text-base" : "text-lg md:text-xl"
+              getTextSizeClass(back, isMobile, false)
             )}>
               {back}
             </p>
