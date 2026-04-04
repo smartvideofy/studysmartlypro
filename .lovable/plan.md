@@ -1,85 +1,71 @@
 
 
-# Comprehensive Scroll & Truncation Audit — Current Status
+# Fix Flashcard Overflow, Fullscreen Study Mode, and Auto-Save
 
-## Verdict: The code fixes ARE complete and correct
+## Three Issues Identified
 
-After tracing every link in the height chain across all workspace pages, tab components, and shared primitives, the structural fixes are all in place. Here's the evidence:
+### Issue 1: Card text overflows the card boundaries
+The `.flashcard-text-viewport` has `max-height: 60%` and `overflow-y: auto`, but the text font sizes are too large for shorter cards. On the `StudyFlashcard` component (used in deck study), the card has a fixed `h-[320px]`/`h-[400px]`. On the `FlashcardStudyDrawer` (material study), it uses `aspect-[4/3]`. Long AI-generated text still overflows because the large font sizes (`text-3xl`, `text-2xl`) don't scale down to fit.
 
----
+**Fix:** Add dynamic font sizing based on text length. Short text gets large fonts, long text gets smaller fonts automatically. Also increase `max-height` from 60% to 70% since the badge and hint areas only need ~15% each.
 
-## Complete Height Chain Verification
+### Issue 2: Fullscreen mode doesn't truly fill the screen
+The drawer uses vaul's bottom-sheet pattern (`fixed inset-x-0 bottom-0`). Setting `h-screen` on a bottom-anchored drawer doesn't produce a true fullscreen experience -- there's still the drag handle, rounded corners, and margin. 
 
-```text
-DashboardLayout
-  └─ <main> (pb-24 on mobile, pb-0 on desktop)
-      └─ <div className="p-4 lg:p-6"> (content wrapper)
-          └─ MaterialWorkspace / NotebookWorkspace
-              └─ Outer div: h-[calc(100dvh-11rem)] mobile / h-[calc(100vh-7rem)] desktop  ✅
-                  └─ motion.div: flex-1 flex flex-col overflow-hidden  ✅
-                      └─ Tabs: flex-1 flex flex-col min-h-0  ✅
-                          ├─ TabsList wrapper (border-b, fixed height)
-                          └─ Content div: flex-1 overflow-hidden min-h-0  ✅
-                              └─ TabsContent: m-0 h-full  ✅
-                                  └─ Tab component (varies per tab)
-```
+**Fix:** When fullscreen is toggled, switch from the Drawer to a portal-based fullscreen overlay (`fixed inset-0 z-50`) with no drag handle, no rounded corners. This gives a clean, immersive card-flipping experience.
 
-### Per-Tab Verification
+### Issue 3: Material flashcards are not auto-saved to the Flashcards section
+Currently, the `process-material` edge function saves cards to `material_flashcards` only. Users must manually click "Save to Deck" to copy them to `flashcard_decks` + `flashcards`. 
 
-| Tab | Outer Wrapper | Scroll Container | Status |
-|-----|--------------|-------------------|--------|
-| TutorNotesTab | Fragment → ScrollArea h-full | ScrollArea (min-h-0) | ✅ |
-| SummariesTab | Fragment → ScrollArea h-full | ScrollArea (min-h-0) | ✅ |
-| FlashcardsTab | div h-full flex flex-col min-h-0 | ScrollArea flex-1 | ✅ |
-| PracticeQuestionsTab | div h-full flex flex-col min-h-0 | ScrollArea flex-1 | ✅ |
-| AIChatTab | div flex flex-col min-h-0 h-full | ScrollArea flex-1 + viewportRef | ✅ |
-| ConceptMapTab | ReactFlow (own scroll) | N/A | ✅ |
-| All Notebook equivalents | Same patterns | Same patterns | ✅ |
-
-### Shared Primitives
-
-| Component | Fix | Status |
-|-----------|-----|--------|
-| ScrollArea root | min-h-0 min-w-0 | ✅ |
-| ScrollArea viewportRef | Exposed to consumers | ✅ |
-| TabsContent | Default mt-2, overridden with m-0 h-full in workspaces | ✅ |
-| Flashcard CSS | .flashcard-text-viewport with overflow-y: auto, max-height: 60% | ✅ |
-| Chat prose | break-words overflow-x-hidden | ✅ |
-| MCQ options | break-words on option text | ✅ |
-
-### Height Calculations
-
-**Mobile**: `100dvh - 11rem` accounts for:
-- MobileHeader: ~3.5-4.25rem (sticky, variable padding)
-- Content padding top: 1rem (p-4)
-- Bottom nav clearance: 6rem (pb-24)
-- Total overhead: ~10.5-11.25rem → 11rem is conservative and safe ✅
-
-**Desktop**: `100vh - 7rem` with `-m-6 mt-0` accounts for:
-- Desktop header: 4rem (h-16)
-- Content padding: 1.5rem (p-6), cancelled by -m-6 on sides/bottom
-- Effective: workspace fills from 5.5rem to bottom of viewport ✅
+**Fix:** After the flashcards step in the processing pipeline, automatically create a deck (named after the material) and copy cards into the `flashcards` table. Add a `source_material_id` column to `flashcard_decks` to link back and prevent duplicate auto-saves on reprocessing.
 
 ---
 
-## Why It May Still Appear Broken
+## Implementation Plan
 
-The code is correct, but **the live site at app.getstudily.com may not be serving the latest build**. The changes were made in the Lovable editor but need to be published. Possible causes:
+### Step 1: Dynamic font sizing for flashcards
+**Files:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`, `src/components/flashcards/StudyFlashcard.tsx`
 
-1. **Not re-published after latest changes** — The height calc fixes (11rem, 7rem) and viewportRef changes were the most recent edits. If the site wasn't re-published after these, the old broken code is still live.
-2. **Browser/CDN cache** — Even after publishing, the old bundle may be cached. Users need a hard refresh (Ctrl+Shift+R / Cmd+Shift+R) or the CDN cache needs to expire.
-3. **Preview vs production mismatch** — The Lovable preview (id-preview--*.lovable.app) reflects changes immediately, but the published site and custom domain require manual "Update" in the publish dialog.
+- Create a helper function `getTextSizeClass(text: string, isMobile: boolean)` that returns smaller Tailwind classes for longer text:
+  - Under 50 chars: `text-xl`/`text-2xl` (current large sizes)
+  - 50-150 chars: `text-base`/`text-lg`
+  - Over 150 chars: `text-sm`/`text-base`
+- Apply to both front and back text in both components
+- Increase `.flashcard-text-viewport` max-height from 60% to 72% in `src/index.css`
 
-## Recommended Next Steps
+### Step 2: True fullscreen study mode
+**Files:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
 
-### Step 1: Publish the latest build
-Click "Publish" in the Lovable editor to push the current code to production. Then click "Update" in the custom domain section.
+- When `isFullscreen` is true, render a `fixed inset-0 z-[60]` overlay instead of the Drawer content
+- Remove the drag handle, rounded corners, and border in fullscreen
+- Keep the same card, controls, and keyboard navigation
+- Add an Escape key handler and a close/minimize button to exit fullscreen
+- The card should expand to fill available space (`max-w-4xl mx-auto`)
 
-### Step 2: Verify on the preview URL first
-Test on `https://id-preview--f1a92d1a-899a-4c50-8659-e1ea2bf90d11.lovable.app` — this always reflects the latest code. Upload a material, wait for processing, then check each tab scrolls fully.
+### Step 3: Auto-save material flashcards to decks
+**Files:** `supabase/functions/process-material/index.ts`
 
-### Step 3: Hard refresh on custom domain
-After publishing, visit `https://app.getstudily.com` with Ctrl+Shift+R to bypass cache and verify the fixes are live.
+- Add a migration: `ALTER TABLE flashcard_decks ADD COLUMN source_material_id uuid REFERENCES study_materials(id) ON DELETE SET NULL`
+- In the `flashcards` step of `process-material`, after inserting into `material_flashcards`:
+  1. Check if a deck with `source_material_id = materialId` already exists
+  2. If not, create one with the material's title as the deck name
+  3. Insert the generated cards into the `flashcards` table linked to that deck
+  4. If a deck already exists (reprocessing), delete old cards and re-insert
 
-No code changes are needed — the implementation is structurally correct.
+### Step 4: Update FlashcardsTab UI to reflect auto-saved state
+**Files:** `src/components/materials/tabs/FlashcardsTab.tsx`
+
+- Query for an existing deck linked to this material (`source_material_id`)
+- If found, show "Open Deck" button instead of "Save to Deck"
+- Keep manual "Save to Deck" as an option for saving to a different deck
+
+---
+
+## Files Modified
+- `src/index.css` -- Increase flashcard-text-viewport max-height
+- `src/components/materials/tabs/FlashcardStudyDrawer.tsx` -- Dynamic font sizing + true fullscreen overlay
+- `src/components/flashcards/StudyFlashcard.tsx` -- Dynamic font sizing
+- `src/components/materials/tabs/FlashcardsTab.tsx` -- Auto-saved deck awareness
+- `supabase/functions/process-material/index.ts` -- Auto-save to flashcard deck
+- New migration: Add `source_material_id` column to `flashcard_decks`
 
