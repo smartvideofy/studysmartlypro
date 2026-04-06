@@ -1,71 +1,121 @@
 
 
-# Fix Flashcard Overflow, Fullscreen Study Mode, and Auto-Save
+# Soften Paywall: View-Only Mode for Expired Users
 
-## Three Issues Identified
+## Current Problem
+When a user's trial expires, the entire app is blocked with a full-screen `SubscriptionBlock`. Users cannot view their dashboard, study materials, flashcards, progress, achievements, or settings. This is too aggressive.
 
-### Issue 1: Card text overflows the card boundaries
-The `.flashcard-text-viewport` has `max-height: 60%` and `overflow-y: auto`, but the text font sizes are too large for shorter cards. On the `StudyFlashcard` component (used in deck study), the card has a fixed `h-[320px]`/`h-[400px]`. On the `FlashcardStudyDrawer` (material study), it uses `aspect-[4/3]`. Long AI-generated text still overflows because the large font sizes (`text-3xl`, `text-2xl`) don't scale down to fit.
+## New Behavior
+Expired trial users can freely:
+- Log in, log out, navigate the entire app
+- View dashboard, progress stats, achievements
+- View existing study materials and all generated content (summaries, tutor notes, flashcards, questions, concept maps)
+- View existing flashcard decks and study them
+- View settings, help, groups
 
-**Fix:** Add dynamic font sizing based on text length. Short text gets large fonts, long text gets smaller fonts automatically. Also increase `max-height` from 60% to 70% since the badge and hint areas only need ~15% each.
+Expired trial users are blocked (with upgrade prompt) only when they try to:
+- Upload new study materials
+- Create new flashcard decks or notebooks
+- Generate/regenerate AI content (summaries, flashcards, questions, etc.)
+- Use AI Chat
+- Start new AI-powered actions
 
-### Issue 2: Fullscreen mode doesn't truly fill the screen
-The drawer uses vaul's bottom-sheet pattern (`fixed inset-x-0 bottom-0`). Setting `h-screen` on a bottom-anchored drawer doesn't produce a true fullscreen experience -- there's still the drag handle, rounded corners, and margin. 
+## Implementation
 
-**Fix:** When fullscreen is toggled, switch from the Drawer to a portal-based fullscreen overlay (`fixed inset-0 z-50`) with no drag handle, no rounded corners. This gives a clean, immersive card-flipping experience.
+### Step 1: Remove the full-screen block from DashboardLayout
+**File: `src/components/layout/DashboardLayout.tsx`**
+- Remove the `useIsBlocked` import and usage
+- Remove the `SubscriptionBlock` import and the conditional render at line 114
+- Keep the `ExpiredTrialBanner` -- it provides a non-blocking nudge to subscribe
 
-### Issue 3: Material flashcards are not auto-saved to the Flashcards section
-Currently, the `process-material` edge function saves cards to `material_flashcards` only. Users must manually click "Save to Deck" to copy them to `flashcard_decks` + `flashcards`. 
+### Step 2: Create a reusable `useActionGate` hook
+**File: `src/hooks/useActionGate.tsx` (new)**
+- A hook that returns a `guardAction(callback)` function
+- If the user is on an expired trial, it shows a toast/dialog prompting upgrade instead of executing the action
+- If the user has access, it runs the callback normally
 
-**Fix:** After the flashcards step in the processing pipeline, automatically create a deck (named after the material) and copy cards into the `flashcards` table. Add a `source_material_id` column to `flashcard_decks` to link back and prevent duplicate auto-saves on reprocessing.
+### Step 3: Gate creation/upload actions on StudyMaterialsPage
+**File: `src/pages/StudyMaterialsPage.tsx`**
+- Wrap the "Upload" button's onClick with the action gate
+- Users can still see and open their existing materials
 
----
+### Step 4: Gate creation actions on FlashcardsPage
+**File: `src/pages/FlashcardsPage.tsx`**
+- Wrap "Create Deck" and "AI Generate" button actions with the gate
+- Users can still view and study existing decks
 
-## Implementation Plan
+### Step 5: Gate regeneration actions in MaterialWorkspace
+**File: `src/pages/MaterialWorkspace.tsx`**
+- Remove `PremiumGate` wrappers from tabs (so users can VIEW all generated content)
+- Gate the "Regenerate" buttons in each tab with the action gate
+- Gate the AI Chat tab's message sending (viewing previous chats is fine, sending new messages is blocked)
 
-### Step 1: Dynamic font sizing for flashcards
-**Files:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`, `src/components/flashcards/StudyFlashcard.tsx`
+### Step 6: Gate notebook creation
+**File: `src/pages/NotesPage.tsx` or equivalent**
+- Wrap "Create Notebook" / "Create Note" actions with the gate
 
-- Create a helper function `getTextSizeClass(text: string, isMobile: boolean)` that returns smaller Tailwind classes for longer text:
-  - Under 50 chars: `text-xl`/`text-2xl` (current large sizes)
-  - 50-150 chars: `text-base`/`text-lg`
-  - Over 150 chars: `text-sm`/`text-base`
-- Apply to both front and back text in both components
-- Increase `.flashcard-text-viewport` max-height from 60% to 72% in `src/index.css`
+### Step 7: Gate AI actions in note editor
+**File: `src/pages/NoteEditor.tsx`**
+- Gate "AI Summary", "AI Flashcards" generation buttons
+- Users can still view and edit existing notes
 
-### Step 2: True fullscreen study mode
-**Files:** `src/components/materials/tabs/FlashcardStudyDrawer.tsx`
+### Step 8: Update PremiumGate for tab-level use (AI Chat only)
+**File: `src/components/subscription/PremiumGate.tsx`**
+- Keep PremiumGate but only use it for AI Chat (which is inherently a generation action)
+- Or better: let users see chat history but disable the input field
 
-- When `isFullscreen` is true, render a `fixed inset-0 z-[60]` overlay instead of the Drawer content
-- Remove the drag handle, rounded corners, and border in fullscreen
-- Keep the same card, controls, and keyboard navigation
-- Add an Escape key handler and a close/minimize button to exit fullscreen
-- The card should expand to fill available space (`max-w-4xl mx-auto`)
+## Technical Details
 
-### Step 3: Auto-save material flashcards to decks
-**Files:** `supabase/functions/process-material/index.ts`
+### useActionGate hook
+```typescript
+export function useActionGate() {
+  const { isBlocked } = useIsBlocked();
+  const navigate = useNavigate();
 
-- Add a migration: `ALTER TABLE flashcard_decks ADD COLUMN source_material_id uuid REFERENCES study_materials(id) ON DELETE SET NULL`
-- In the `flashcards` step of `process-material`, after inserting into `material_flashcards`:
-  1. Check if a deck with `source_material_id = materialId` already exists
-  2. If not, create one with the material's title as the deck name
-  3. Insert the generated cards into the `flashcards` table linked to that deck
-  4. If a deck already exists (reprocessing), delete old cards and re-insert
+  const guardAction = (action: () => void) => {
+    if (isBlocked) {
+      toast.error("Subscribe to unlock this feature", {
+        description: "Your trial has ended. Subscribe to create and generate new content.",
+        action: { label: "View Plans", onClick: () => navigate("/pricing") },
+      });
+      return;
+    }
+    action();
+  };
 
-### Step 4: Update FlashcardsTab UI to reflect auto-saved state
-**Files:** `src/components/materials/tabs/FlashcardsTab.tsx`
+  return { guardAction, isExpired: isBlocked };
+}
+```
 
-- Query for an existing deck linked to this material (`source_material_id`)
-- If found, show "Open Deck" button instead of "Save to Deck"
-- Keep manual "Save to Deck" as an option for saving to a different deck
+### Where gates are placed (action-level, not view-level)
+- Upload material button
+- Create deck / Create notebook buttons
+- AI Generate buttons (flashcards, summaries, questions)
+- Regenerate content buttons
+- AI Chat send message
+- Import document button
+- Export actions (optional -- could allow exports)
 
----
+### What remains freely accessible
+- All navigation and page views
+- Dashboard with stats
+- Progress page with charts
+- Achievements page
+- Study material viewer (all tabs: summaries, tutor notes, flashcards, questions, concept maps)
+- Flashcard study mode (flip through existing cards)
+- Settings page
+- Help center
+- Groups (viewing)
 
 ## Files Modified
-- `src/index.css` -- Increase flashcard-text-viewport max-height
-- `src/components/materials/tabs/FlashcardStudyDrawer.tsx` -- Dynamic font sizing + true fullscreen overlay
-- `src/components/flashcards/StudyFlashcard.tsx` -- Dynamic font sizing
-- `src/components/materials/tabs/FlashcardsTab.tsx` -- Auto-saved deck awareness
-- `supabase/functions/process-material/index.ts` -- Auto-save to flashcard deck
-- New migration: Add `source_material_id` column to `flashcard_decks`
+- `src/components/layout/DashboardLayout.tsx` -- Remove full-screen block
+- `src/hooks/useActionGate.tsx` -- New hook for action-level gating
+- `src/pages/StudyMaterialsPage.tsx` -- Gate upload
+- `src/pages/FlashcardsPage.tsx` -- Gate create deck
+- `src/pages/MaterialWorkspace.tsx` -- Remove PremiumGate wrappers, gate regenerate + chat send
+- `src/pages/NotesPage.tsx` -- Gate create note/folder
+- `src/pages/NoteEditor.tsx` -- Gate AI actions
+- `src/components/materials/tabs/AIChatTab.tsx` -- Gate message sending
+- `src/components/materials/tabs/FlashcardsTab.tsx` -- Gate save-to-deck action
+- `src/components/subscription/SubscriptionBlock.tsx` -- Keep but no longer used in layout (can be removed or kept for pricing page reference)
 
