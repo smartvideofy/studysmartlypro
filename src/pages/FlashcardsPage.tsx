@@ -29,6 +29,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { createFlashcardsJsonLd } from "@/components/seo/jsonld";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useActionGate } from "@/hooks/useActionGate";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -71,6 +72,7 @@ function FlashcardsSkeleton() {
 
 export default function FlashcardsPage() {
   const isMobile = useIsMobile();
+  const { guardAction } = useActionGate();
   const [searchQuery, setSearchQuery] = useState("");
   const [createDeckOpen, setCreateDeckOpen] = useState(false);
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
@@ -226,12 +228,12 @@ export default function FlashcardsPage() {
             </div>
             
             <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setAiGeneratorOpen(true)}>
+              <Button variant="outline" size="sm" onClick={() => guardAction(() => setAiGeneratorOpen(true))}>
                 <Sparkles className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">AI Generate</span>
               </Button>
               
-              <Button variant="hero" size="sm" onClick={() => setCreateDeckOpen(true)}>
+              <Button variant="hero" size="sm" onClick={() => guardAction(() => setCreateDeckOpen(true))}>
                 <Plus className="w-4 h-4" />
                 <span className="ml-1">New Deck</span>
               </Button>

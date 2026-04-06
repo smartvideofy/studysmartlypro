@@ -212,14 +212,10 @@ export default function MaterialWorkspace() {
                       <FlashcardsTab materialId={material.id} />
                     </TabsContent>
                     <TabsContent value="questions" className="m-0 h-full">
-                      <PremiumGate feature="practiceQuestions">
                         <PracticeQuestionsTab materialId={material.id} />
-                      </PremiumGate>
                     </TabsContent>
                     <TabsContent value="concept-map" className="m-0 h-full">
-                      <PremiumGate feature="conceptMaps">
                         <ConceptMapTab materialId={material.id} />
-                      </PremiumGate>
                     </TabsContent>
                     <TabsContent value="chat" className="m-0 h-full">
                       <AIChatTab materialId={material.id} extractedContent={material.extracted_content} />
@@ -364,14 +360,10 @@ export default function MaterialWorkspace() {
                 <FlashcardsTab materialId={material.id} />
               </TabsContent>
               <TabsContent value="questions" className="m-0 h-full">
-                <PremiumGate feature="practiceQuestions">
                   <PracticeQuestionsTab materialId={material.id} />
-                </PremiumGate>
               </TabsContent>
               <TabsContent value="concept-map" className="m-0 h-full">
-                <PremiumGate feature="conceptMaps">
                   <ConceptMapTab materialId={material.id} />
-                </PremiumGate>
               </TabsContent>
               <TabsContent value="chat" className="m-0 h-full">
                 <AIChatTab materialId={material.id} extractedContent={material.extracted_content} />

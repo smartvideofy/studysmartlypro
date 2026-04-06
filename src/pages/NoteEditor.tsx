@@ -66,6 +66,7 @@ import { useSpeechToText } from "@/hooks/useSpeechToText";
 import { formatDistanceToNow } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useActionGate } from "@/hooks/useActionGate";
 
 const toolbarButtons = [
   { icon: Bold, label: "Bold" },
@@ -82,6 +83,7 @@ export default function NoteEditor() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isNewNote = !id || id === "new";
+  const { guardAction } = useActionGate();
   
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -219,13 +221,17 @@ export default function NoteEditor() {
   };
 
   const handleSummarize = async () => {
-    setSummaryOpen(true);
-    await summarize(title, content);
+    guardAction(async () => {
+      setSummaryOpen(true);
+      await summarize(title, content);
+    });
   };
 
   const handleGenerateFlashcards = async () => {
-    setFlashcardsOpen(true);
-    await generateFlashcards(title, content);
+    guardAction(async () => {
+      setFlashcardsOpen(true);
+      await generateFlashcards(title, content);
+    });
   };
 
   const isSaving = createNote.isPending || updateNote.isPending;

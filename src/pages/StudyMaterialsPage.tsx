@@ -48,12 +48,14 @@ import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 import { PullToRefresh } from "@/components/ui/pull-to-refresh";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useActionGate } from "@/hooks/useActionGate";
 
 type FileTypeFilter = 'pdf' | 'docx' | 'pptx' | 'audio' | 'image' | 'web_url' | 'youtube';
 
 export default function StudyMaterialsPage() {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { guardAction } = useActionGate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<string | undefined>();
@@ -149,13 +151,13 @@ export default function StudyMaterialsPage() {
                 Upload your study materials and let AI generate structured notes, flashcards, and practice questions.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button onClick={() => setUploadModalOpen(true)} className="gap-2 w-full sm:w-auto h-11">
+                <Button onClick={() => guardAction(() => setUploadModalOpen(true))} className="gap-2 w-full sm:w-auto h-11">
                   <Upload className="w-4 h-4" />
                   Upload Material
                 </Button>
                 <Button 
                   variant="secondary"
-                  onClick={() => setNotebookModalOpen(true)}
+                  onClick={() => guardAction(() => setNotebookModalOpen(true))}
                   className="gap-2 w-full sm:w-auto h-11"
                 >
                   <BookOpen className="w-4 h-4" />
@@ -163,7 +165,7 @@ export default function StudyMaterialsPage() {
                 </Button>
                 <Button 
                   variant="outline" 
-                  onClick={() => setFolderModalOpen(true)}
+                  onClick={() => guardAction(() => setFolderModalOpen(true))}
                   className="gap-2 w-full sm:w-auto h-11"
                 >
                   <FolderPlus className="w-4 h-4" />

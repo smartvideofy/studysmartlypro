@@ -31,8 +31,6 @@ import { MobileMenuDrawer } from "./MobileMenuDrawer";
  import { SidebarNavSection, SidebarNavItem } from "./sidebar";
 import { useProfile } from "@/hooks/useProfile";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useIsBlocked } from "@/hooks/useSubscription";
-import { SubscriptionBlock } from "@/components/subscription/SubscriptionBlock";
 import { ExpiredTrialBanner } from "@/components/subscription/ExpiredTrialBanner";
 import logoImage from "@/assets/logo.png";
 import { OfflineBanner } from "@/components/ui/offline-banner";
@@ -96,9 +94,6 @@ export default function DashboardLayout({
   const { data: profile } = useProfile();
   const isMobile = useIsMobile();
   
-  // Check if user is blocked (expired trial)
-  const { isBlocked, isLoading: blockLoading } = useIsBlocked();
-  
   // Sync offline reviews when back online
   useOfflineSync();
 
@@ -109,11 +104,6 @@ export default function DashboardLayout({
 
   const userInitial = profile?.full_name?.charAt(0)?.toUpperCase() || "S";
   const isInMaterialWorkspace = location.pathname.startsWith("/materials/") && materialId;
-
-  // Show block screen for expired trial users (except on pricing page)
-  if (isBlocked && !blockLoading && location.pathname !== '/pricing') {
-    return <SubscriptionBlock userName={profile?.full_name || undefined} />;
-  }
 
   return (
     <div className="min-h-screen bg-background">

@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useActionGate } from "@/hooks/useActionGate";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +42,7 @@ interface Message {
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/material-chat`;
 
 export default function AIChatTab({ materialId, extractedContent }: AIChatTabProps) {
+  const { guardAction, isExpired } = useActionGate();
   const [messages, setMessages] = useState<Message[]>(() => {
     try {
       const saved = sessionStorage.getItem(`ai-chat-${materialId}`);
@@ -116,6 +118,10 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+    if (isExpired) {
+      guardAction(() => {});
+      return;
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),

@@ -45,6 +45,7 @@ import { formatDistanceToNow } from "date-fns";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useActionGate } from "@/hooks/useActionGate";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -61,6 +62,7 @@ const itemVariants = {
 
 export default function NotesPage() {
   const isMobile = useIsMobile();
+  const { guardAction } = useActionGate();
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [searchQuery, setSearchQuery] = useState("");
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
@@ -233,12 +235,12 @@ export default function NotesPage() {
               </button>
             </div>
             
-            <Button variant="outline" size="sm" onClick={() => setCreateFolderOpen(true)} className="h-10 touch-target">
+            <Button variant="outline" size="sm" onClick={() => guardAction(() => setCreateFolderOpen(true))} className="h-10 touch-target">
               <FolderPlus className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">New Folder</span>
             </Button>
 
-            <Button variant="outline" size="sm" onClick={() => setImportDocumentOpen(true)} className="h-10 touch-target">
+            <Button variant="outline" size="sm" onClick={() => guardAction(() => setImportDocumentOpen(true))} className="h-10 touch-target">
               <Upload className="w-4 h-4" />
               <span className="hidden sm:inline ml-2">Import</span>
             </Button>
@@ -372,7 +374,7 @@ export default function NotesPage() {
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem 
-                                onClick={() => handleSummarize(note)}
+                                onClick={() => guardAction(() => handleSummarize(note))}
                                 disabled={!note.content}
                                 className="touch-target"
                               >
@@ -380,7 +382,7 @@ export default function NotesPage() {
                                 AI Summary
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => handleGenerateFlashcards(note)}
+                                onClick={() => guardAction(() => handleGenerateFlashcards(note))}
                                 disabled={!note.content}
                                 className="touch-target"
                               >
