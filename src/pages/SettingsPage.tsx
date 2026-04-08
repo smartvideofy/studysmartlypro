@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { useNavigate } from "react-router-dom";
 import { 
   Bell,
@@ -132,6 +133,7 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout title="Settings">
+      <SEOHead title="Settings" noindex />
       <div className="max-w-2xl space-y-8 pb-24">
         {/* Profile Header */}
         <div className="flex items-center gap-4">

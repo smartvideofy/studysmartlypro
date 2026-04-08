@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { useDecks, useDeckMasteryStats } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
@@ -215,6 +216,7 @@ export default function ProgressPage() {
 
   return (
     <DashboardLayout title="Progress">
+      <SEOHead title="Progress" noindex />
       <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
         <motion.div
           variants={containerVariants}

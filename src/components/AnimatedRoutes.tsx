@@ -163,32 +163,24 @@ export const AnimatedRoutes = () => {
           </ProtectedRoute>
         } />
         <Route path="/help" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <HelpPage />
-            </PageTransition>
-          </ProtectedRoute>
+          <PageTransition>
+            <HelpPage />
+          </PageTransition>
         } />
         <Route path="/help/category/:categorySlug" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <HelpCategoryPage />
-            </PageTransition>
-          </ProtectedRoute>
+          <PageTransition>
+            <HelpCategoryPage />
+          </PageTransition>
         } />
         <Route path="/help/article/:articleSlug" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <HelpArticlePage />
-            </PageTransition>
-          </ProtectedRoute>
+          <PageTransition>
+            <HelpArticlePage />
+          </PageTransition>
         } />
         <Route path="/pricing" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <PricingPage />
-            </PageTransition>
-          </ProtectedRoute>
+          <PageTransition>
+            <PricingPage />
+          </PageTransition>
         } />
         <Route path="/achievements" element={
           <ProtectedRoute>

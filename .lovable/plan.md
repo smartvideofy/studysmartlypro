@@ -1,121 +1,81 @@
 
+# Advanced SEO Audit — Findings & Fixes
 
-# Soften Paywall: View-Only Mode for Expired Users
+## CRITICAL Issues
 
-## Current Problem
-When a user's trial expires, the entire app is blocked with a full-screen `SubscriptionBlock`. Users cannot view their dashboard, study materials, flashcards, progress, achievements, or settings. This is too aggressive.
+### 1. Public SEO pages are behind `ProtectedRoute` (blocks crawlers)
+**Impact: SEVERE** — Google cannot crawl Help Center, Help Articles, Help Categories, or Pricing. These are the only indexable content pages and they're invisible to search engines.
 
-## New Behavior
-Expired trial users can freely:
-- Log in, log out, navigate the entire app
-- View dashboard, progress stats, achievements
-- View existing study materials and all generated content (summaries, tutor notes, flashcards, questions, concept maps)
-- View existing flashcard decks and study them
-- View settings, help, groups
+**Fix:** Remove `ProtectedRoute` wrapper from `/help`, `/help/category/:slug`, `/help/article/:slug`, and `/pricing` in `AnimatedRoutes.tsx`. These pages already use `DashboardLayout` which handles auth-optional UI gracefully.
 
-Expired trial users are blocked (with upgrade prompt) only when they try to:
-- Upload new study materials
-- Create new flashcard decks or notebooks
-- Generate/regenerate AI content (summaries, flashcards, questions, etc.)
-- Use AI Chat
-- Start new AI-powered actions
+### 2. Sitemap uses wrong domain
+`supabase/functions/generate-sitemap/index.ts` line 8 uses `https://studysmartlypro.lovable.app` instead of `https://app.getstudily.com`. Every URL in the sitemap points to the wrong domain.
 
-## Implementation
+**Fix:** Update `SITE_URL` to `https://app.getstudily.com`.
 
-### Step 1: Remove the full-screen block from DashboardLayout
-**File: `src/components/layout/DashboardLayout.tsx`**
-- Remove the `useIsBlocked` import and usage
-- Remove the `SubscriptionBlock` import and the conditional render at line 114
-- Keep the `ExpiredTrialBanner` -- it provides a non-blocking nudge to subscribe
+### 3. OG image uses relative path in `index.html`
+Lines 28 and 32 use `/og-image.png` — social crawlers need absolute URLs to fetch preview images.
 
-### Step 2: Create a reusable `useActionGate` hook
-**File: `src/hooks/useActionGate.tsx` (new)**
-- A hook that returns a `guardAction(callback)` function
-- If the user is on an expired trial, it shows a toast/dialog prompting upgrade instead of executing the action
-- If the user has access, it runs the callback normally
+**Fix:** Change to `https://app.getstudily.com/og-image.png`.
 
-### Step 3: Gate creation/upload actions on StudyMaterialsPage
-**File: `src/pages/StudyMaterialsPage.tsx`**
-- Wrap the "Upload" button's onClick with the action gate
-- Users can still see and open their existing materials
+## HIGH Priority Issues
 
-### Step 4: Gate creation actions on FlashcardsPage
-**File: `src/pages/FlashcardsPage.tsx`**
-- Wrap "Create Deck" and "AI Generate" button actions with the gate
-- Users can still view and study existing decks
+### 4. Missing SEOHead on key pages
+These pages have no `<title>` or meta tags beyond the default `index.html`:
+- `AuthPage` — should have "Sign In | Studily" 
+- `SplashScreen` — should have default site title
+- `StudyMaterialsPage` — needs title + noindex
+- `ProgressPage` — needs title + noindex
+- `SettingsPage` — needs title + noindex
+- `AchievementsPage` — needs title + noindex
+- `GroupsPage` / `GroupDetailPage` — needs title + noindex
 
-### Step 5: Gate regeneration actions in MaterialWorkspace
-**File: `src/pages/MaterialWorkspace.tsx`**
-- Remove `PremiumGate` wrappers from tabs (so users can VIEW all generated content)
-- Gate the "Regenerate" buttons in each tab with the action gate
-- Gate the AI Chat tab's message sending (viewing previous chats is fine, sending new messages is blocked)
+### 5. Missing `noindex` on private/authenticated pages
+Dashboard, materials, flashcards, progress, settings, achievements, groups — none of these set `noindex`. If Google somehow crawls them (via a leaked link), they'd pollute the index with auth-wall pages.
 
-### Step 6: Gate notebook creation
-**File: `src/pages/NotesPage.tsx` or equivalent**
-- Wrap "Create Notebook" / "Create Note" actions with the gate
+**Fix:** Add `noindex` to all authenticated-only page `SEOHead` components.
 
-### Step 7: Gate AI actions in note editor
-**File: `src/pages/NoteEditor.tsx`**
-- Gate "AI Summary", "AI Flashcards" generation buttons
-- Users can still view and edit existing notes
+### 6. Missing semantic HTML
+- No `<h1>` tag audit — several pages may use `<h2>` or styled divs as primary headings instead of proper `<h1>`.
 
-### Step 8: Update PremiumGate for tab-level use (AI Chat only)
-**File: `src/components/subscription/PremiumGate.tsx`**
-- Keep PremiumGate but only use it for AI Chat (which is inherently a generation action)
-- Or better: let users see chat history but disable the input field
+## MEDIUM Priority Issues
 
-## Technical Details
+### 7. No `<link rel="alternate">` or `hreflang` tags
+Not critical for a single-language app, but worth noting.
 
-### useActionGate hook
-```typescript
-export function useActionGate() {
-  const { isBlocked } = useIsBlocked();
-  const navigate = useNavigate();
+### 8. Missing `aria-label` on icon-only buttons
+Accessibility/SEO overlap — not blocking but worth improving over time.
 
-  const guardAction = (action: () => void) => {
-    if (isBlocked) {
-      toast.error("Subscribe to unlock this feature", {
-        description: "Your trial has ended. Subscribe to create and generate new content.",
-        action: { label: "View Plans", onClick: () => navigate("/pricing") },
-      });
-      return;
-    }
-    action();
-  };
+---
 
-  return { guardAction, isExpired: isBlocked };
-}
-```
+## Implementation Plan
 
-### Where gates are placed (action-level, not view-level)
-- Upload material button
-- Create deck / Create notebook buttons
-- AI Generate buttons (flashcards, summaries, questions)
-- Regenerate content buttons
-- AI Chat send message
-- Import document button
-- Export actions (optional -- could allow exports)
+### Step 1: Make Help & Pricing public routes
+**File: `src/components/AnimatedRoutes.tsx`**
+- Remove `ProtectedRoute` from `/help`, `/help/category/:categorySlug`, `/help/article/:articleSlug`, `/pricing`
 
-### What remains freely accessible
-- All navigation and page views
-- Dashboard with stats
-- Progress page with charts
-- Achievements page
-- Study material viewer (all tabs: summaries, tutor notes, flashcards, questions, concept maps)
-- Flashcard study mode (flip through existing cards)
-- Settings page
-- Help center
-- Groups (viewing)
+### Step 2: Fix sitemap domain
+**File: `supabase/functions/generate-sitemap/index.ts`**
+- Change SITE_URL to `https://app.getstudily.com`
+
+### Step 3: Fix OG image absolute URLs in index.html
+**File: `index.html`**
+- Update og:image and twitter:image to absolute URLs
+
+### Step 4: Add SEOHead with noindex to all private pages
+**Files:** `AuthPage.tsx`, `StudyMaterialsPage.tsx`, `ProgressPage.tsx`, `SettingsPage.tsx`, `AchievementsPage.tsx`, `GroupsPage.tsx`
+- Add `<SEOHead title="..." noindex />` to each
+
+### Step 5: Deploy updated sitemap
+- Redeploy `generate-sitemap` edge function
 
 ## Files Modified
-- `src/components/layout/DashboardLayout.tsx` -- Remove full-screen block
-- `src/hooks/useActionGate.tsx` -- New hook for action-level gating
-- `src/pages/StudyMaterialsPage.tsx` -- Gate upload
-- `src/pages/FlashcardsPage.tsx` -- Gate create deck
-- `src/pages/MaterialWorkspace.tsx` -- Remove PremiumGate wrappers, gate regenerate + chat send
-- `src/pages/NotesPage.tsx` -- Gate create note/folder
-- `src/pages/NoteEditor.tsx` -- Gate AI actions
-- `src/components/materials/tabs/AIChatTab.tsx` -- Gate message sending
-- `src/components/materials/tabs/FlashcardsTab.tsx` -- Gate save-to-deck action
-- `src/components/subscription/SubscriptionBlock.tsx` -- Keep but no longer used in layout (can be removed or kept for pricing page reference)
-
+- `src/components/AnimatedRoutes.tsx`
+- `supabase/functions/generate-sitemap/index.ts`
+- `index.html`
+- `src/pages/AuthPage.tsx`
+- `src/pages/StudyMaterialsPage.tsx`
+- `src/pages/ProgressPage.tsx`
+- `src/pages/SettingsPage.tsx`
+- `src/pages/AchievementsPage.tsx`
+- `src/pages/GroupsPage.tsx`

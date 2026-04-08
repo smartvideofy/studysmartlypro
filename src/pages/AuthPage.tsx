@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup" | "forgot";
@@ -156,6 +157,11 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen flex bg-background">
+      <SEOHead
+        title="Sign In"
+        description="Sign in or create a Studily account to start studying smarter with AI-powered flashcards, notes, and learning tools."
+        url="/auth"
+      />
       {/* Left Panel - Branding & Features */}
       <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary/85">
         <div className="relative z-10 flex flex-col justify-between w-full p-12 text-white">
