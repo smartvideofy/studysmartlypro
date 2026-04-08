@@ -5,7 +5,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const SITE_URL = "https://studysmartlypro.lovable.app";
+const SITE_URL = "https://app.getstudily.com";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
