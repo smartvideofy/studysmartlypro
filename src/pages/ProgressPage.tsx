@@ -215,6 +215,7 @@ export default function ProgressPage() {
 
   return (
     <DashboardLayout title="Progress">
+      <SEOHead title="Progress" noindex />
       <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
         <motion.div
           variants={containerVariants}

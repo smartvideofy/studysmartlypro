@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { z } from "zod";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { cn } from "@/lib/utils";
 
 type AuthMode = "login" | "signup" | "forgot";

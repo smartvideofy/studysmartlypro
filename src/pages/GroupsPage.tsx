@@ -206,6 +206,7 @@ export default function GroupsPage() {
 
   return (
     <DashboardLayout title="Study Groups">
+      <SEOHead title="Study Groups" noindex />
       <PullToRefresh onRefresh={handleRetry} disabled={!isMobile}>
         <motion.div
           variants={containerVariants}

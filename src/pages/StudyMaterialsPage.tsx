@@ -139,6 +139,7 @@ export default function StudyMaterialsPage() {
 
   return (
     <DashboardLayout title="Study Materials">
+      <SEOHead title="Study Materials" noindex />
       <PullToRefresh onRefresh={handlePullRefresh} disabled={!isMobile}>
         <div className="space-y-6">
           {/* Hero Section - Clean design */}
