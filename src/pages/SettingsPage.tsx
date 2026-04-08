@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { useNavigate } from "react-router-dom";
 import { 
   Bell,

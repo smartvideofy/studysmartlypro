@@ -18,6 +18,7 @@ import {
   Video
 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";

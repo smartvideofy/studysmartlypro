@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { XPProgress, AchievementBadge } from "@/components/gamification/XPProgress";
 import { 
   useAchievements, 

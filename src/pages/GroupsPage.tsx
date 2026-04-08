@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { SEOHead } from "@/components/seo/SEOHead";
 import { CreateGroupModal } from "@/components/groups/CreateGroupModal";
 import { useGroups, usePublicGroups, useJoinGroup } from "@/hooks/useGroups";
 import { useUnreadCounts } from "@/hooks/useUnreadMessages";
