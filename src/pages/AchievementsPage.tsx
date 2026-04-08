@@ -114,6 +114,7 @@ export default function AchievementsPage() {
 
   return (
     <DashboardLayout title="Achievements">
+      <SEOHead title="Achievements" noindex />
       <PullToRefresh onRefresh={handleRefresh} disabled={!isMobile}>
         <motion.div
           variants={containerVariants}
