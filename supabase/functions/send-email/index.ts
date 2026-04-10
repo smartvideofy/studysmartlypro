@@ -80,7 +80,7 @@ function generateEmailContent(
   
   const footer = `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-      <p>Studily - Learn smarter, not harder</p>
+      <p>Getstudily - Learn smarter, not harder</p>
       <p style="margin-top: 4px;">
         Questions? Contact us at <a href="mailto:support@getstudily.com" style="color: #8b5cf6;">support@getstudily.com</a>
       </p>
@@ -112,12 +112,12 @@ function generateEmailContent(
   switch (template) {
     case "welcome":
       return {
-        subject: "Welcome to Studily! 🎉",
+        subject: "Welcome to Getstudily! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Welcome to Studily, ${userName}! 🎓</h1>
+            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Welcome to Getstudily, ${userName}! 🎓</h1>
             <p>We're thrilled to have you join our community of smart learners!</p>
-            <p>Studily uses AI-powered tools to help you study more effectively:</p>
+            <p>Getstudily uses AI-powered tools to help you study more effectively:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
               <li><strong>📚 Smart Notes</strong> - Upload any study material and get AI summaries</li>
               <li><strong>🎴 AI Flashcards</strong> - Auto-generate flashcards from your content</li>
@@ -126,7 +126,7 @@ function generateEmailContent(
             </ul>
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Learning Now</a>
             <p style="margin-top: 24px;">Happy studying! 📖</p>
-            <p style="color: #6b7280;">- The Studily Team</p>
+            <p style="color: #6b7280;">- The Getstudily Team</p>
             ${footer}
           </div>
         `,
@@ -183,7 +183,7 @@ function generateEmailContent(
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">You're doing great, ${userName}! 🌟</h1>
-            <p>After a week with Studily, you've experienced what smart studying feels like.</p>
+            <p>After a week with Getstudily, you've experienced what smart studying feels like.</p>
             <p>Want to unlock even more?</p>
             <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 20px; border-radius: 12px; margin: 20px 0;">
               <h3 style="margin: 0 0 12px 0; color: #7c3aed;">Pro Features Include:</h3>
@@ -419,7 +419,7 @@ function generateEmailContent(
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
-            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
+            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Getstudily experience!</p>
             <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
               <p style="font-size: 32px; margin: 0;">🎁</p>
               <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Welcome back offer: 30% off</h3>
@@ -428,7 +428,7 @@ function generateEmailContent(
             <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
             <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% Off</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              Thanks for trying Studily – we'd love to have you continue with us!
+              Thanks for trying Getstudily – we'd love to have you continue with us!
             </p>
             ${footer}
           </div>
@@ -579,7 +579,7 @@ function generateEmailContent(
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <h1 style="color: #8b5cf6; font-size: 24px;">Almost there, ${userName}! 🚀</h1>
-            <p>We noticed you started upgrading to <strong>${data.planName || "Studily Pro"}</strong> but didn't finish.</p>
+            <p>We noticed you started upgrading to <strong>${data.planName || "Getstudily Pro"}</strong> but didn't finish.</p>
             <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
               <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you'll unlock:</h3>
               <ul style="margin: 0; padding-left: 20px;">
@@ -603,12 +603,12 @@ function generateEmailContent(
 
     default:
       return {
-        subject: "Update from Studily",
+        subject: "Update from Getstudily",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <p>Hello ${userName},</p>
-            <p>This is an update from Studily.</p>
-            <a href="${appUrl}" style="${buttonStyle}">Visit Studily</a>
+            <p>This is an update from Getstudily.</p>
+            <a href="${appUrl}" style="${buttonStyle}">Visit Getstudily</a>
             ${footer}
           </div>
         `,
@@ -729,7 +729,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "Studily <noreply@getstudily.com>",
+      from: "Getstudily <noreply@getstudily.com>",
       to: [userEmail],
       subject,
       html,

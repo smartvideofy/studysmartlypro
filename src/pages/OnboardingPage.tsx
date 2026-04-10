@@ -163,7 +163,7 @@ export default function OnboardingPage() {
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
             <BookOpen className="w-4 h-4 text-primary-foreground" />
           </div>
-          <span className="font-display text-xl font-bold">Studily</span>
+          <span className="font-display text-xl font-bold">Getstudily</span>
         </div>
         
         <Button variant="ghost" size="sm" onClick={handleSkip} disabled={isSaving} className="touch-target">

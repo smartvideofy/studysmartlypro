@@ -127,7 +127,7 @@ export default function HelpPage() {
     <DashboardLayout title="Help & Support">
       <SEOHead
         title="Help Center"
-        description="Get help with Studily - search our knowledge base, browse FAQs, or contact support. Find answers to common questions about flashcards, notes, and study tools."
+        description="Get help with Getstudily - search our knowledge base, browse FAQs, or contact support. Find answers to common questions about flashcards, notes, and study tools."
         url="/help"
         jsonLd={jsonLdData}
       />
@@ -261,7 +261,7 @@ export default function HelpPage() {
                   <Lightbulb className="w-5 h-5" />
                   Send Feedback
                 </CardTitle>
-                <CardDescription>Help us improve Studily</CardDescription>
+                <CardDescription>Help us improve Getstudily</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 {feedbackSubmitted ? (

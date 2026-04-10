@@ -155,7 +155,7 @@ export default function PricingPage() {
     <DashboardLayout title="Pricing">
       <SEOHead
         title="Pricing"
-        description="Choose the perfect Studily plan for your learning needs. Start free, upgrade to Pro for unlimited features. Simple, transparent pricing with no hidden fees."
+        description="Choose the perfect Getstudily plan for your learning needs. Start free, upgrade to Pro for unlimited features. Simple, transparent pricing with no hidden fees."
         url="/pricing"
         jsonLd={createSoftwareApplicationJsonLd(pricingOffers)}
       />
@@ -170,7 +170,7 @@ export default function PricingPage() {
         >
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             {isExpiredUser ? (
-              <>Continue learning with <span className="text-primary">Studily</span></>
+              <>Continue learning with <span className="text-primary">Getstudily</span></>
             ) : isOnTrial ? (
               <>Keep your <span className="text-primary">Pro access</span></>
             ) : (

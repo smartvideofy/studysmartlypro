@@ -107,7 +107,7 @@ export function SubscriptionBlock({ userName }: SubscriptionBlockProps) {
                 transition={{ delay: 0.1 }}
                 className="w-16 h-16 rounded-2xl overflow-hidden mx-auto shadow-lg"
               >
-                <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
+                <img src={logoImage} alt="Getstudily" className="w-full h-full object-cover" />
               </motion.div>
               
               {/* Title */}
@@ -116,7 +116,7 @@ export function SubscriptionBlock({ userName }: SubscriptionBlockProps) {
                   Your trial has ended
                 </h1>
                 <p className="text-muted-foreground">
-                  {userName ? `Thanks for trying Studily, ${userName}!` : 'Thanks for trying Studily!'} 
+                  {userName ? `Thanks for trying Getstudily, ${userName}!` : 'Thanks for trying Getstudily!'} 
                   {' '}Subscribe to keep everything you've built.
                 </p>
               </div>

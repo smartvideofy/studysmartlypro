@@ -483,7 +483,7 @@ export default function SettingsPage() {
         {/* App Version */}
         <div className="text-center pt-4 pb-8">
           <p className="text-xs text-muted-foreground">
-            Studily v{APP_VERSION}
+            Getstudily v{APP_VERSION}
           </p>
         </div>
       </div>

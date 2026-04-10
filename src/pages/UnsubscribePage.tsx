@@ -144,7 +144,7 @@ export default function UnsubscribePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <SEOHead
-          title="Invalid Link | Studily"
+          title="Invalid Link | Getstudily"
           description="This unsubscribe link is invalid or has expired."
           noindex
         />
@@ -175,8 +175,8 @@ export default function UnsubscribePage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background p-4">
         <SEOHead
-          title="Unsubscribed | Studily"
-          description="You have been successfully unsubscribed from Studily emails."
+          title="Unsubscribed | Getstudily"
+          description="You have been successfully unsubscribed from Getstudily emails."
           noindex
         />
         <Card className="max-w-md w-full">
@@ -210,8 +210,8 @@ export default function UnsubscribePage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <SEOHead
-        title="Email Preferences | Studily"
-        description="Manage your email notification preferences for Studily."
+        title="Email Preferences | Getstudily"
+        description="Manage your email notification preferences for Getstudily."
         noindex
       />
       <Card className="max-w-md w-full">
@@ -221,7 +221,7 @@ export default function UnsubscribePage() {
           </div>
           <CardTitle>Email Preferences</CardTitle>
           <CardDescription>
-            Choose which emails you'd like to receive from Studily.
+            Choose which emails you'd like to receive from Getstudily.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

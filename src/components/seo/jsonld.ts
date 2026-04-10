@@ -26,7 +26,7 @@ export const createArticleJsonLd = ({
   url,
   datePublished,
   dateModified,
-  author = "Studily Team",
+  author = "Getstudily Team",
   image,
 }: ArticleJsonLdProps) => ({
   "@context": "https://schema.org",
@@ -41,7 +41,7 @@ export const createArticleJsonLd = ({
   },
   publisher: {
     "@type": "Organization",
-    name: "Studily",
+    name: "Getstudily",
     logo: {
       "@type": "ImageObject",
       url: `${SITE_URL}/favicon.png`,
@@ -82,7 +82,7 @@ export const createBreadcrumbJsonLd = (items: BreadcrumbItem[]) => ({
 export const createOrganizationJsonLd = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "Studily",
+  name: "Getstudily",
   url: SITE_URL,
   logo: `${SITE_URL}/favicon.png`,
   description: "AI-powered study companion for flashcards, notes, and smart learning tools.",
@@ -94,7 +94,7 @@ export const createOrganizationJsonLd = () => ({
 export const createWebSiteJsonLd = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
-  name: "Studily",
+  name: "Getstudily",
   url: SITE_URL,
   description: "AI-powered study companion for flashcards, notes, and smart learning tools.",
   potentialAction: {
@@ -108,11 +108,11 @@ export const createHelpCenterJsonLd = () => ({
   "@context": "https://schema.org",
   "@type": "WebPage",
   name: "Help Center",
-  description: "Get help with Studily - search our knowledge base, browse FAQs, or contact support.",
+  description: "Get help with Getstudily - search our knowledge base, browse FAQs, or contact support.",
   url: `${SITE_URL}/help`,
   isPartOf: {
     "@type": "WebSite",
-    name: "Studily",
+    name: "Getstudily",
     url: SITE_URL,
   },
 });
@@ -127,7 +127,7 @@ interface PricingOffer {
 export const createSoftwareApplicationJsonLd = (offers: PricingOffer[]) => ({
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
-  name: "Studily",
+  name: "Getstudily",
   applicationCategory: "EducationalApplication",
   operatingSystem: "Web",
   url: SITE_URL,
@@ -154,7 +154,7 @@ export const createDashboardJsonLd = () => ({
   url: `${SITE_URL}/dashboard`,
   isPartOf: {
     "@type": "WebSite",
-    name: "Studily",
+    name: "Getstudily",
     url: SITE_URL,
   },
 });
@@ -167,7 +167,7 @@ export const createFlashcardsJsonLd = () => ({
   url: `${SITE_URL}/flashcards`,
   isPartOf: {
     "@type": "WebSite",
-    name: "Studily",
+    name: "Getstudily",
     url: SITE_URL,
   },
 });
