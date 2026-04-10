@@ -17,7 +17,7 @@ export function generateICS(event: CalendarEvent): string {
   };
 
   const endDate = new Date(event.start.getTime() + event.durationMinutes * 60 * 1000);
-  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@studily.app`;
+  const uid = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}@getstudily.app`;
   
   const escapeText = (text: string) => {
     return text

@@ -1,7 +1,7 @@
 // IndexedDB wrapper for offline study mode
 // Stores: notes, flashcard_decks, flashcards, pending_reviews, sync_meta
 
-const DB_NAME = 'studily-offline';
+const DB_NAME = 'getstudily-offline';
 const DB_VERSION = 1;
 
 export interface PendingReview {
