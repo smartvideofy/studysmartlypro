@@ -17,8 +17,8 @@ export default function InstallPage() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       <SEOHead
-        title="Install Studily"
-        description="Install Studily on your device for offline access, fast loading, and a native app experience."
+        title="Install Getstudily"
+        description="Install Getstudily on your device for offline access, fast loading, and a native app experience."
         url="/install"
       />
 
@@ -31,7 +31,7 @@ export default function InstallPage() {
           <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto">
             <Download className="w-10 h-10 text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-foreground">Install Studily</h1>
+          <h1 className="text-3xl font-bold text-foreground">Install Getstudily</h1>
           <p className="text-muted-foreground">
             Get the full app experience — fast, offline-ready, and always one tap away.
           </p>
@@ -62,11 +62,11 @@ export default function InstallPage() {
 
         {isInstalled ? (
           <div className="bg-primary/10 text-primary rounded-xl p-4 text-sm font-medium">
-            ✅ Studily is already installed on this device!
+            ✅ Getstudily is already installed on this device!
           </div>
         ) : canInstall ? (
           <Button size="lg" className="w-full text-base h-12" onClick={install}>
-            <Download className="w-5 h-5 mr-2" /> Install Studily
+            <Download className="w-5 h-5 mr-2" /> Install Getstudily
           </Button>
         ) : isIOS ? (
           <Card className="border-primary/20 bg-primary/5">

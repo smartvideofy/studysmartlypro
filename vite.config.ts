@@ -32,8 +32,8 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       manifest: {
-        name: "Studily - Study Smarter, Not Harder",
-        short_name: "Studily",
+        name: "Getstudily - Study Smarter, Not Harder",
+        short_name: "Getstudily",
         description: "Your AI-powered study companion. Create flashcards, organize notes, and master any subject.",
         theme_color: "#9333ea",
         background_color: "#e8ddf2",

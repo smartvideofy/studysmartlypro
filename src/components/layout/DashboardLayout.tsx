@@ -112,7 +112,7 @@ export default function DashboardLayout({
       {/* Mobile Header - Only render on mobile */}
       {isMobile && (
         <MobileHeader 
-          title={title || "Studily"}
+          title={title || "Getstudily"}
           onMenuClick={() => setMenuOpen(true)}
           onSearchOpen={() => setSearchOpen(true)}
           onUploadClick={() => navigate('/materials')}
@@ -135,7 +135,7 @@ export default function DashboardLayout({
               whileTap={{ scale: 0.95 }}
               className="w-10 h-10 rounded-xl overflow-hidden shrink-0 shadow-md"
             >
-              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
+              <img src={logoImage} alt="Getstudily" className="w-full h-full object-cover" />
             </motion.div>
             <AnimatePresence>
               {!collapsed && (
@@ -145,7 +145,7 @@ export default function DashboardLayout({
                   exit={{ opacity: 0, x: -10 }}
                   className="font-display text-xl font-bold text-foreground"
                 >
-                  Studily
+                  Getstudily
                 </motion.span>
               )}
             </AnimatePresence>

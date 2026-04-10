@@ -159,7 +159,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex bg-background">
       <SEOHead
         title="Sign In"
-        description="Sign in or create a Studily account to start studying smarter with AI-powered flashcards, notes, and learning tools."
+        description="Sign in or create a Getstudily account to start studying smarter with AI-powered flashcards, notes, and learning tools."
         url="/auth"
       />
       {/* Left Panel - Branding & Features */}
@@ -172,9 +172,9 @@ export default function AuthPage() {
             className="flex items-center gap-3"
           >
             <div className="w-11 h-11 rounded-xl overflow-hidden bg-white/10">
-              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
+              <img src={logoImage} alt="Getstudily" className="w-full h-full object-cover" />
             </div>
-            <span className="font-display text-2xl font-bold">Studily</span>
+            <span className="font-display text-2xl font-bold">Getstudily</span>
           </motion.div>
           
           {/* Main content */}
@@ -242,9 +242,9 @@ export default function AuthPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-10">
             <div className="w-11 h-11 rounded-xl overflow-hidden">
-              <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
+              <img src={logoImage} alt="Getstudily" className="w-full h-full object-cover" />
             </div>
-            <span className="font-display text-2xl font-bold">Studily</span>
+            <span className="font-display text-2xl font-bold">Getstudily</span>
           </div>
 
           {/* Form Header */}

@@ -1,8 +1,8 @@
 import { Helmet } from "react-helmet-async";
 
 const SITE_URL = "https://app.getstudily.com";
-const DEFAULT_TITLE = "Studily - Study Smarter, Not Harder";
-const DEFAULT_DESCRIPTION = "Studily is your AI-powered study companion. Create flashcards, organize notes, and master any subject with smart learning tools.";
+const DEFAULT_TITLE = "Getstudily - Study Smarter, Not Harder";
+const DEFAULT_DESCRIPTION = "Getstudily is your AI-powered study companion. Create flashcards, organize notes, and master any subject with smart learning tools.";
 const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
 
 interface SEOHeadProps {
@@ -32,7 +32,7 @@ export const SEOHead = ({
   noindex = false,
   jsonLd,
 }: SEOHeadProps) => {
-  const fullTitle = title ? `${title} | Studily` : DEFAULT_TITLE;
+  const fullTitle = title ? `${title} | Getstudily` : DEFAULT_TITLE;
   const canonicalUrl = url ? `${SITE_URL}${url}` : undefined;
 
   return (
@@ -54,7 +54,7 @@ export const SEOHead = ({
       <meta property="og:description" content={description} />
       <meta property="og:image" content={image} />
       {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-      <meta property="og:site_name" content="Studily" />
+      <meta property="og:site_name" content="Getstudily" />
       
       {/* Article-specific OG tags */}
       {type === "article" && publishedTime && (
@@ -75,7 +75,7 @@ export const SEOHead = ({
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
       <meta name="twitter:image" content={image} />
-      <meta name="twitter:site" content="@studily" />
+      <meta name="twitter:site" content="@getstudily" />
 
       {/* JSON-LD Structured Data */}
       {jsonLd && (

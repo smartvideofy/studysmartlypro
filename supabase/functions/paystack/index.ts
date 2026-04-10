@@ -18,14 +18,14 @@ const PLANS = {
   pro: {
     monthly: {
       code: 'PLN_4e8hpv8om2lbhta',
-      name: 'Studily Pro (Monthly)',
+      name: 'Getstudily Pro (Monthly)',
       amount: 9, // $9 USD
       interval: 'monthly' as BillingInterval,
       periodDays: 30,
     },
     yearly: {
       code: 'PLN_7mvshbtqgnmuygy',
-      name: 'Studily Pro (Yearly)',
+      name: 'Getstudily Pro (Yearly)',
       amount: 90, // $90 USD (2 months free)
       interval: 'yearly' as BillingInterval,
       periodDays: 365,
@@ -34,14 +34,14 @@ const PLANS = {
   team: {
     monthly: {
       code: 'PLN_tmqbbw7lu7rzv5i',
-      name: 'Studily Team (Monthly)',
+      name: 'Getstudily Team (Monthly)',
       amount: 19, // $19 USD
       interval: 'monthly' as BillingInterval,
       periodDays: 30,
     },
     yearly: {
       code: 'PLN_lgfih0x6mwrycyf',
-      name: 'Studily Team (Yearly)',
+      name: 'Getstudily Team (Yearly)',
       amount: 190, // $190 USD (2 months free)
       interval: 'yearly' as BillingInterval,
       periodDays: 365,

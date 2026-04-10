@@ -44,12 +44,12 @@ export default function SplashScreen() {
             }}
             className="w-20 h-20 rounded-2xl overflow-hidden mb-8 shadow-md"
           >
-            <img src={logoImage} alt="Studily" className="w-full h-full object-cover" />
+            <img src={logoImage} alt="Getstudily" className="w-full h-full object-cover" />
           </motion.div>
 
           {/* App Name */}
           <h1 className="font-display text-4xl font-bold text-foreground mb-2">
-            Studily
+            Getstudily
           </h1>
 
           {/* Tagline */}
