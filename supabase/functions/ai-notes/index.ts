@@ -6,8 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 // Input validation constants
 const MAX_NOTE_CONTENT_LENGTH = 50000;
@@ -154,10 +154,10 @@ serve(async (req) => {
     const body = await req.json();
     const { action, noteContent, noteTitle, cardCount, difficulty, cardType } = validateInputs(body);
 
-    const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
+    const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
     
-    if (!GEMINI_API_KEY) {
-      console.error('Missing Gemini API key');
+    if (!OPENAI_API_KEY) {
+      console.error('Missing OpenAI API key');
       throw new Error('Service configuration error');
     }
 
@@ -212,14 +212,14 @@ Keep each card focused on a single concept. Be concise but complete.`;
 
     console.log(`Processing ${action} request for user ${userId.substring(0, 8)}...`);
 
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GEMINI_API_KEY}`,
+        'Authorization': `Bearer ${OPENAI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
+        model: OPENAI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
@@ -235,12 +235,12 @@ Keep each card focused on a single concept. Be concise but complete.`;
         });
       }
       if (response.status === 402 || response.status === 403) {
-        return new Response(JSON.stringify({ error: 'Gemini API quota exceeded. Please check your API key usage.' }), {
+        return new Response(JSON.stringify({ error: 'OpenAI API quota exceeded. Please check your API key usage.' }), {
           status: 402,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      console.error('Gemini API error:', response.status);
+      console.error('OpenAI API error:', response.status);
       throw new Error('AI service temporarily unavailable');
     }
 
