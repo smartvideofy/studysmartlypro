@@ -9,10 +9,10 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 const MAX_VISION_FILE_SIZE = 10 * 1024 * 1024;
 
@@ -37,25 +37,25 @@ interface StudyMaterial {
 type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
 
 // ─── Helper: call Gemini API ───
-async function callGeminiAI(messages: any[]): Promise<string> {
-  const response = await fetch(GEMINI_URL, {
+async function callOpenAI(messages: any[]): Promise<string> {
+  const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${geminiApiKey}`,
+      'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: GEMINI_MODEL,
+      model: OPENAI_MODEL,
       messages,
     }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini API error:', response.status, errorText);
+    console.error('OpenAI API error:', response.status, errorText);
     if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
     if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
-    throw new Error(`Gemini API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -81,7 +81,7 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const html = await resp.text();
-      return await callGeminiAI([{
+      return await callOpenAI([{
         role: 'user',
         content: `Extract ALL the main textual content from this web page HTML. Remove navigation, ads, footers, and boilerplate. Preserve headings, paragraphs, lists, and tables. Output clean structured text:\n\n${html.substring(0, 60000)}`,
       }]);
@@ -169,7 +169,7 @@ async function extractContentWithVision(base64Data: string, fileType: string, ti
                    fileType === 'image' ? 'image/png' : 
                    'application/octet-stream';
 
-  const content = await callGeminiAI([
+  const content = await callOpenAI([
     {
       role: 'user',
       content: [
@@ -272,7 +272,7 @@ ${content.substring(0, 40000)}
 
 Generate detailed, comprehensive tutor notes covering ALL the key concepts from this material.`;
 
-  const responseText = await callGeminiAI([
+  const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ]);
@@ -307,7 +307,7 @@ ${content.substring(0, 30000)}
 Format: Write 2-3 paragraphs that capture the essence of the material.`;
 
   try {
-    const quickContent = await callGeminiAI([{ role: 'user', content: quickPrompt }]);
+    const quickContent = await callOpenAI([{ role: 'user', content: quickPrompt }]);
     summaries.push({ type: 'quick', content: quickContent });
   } catch (e) {
     console.error('Quick summary failed:', e);
@@ -326,7 +326,7 @@ ${content.substring(0, 40000)}
 Structure your summary with: Overview, Key Concepts, Important Details, Connections and Relationships, Summary.`;
 
   try {
-    const detailedContent = await callGeminiAI([{ role: 'user', content: detailedPrompt }]);
+    const detailedContent = await callOpenAI([{ role: 'user', content: detailedPrompt }]);
     summaries.push({ type: 'detailed', content: detailedContent });
   } catch (e) {
     console.error('Detailed summary failed:', e);
@@ -343,7 +343,7 @@ ${content.substring(0, 30000)}
 Create 10-15 key points. Each point should be a complete, standalone statement.`;
 
   try {
-    const bulletContent = await callGeminiAI([{ role: 'user', content: bulletPrompt }]);
+    const bulletContent = await callOpenAI([{ role: 'user', content: bulletPrompt }]);
     summaries.push({ type: 'bullet_points', content: bulletContent });
   } catch (e) {
     console.error('Bullet summary failed:', e);
@@ -391,7 +391,7 @@ ${content.substring(0, 40000)}
 
 Generate 15 diverse, challenging practice questions.`;
 
-  const responseText = await callGeminiAI([
+  const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ]);
@@ -433,7 +433,7 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 40000)}`;
 
-  const responseText = await callGeminiAI([
+  const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ]);
@@ -475,7 +475,7 @@ Topic: ${material.topic || 'Not specified'}
 Content:
 ${content.substring(0, 30000)}`;
 
-  const responseText = await callGeminiAI([
+  const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
   ]);
@@ -508,7 +508,7 @@ Respond ONLY with valid JSON, no markdown:
 
 If you cannot determine a value, use an empty string.`;
 
-    const responseText = await callGeminiAI([{ role: 'user', content: prompt }]);
+    const responseText = await callOpenAI([{ role: 'user', content: prompt }]);
     let jsonContent = responseText;
     const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
     if (jsonMatch) jsonContent = jsonMatch[1].trim();
@@ -980,7 +980,7 @@ serve(async (req) => {
       userFriendlyError = 'AI service is busy. Please try again in a few moments.';
       statusCode = 429;
     } else if (errorMessage === 'QUOTA_EXCEEDED') {
-      userFriendlyError = 'Gemini API quota exceeded. Please check your API key usage at Google AI Studio.';
+      userFriendlyError = 'OpenAI API quota exceeded. Please check your API key usage at Google AI Studio.';
       statusCode = 402;
     } else if (errorMessage.includes('No file path')) {
       userFriendlyError = 'No file was uploaded. Please upload a document to process.';

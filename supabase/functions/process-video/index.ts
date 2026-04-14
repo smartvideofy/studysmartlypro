@@ -9,28 +9,28 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
-// Helper to call Gemini
-async function callGeminiAI(messages: any[]): Promise<string> {
-  const response = await fetch(GEMINI_URL, {
+// Helper to call OpenAI
+async function callOpenAI(messages: any[]): Promise<string> {
+  const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
-      'Authorization': `Bearer ${geminiApiKey}`,
+      'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ model: GEMINI_MODEL, messages }),
+    body: JSON.stringify({ model: OPENAI_MODEL, messages }),
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini API error:', response.status, errorText);
+    console.error('OpenAI API error:', response.status, errorText);
     if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
     if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
-    throw new Error(`Gemini API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -134,7 +134,6 @@ async function generateVideoContent(
   
   const extractedContent = context;
   
-  // Generate tutor notes
   const tutorNotesPrompt = `You are an expert academic tutor. Create comprehensive study notes for this video content.
 
 Subject: ${subject || 'General'}
@@ -166,14 +165,13 @@ Return ONLY valid JSON.`;
 
   let tutorNotes = { topics: [] };
   try {
-    const text = await callGeminiAI([{ role: 'user', content: tutorNotesPrompt }]);
+    const text = await callOpenAI([{ role: 'user', content: tutorNotesPrompt }]);
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
     tutorNotes = JSON.parse(jsonMatch[1].trim());
   } catch {
     console.log('Failed to parse tutor notes JSON');
   }
 
-  // Generate summaries
   const summaryPrompt = `Create a comprehensive summary of this video content.
 
 ${context.substring(0, 20000)}
@@ -182,13 +180,12 @@ Provide a detailed summary covering the main concepts, key points, and important
 
   const summaries = [];
   try {
-    const summaryText = await callGeminiAI([{ role: 'user', content: summaryPrompt }]);
+    const summaryText = await callOpenAI([{ role: 'user', content: summaryPrompt }]);
     summaries.push({ type: 'detailed', content: summaryText });
   } catch {
     console.log('Failed to generate summary');
   }
 
-  // Generate flashcards
   const flashcardsPrompt = `Create 15 educational flashcards from this video content.
 
 ${context.substring(0, 20000)}
@@ -205,14 +202,13 @@ Return ONLY a JSON array:
 
   let flashcards: object[] = [];
   try {
-    const text = await callGeminiAI([{ role: 'user', content: flashcardsPrompt }]);
+    const text = await callOpenAI([{ role: 'user', content: flashcardsPrompt }]);
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
     flashcards = JSON.parse(jsonMatch[1].trim());
   } catch {
     console.log('Failed to parse flashcards JSON');
   }
 
-  // Generate practice questions
   const questionsPrompt = `Create 10 practice questions from this video content.
 
 ${context.substring(0, 20000)}
@@ -236,7 +232,7 @@ Return ONLY a JSON array with mixed question types:
 
   let questions: object[] = [];
   try {
-    const text = await callGeminiAI([{ role: 'user', content: questionsPrompt }]);
+    const text = await callOpenAI([{ role: 'user', content: questionsPrompt }]);
     const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, text];
     questions = JSON.parse(jsonMatch[1].trim());
   } catch {
