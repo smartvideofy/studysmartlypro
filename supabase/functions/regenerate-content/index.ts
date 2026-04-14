@@ -244,7 +244,7 @@ Generate a JSON response with this EXACT structure:
 Create at least 4-6 major topics with 3-5 detailed subtopics each.
 Return ONLY the JSON, no markdown.`;
 
-  const response = await callGeminiAI(apiKey, prompt, systemPrompt);
+  const response = await callOpenAI(apiKey, prompt, systemPrompt);
   
   let tutorNotesContent;
   try {
@@ -295,7 +295,7 @@ ${content.substring(0, 15000)}
 
 Write a clear, flowing paragraph that captures the main thesis, key arguments, and conclusions. No bullet points.`;
 
-  const quickSummary = await callGeminiAI(apiKey, quickPrompt, systemPrompt);
+  const quickSummary = await callOpenAI(apiKey, quickPrompt, systemPrompt);
 
   const bulletPrompt = `Create a comprehensive bullet-point summary of this ${subject} content about "${topic}":
 
@@ -309,7 +309,7 @@ Format as clean bullet points:
 
 Include 15-25 key points with supporting details.`;
 
-  const bulletSummary = await callGeminiAI(apiKey, bulletPrompt, systemPrompt);
+  const bulletSummary = await callOpenAI(apiKey, bulletPrompt, systemPrompt);
 
   const detailedPrompt = `Create a detailed academic summary of this ${subject} content about "${topic}":
 
@@ -318,7 +318,7 @@ ${content.substring(0, 25000)}
 Structure your response with: Overview, Key Concepts, Important Details, Relationships and Connections, Practical Applications, Key Takeaways.
 Write 800-1200 words total. Use proper markdown formatting.`;
 
-  const detailedSummary = await callGeminiAI(apiKey, detailedPrompt, systemPrompt);
+  const detailedSummary = await callOpenAI(apiKey, detailedPrompt, systemPrompt);
 
   await supabase.from("summaries").insert([
     { material_id: materialId, user_id: userId, summary_type: "quick", content: quickSummary },
@@ -360,7 +360,7 @@ Generate a JSON array of flashcards:
 
 Make answers detailed (50-150 words). Return ONLY the JSON array.`;
 
-  const response = await callGeminiAI(apiKey, prompt, systemPrompt);
+  const response = await callOpenAI(apiKey, prompt, systemPrompt);
   
   let flashcards;
   try {
@@ -419,7 +419,7 @@ Generate a JSON array:
 Include 8-10 MCQ, 4-5 short answer, 2-3 case-based questions.
 Return ONLY the JSON array.`;
 
-  const response = await callGeminiAI(apiKey, prompt, systemPrompt);
+  const response = await callOpenAI(apiKey, prompt, systemPrompt);
   
   let questions;
   try {
@@ -478,7 +478,7 @@ Generate a JSON with nodes and edges:
 
 Create 15-25 nodes with meaningful connections. Return ONLY the JSON.`;
 
-  const response = await callGeminiAI(apiKey, prompt, systemPrompt);
+  const response = await callOpenAI(apiKey, prompt, systemPrompt);
   
   let conceptMap;
   try {

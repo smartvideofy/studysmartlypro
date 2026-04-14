@@ -9,11 +9,11 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 const elevenLabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 // Voice IDs for the two hosts
 const HOST_1_VOICE = "JBFqnCBsd6RMkjVDRZzb"; // George - Male
@@ -92,14 +92,14 @@ serve(async (req) => {
 
     const scriptPrompt = getScriptPrompt(style, content, material.title);
     
-    const scriptResponse = await fetch(GEMINI_URL, {
+    const scriptResponse = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${geminiApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
+        model: OPENAI_MODEL,
         messages: [
           { role: 'system', content: scriptPrompt },
           { role: 'user', content: `Create an engaging podcast script about this material:\n\n${content.substring(0, 30000)}` }
@@ -115,7 +115,7 @@ serve(async (req) => {
         });
       }
       if (scriptResponse.status === 402 || scriptResponse.status === 403) {
-        return new Response(JSON.stringify({ error: "Gemini API quota exceeded." }), {
+        return new Response(JSON.stringify({ error: "OpenAI API quota exceeded." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
