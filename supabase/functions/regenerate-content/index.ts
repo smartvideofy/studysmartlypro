@@ -6,8 +6,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,7 +17,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const geminiApiKey = Deno.env.get("GEMINI_API_KEY")!;
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY")!;
 
     // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
@@ -98,15 +98,15 @@ serve(async (req) => {
 
     // Generate content based on type
     if (contentType === "tutor_notes") {
-      await regenerateTutorNotes(supabase, geminiApiKey, materialId, materialUserId, extractedContent, subject, topic);
+      await regenerateTutorNotes(supabase, openaiApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "summaries") {
-      await regenerateSummaries(supabase, geminiApiKey, materialId, materialUserId, extractedContent, subject, topic);
+      await regenerateSummaries(supabase, openaiApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "flashcards") {
-      await regenerateFlashcards(supabase, geminiApiKey, materialId, materialUserId, extractedContent, subject, topic);
+      await regenerateFlashcards(supabase, openaiApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "practice_questions") {
-      await regeneratePracticeQuestions(supabase, geminiApiKey, materialId, materialUserId, extractedContent, subject, topic);
+      await regeneratePracticeQuestions(supabase, openaiApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else if (contentType === "concept_map") {
-      await regenerateConceptMap(supabase, geminiApiKey, materialId, materialUserId, extractedContent, subject, topic);
+      await regenerateConceptMap(supabase, openaiApiKey, materialId, materialUserId, extractedContent, subject, topic);
     } else {
       return new Response(
         JSON.stringify({ error: "Invalid content type" }),
@@ -135,7 +135,7 @@ serve(async (req) => {
     
     if (errorMessage === "QUOTA_EXCEEDED") {
       return new Response(
-        JSON.stringify({ error: "Gemini API quota exceeded. Please check your API key usage." }),
+        JSON.stringify({ error: "OpenAI API quota exceeded. Please check your API key usage." }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -147,17 +147,17 @@ serve(async (req) => {
   }
 });
 
-async function callGeminiAI(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
-  console.log("Calling Gemini AI...");
+async function callOpenAI(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
+  console.log("Calling OpenAI...");
   
-  const response = await fetch(GEMINI_URL, {
+  const response = await fetch(OPENAI_URL, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: GEMINI_MODEL,
+      model: OPENAI_MODEL,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: prompt },
@@ -168,7 +168,7 @@ async function callGeminiAI(apiKey: string, prompt: string, systemPrompt: string
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error("Gemini API error:", response.status, errorText);
+    console.error("OpenAI API error:", response.status, errorText);
     
     if (response.status === 429) {
       throw new Error("RATE_LIMIT_EXCEEDED");
@@ -176,7 +176,7 @@ async function callGeminiAI(apiKey: string, prompt: string, systemPrompt: string
     if (response.status === 402 || response.status === 403) {
       throw new Error("QUOTA_EXCEEDED");
     }
-    throw new Error(`Gemini API error: ${response.status}`);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
 
   const data = await response.json();

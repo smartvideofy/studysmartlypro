@@ -9,10 +9,10 @@ const corsHeaders = {
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!;
+const openaiApiKey = Deno.env.get('OPENAI_API_KEY')!;
 
-const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions';
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4o-mini';
 
 // Chunk content into numbered passages for citation references
 function chunkContent(content: string, chunkSize = 800): { id: number; text: string }[] {
@@ -180,14 +180,14 @@ CITATION RULES (CRITICAL):
 - Only use passage numbers that exist in the material above
 - Example: "Photosynthesis converts light energy into chemical energy [3]. This process occurs in the chloroplasts [5]."`;
 
-    const response = await fetch(GEMINI_URL, {
+    const response = await fetch(OPENAI_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${geminiApiKey}`,
+        'Authorization': `Bearer ${openaiApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GEMINI_MODEL,
+        model: OPENAI_MODEL,
         messages: [
           { role: 'system', content: systemPrompt },
           ...messages.map((m: any) => ({ role: m.role, content: m.content })),
@@ -204,13 +204,13 @@ CITATION RULES (CRITICAL):
         });
       }
       if (response.status === 402 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "Gemini API quota exceeded. Please check your API key usage." }), {
+        return new Response(JSON.stringify({ error: "OpenAI API quota exceeded. Please check your API key usage." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const errorText = await response.text();
-      console.error('Gemini API error:', response.status, errorText);
+      console.error('OpenAI API error:', response.status, errorText);
       throw new Error('AI service error');
     }
 
