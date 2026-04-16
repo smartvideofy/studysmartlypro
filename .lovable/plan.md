@@ -1,81 +1,46 @@
 
-# Advanced SEO Audit — Findings & Fixes
 
-## CRITICAL Issues
+## Root Cause
+Payments succeed on Paystack but users aren't upgraded because:
+1. **Webhook isn't firing / isn't registered** — zero recent logs for the `paystack` function, and pending `payment_attempts` from April never resolved.
+2. **Redirect verify is fragile** — if the user closes the tab or the redirect fails, no upgrade happens.
+3. **No reconciliation fallback** to recover missed payments.
 
-### 1. Public SEO pages are behind `ProtectedRoute` (blocks crawlers)
-**Impact: SEVERE** — Google cannot crawl Help Center, Help Articles, Help Categories, or Pricing. These are the only indexable content pages and they're invisible to search engines.
+## Fix Plan
 
-**Fix:** Remove `ProtectedRoute` wrapper from `/help`, `/help/category/:slug`, `/help/article/:slug`, and `/pricing` in `AnimatedRoutes.tsx`. These pages already use `DashboardLayout` which handles auth-optional UI gracefully.
+### 1. Harden the webhook handler (`supabase/functions/paystack/index.ts`)
+- On `charge.success` / `subscription.create`, if `metadata.user_id` is missing, look up the user by `payment_attempts.paystack_reference` (using `data.reference`) as a fallback.
+- Mark the matching `payment_attempts` row as `completed` inside the webhook (currently only `verify` does this).
+- Add detailed logging of every event received for debugging.
+- Handle additional events: `invoice.payment_failed`, `invoice.update`, `subscription.expiring_cards`.
 
-### 2. Sitemap uses wrong domain
-`supabase/functions/generate-sitemap/index.ts` line 8 uses `https://studysmartlypro.lovable.app` instead of `https://app.getstudily.com`. Every URL in the sitemap points to the wrong domain.
+### 2. Add a reconciliation cron job (new edge function `reconcile-payments`)
+- Runs every 10 minutes via `pg_cron`.
+- Selects `payment_attempts` where `status='pending'` and `created_at > now() - 24h`.
+- Calls Paystack `GET /transaction/verify/{reference}` for each.
+- If Paystack reports `success`, atomically claim the row (`update … where status='pending'`) and upsert the subscription using the same logic as `verifyTransaction`.
+- This recovers any payment the webhook or redirect missed.
 
-**Fix:** Update `SITE_URL` to `https://app.getstudily.com`.
+### 3. Manual recovery for the affected users
+- For the 7 currently-pending references in `payment_attempts`, run the verify call once via the new reconciliation function (or a one-off script) so those paying users get upgraded immediately.
 
-### 3. OG image uses relative path in `index.html`
-Lines 28 and 32 use `/og-image.png` — social crawlers need absolute URLs to fetch preview images.
+### 4. Webhook registration check (user action required)
+- Confirm in the Paystack Dashboard → Settings → API Keys & Webhooks that the webhook URL is set to:
+  `https://ngcmmvyebvekyutbixee.supabase.co/functions/v1/paystack/webhook`
+- If it's missing or wrong, no webhook fix in code can help. I'll surface this clearly after the code changes ship.
 
-**Fix:** Change to `https://app.getstudily.com/og-image.png`.
+### 5. Add observability
+- Log every webhook event + signature-verify result.
+- Log every reconciliation run with counts (checked / recovered / still pending).
 
-## HIGH Priority Issues
+## Files to change/create
+- `supabase/functions/paystack/index.ts` — harden `handleWebhook`, add reference-based lookup, mark `payment_attempts` completed.
+- `supabase/functions/reconcile-payments/index.ts` — new cron-triggered reconciler.
+- `supabase/config.toml` — register new function with `verify_jwt = false`.
+- New migration — `pg_cron` schedule (every 10 min) + one-off run to recover the 7 stuck references.
 
-### 4. Missing SEOHead on key pages
-These pages have no `<title>` or meta tags beyond the default `index.html`:
-- `AuthPage` — should have "Sign In | Studily" 
-- `SplashScreen` — should have default site title
-- `StudyMaterialsPage` — needs title + noindex
-- `ProgressPage` — needs title + noindex
-- `SettingsPage` — needs title + noindex
-- `AchievementsPage` — needs title + noindex
-- `GroupsPage` / `GroupDetailPage` — needs title + noindex
+## Outcome
+- No more silent payment losses: webhook + redirect + cron together guarantee delivery.
+- Stuck users from the last weeks get auto-recovered on next cron tick.
+- Full audit trail in logs + `payment_attempts` table.
 
-### 5. Missing `noindex` on private/authenticated pages
-Dashboard, materials, flashcards, progress, settings, achievements, groups — none of these set `noindex`. If Google somehow crawls them (via a leaked link), they'd pollute the index with auth-wall pages.
-
-**Fix:** Add `noindex` to all authenticated-only page `SEOHead` components.
-
-### 6. Missing semantic HTML
-- No `<h1>` tag audit — several pages may use `<h2>` or styled divs as primary headings instead of proper `<h1>`.
-
-## MEDIUM Priority Issues
-
-### 7. No `<link rel="alternate">` or `hreflang` tags
-Not critical for a single-language app, but worth noting.
-
-### 8. Missing `aria-label` on icon-only buttons
-Accessibility/SEO overlap — not blocking but worth improving over time.
-
----
-
-## Implementation Plan
-
-### Step 1: Make Help & Pricing public routes
-**File: `src/components/AnimatedRoutes.tsx`**
-- Remove `ProtectedRoute` from `/help`, `/help/category/:categorySlug`, `/help/article/:articleSlug`, `/pricing`
-
-### Step 2: Fix sitemap domain
-**File: `supabase/functions/generate-sitemap/index.ts`**
-- Change SITE_URL to `https://app.getstudily.com`
-
-### Step 3: Fix OG image absolute URLs in index.html
-**File: `index.html`**
-- Update og:image and twitter:image to absolute URLs
-
-### Step 4: Add SEOHead with noindex to all private pages
-**Files:** `AuthPage.tsx`, `StudyMaterialsPage.tsx`, `ProgressPage.tsx`, `SettingsPage.tsx`, `AchievementsPage.tsx`, `GroupsPage.tsx`
-- Add `<SEOHead title="..." noindex />` to each
-
-### Step 5: Deploy updated sitemap
-- Redeploy `generate-sitemap` edge function
-
-## Files Modified
-- `src/components/AnimatedRoutes.tsx`
-- `supabase/functions/generate-sitemap/index.ts`
-- `index.html`
-- `src/pages/AuthPage.tsx`
-- `src/pages/StudyMaterialsPage.tsx`
-- `src/pages/ProgressPage.tsx`
-- `src/pages/SettingsPage.tsx`
-- `src/pages/AchievementsPage.tsx`
-- `src/pages/GroupsPage.tsx`
