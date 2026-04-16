@@ -677,8 +677,9 @@ async function handleWebhook(req: Request) {
     
     // Verify webhook signature
     const isValid = await verifyWebhookSignature(req, bodyText);
+    console.log('[Webhook] Signature valid:', isValid, 'body length:', bodyText.length);
     if (!isValid) {
-      console.error('Invalid webhook signature');
+      console.error('[Webhook] Invalid signature - rejecting');
       return new Response(JSON.stringify({ error: 'Invalid signature' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -686,7 +687,7 @@ async function handleWebhook(req: Request) {
     }
 
     const body = JSON.parse(bodyText);
-    console.log('Paystack webhook event:', body.event, body.data);
+    console.log('[Webhook] Event received:', body.event, 'reference:', body.data?.reference, 'metadata:', JSON.stringify(body.data?.metadata || {}));
 
     const event = body.event;
     const data = body.data;
@@ -694,47 +695,91 @@ async function handleWebhook(req: Request) {
     switch (event) {
       case 'subscription.create':
       case 'charge.success': {
-        const userId = data.metadata?.user_id;
-        const plan = data.metadata?.plan || 'pro';
-        const interval: BillingInterval = data.metadata?.interval || 'monthly';
-        
-        if (userId) {
-          const periodStart = new Date();
-          const periodEnd = new Date();
-          const periodDays = interval === 'yearly' ? 365 : 30;
-          periodEnd.setDate(periodEnd.getDate() + periodDays);
+        let userId: string | undefined = data.metadata?.user_id;
+        let plan: string = data.metadata?.plan || 'pro';
+        let interval: BillingInterval = (data.metadata?.interval as BillingInterval) || 'monthly';
+        const reference: string | undefined = data.reference;
 
-          const planConfig = PLANS[plan as keyof typeof PLANS];
-          const selectedPlan = planConfig?.[interval];
-          
-          const { error } = await supabase
-            .from('subscriptions')
-            .upsert({
-              user_id: userId,
-              plan: plan,
-              status: 'active',
-              paystack_customer_code: data.customer?.customer_code,
-              paystack_subscription_code: data.subscription_code || data.authorization?.authorization_code,
-              paystack_email_token: data.email_token,
-              plan_code: selectedPlan?.code,
-              amount: selectedPlan ? selectedPlan.amount * 100 : null, // Store in cents
-              currency: 'USD',
-              current_period_start: periodStart.toISOString(),
-              current_period_end: periodEnd.toISOString(),
-              updated_at: new Date().toISOString(),
-            }, {
-              onConflict: 'user_id',
-            });
-          
-          if (error) {
-            console.error('Webhook subscription upsert error:', error);
-          } else {
-            // Send welcome email for new/renewed subscription
-            await sendSubscriptionEmail(supabase, userId, 'subscription_welcome', {
-              planName: selectedPlan?.name || 'Pro',
-              billingCycle: interval === 'yearly' ? 'annual' : 'monthly',
-            });
+        // Fallback: lookup user_id by reference in payment_attempts when metadata is missing
+        if (!userId && reference) {
+          console.log('[Webhook] metadata.user_id missing - looking up by reference:', reference);
+          const { data: attempt, error: attemptErr } = await supabase
+            .from('payment_attempts')
+            .select('user_id, plan, billing_interval')
+            .eq('paystack_reference', reference)
+            .maybeSingle();
+          if (attemptErr) {
+            console.error('[Webhook] payment_attempts lookup error:', attemptErr);
           }
+          if (attempt) {
+            userId = attempt.user_id;
+            plan = attempt.plan || plan;
+            interval = (attempt.billing_interval as BillingInterval) || interval;
+            console.log('[Webhook] Recovered user from payment_attempts:', userId);
+          }
+        }
+
+        // Final fallback: lookup by customer email
+        if (!userId && data.customer?.email) {
+          console.log('[Webhook] still no userId - lookup by email:', data.customer.email);
+          const { data: usersList } = await supabase.auth.admin.listUsers();
+          const matched = usersList?.users?.find((u: any) => u.email?.toLowerCase() === data.customer.email.toLowerCase());
+          if (matched) {
+            userId = matched.id;
+            console.log('[Webhook] Recovered user by email:', userId);
+          }
+        }
+
+        if (!userId) {
+          console.error('[Webhook] CRITICAL: Could not resolve user for charge.success', { reference, email: data.customer?.email });
+          break;
+        }
+
+        const periodStart = new Date();
+        const periodEnd = new Date();
+        const periodDays = interval === 'yearly' ? 365 : 30;
+        periodEnd.setDate(periodEnd.getDate() + periodDays);
+
+        const planConfig = PLANS[plan as keyof typeof PLANS];
+        const selectedPlan = planConfig?.[interval];
+
+        const { error } = await supabase
+          .from('subscriptions')
+          .upsert({
+            user_id: userId,
+            plan: plan,
+            status: 'active',
+            paystack_customer_code: data.customer?.customer_code,
+            paystack_subscription_code: data.subscription_code || data.authorization?.authorization_code,
+            paystack_email_token: data.email_token,
+            plan_code: selectedPlan?.code,
+            amount: selectedPlan ? selectedPlan.amount * 100 : null,
+            currency: 'USD',
+            billing_interval: interval,
+            current_period_start: periodStart.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' });
+
+        if (error) {
+          console.error('[Webhook] subscription upsert error:', error);
+        } else {
+          console.log('[Webhook] Subscription upserted for user:', userId, 'plan:', plan, 'interval:', interval);
+
+          // Mark payment_attempt as completed
+          if (reference) {
+            const { error: paErr } = await supabase
+              .from('payment_attempts')
+              .update({ status: 'completed', completed_at: new Date().toISOString() })
+              .eq('paystack_reference', reference);
+            if (paErr) console.error('[Webhook] payment_attempts update error:', paErr);
+            else console.log('[Webhook] payment_attempts marked completed:', reference);
+          }
+
+          await sendSubscriptionEmail(supabase, userId, 'subscription_welcome', {
+            planName: selectedPlan?.name || 'Pro',
+            billingCycle: interval === 'yearly' ? 'annual' : 'monthly',
+          });
         }
         break;
       }
@@ -742,7 +787,6 @@ async function handleWebhook(req: Request) {
       case 'subscription.disable':
       case 'subscription.not_renew': {
         const customerCode = data.customer?.customer_code;
-        
         if (customerCode) {
           const { error } = await supabase
             .from('subscriptions')
@@ -752,20 +796,35 @@ async function handleWebhook(req: Request) {
               updated_at: new Date().toISOString(),
             })
             .eq('paystack_customer_code', customerCode);
-          
-          if (error) {
-            console.error('Webhook subscription cancel error:', error);
-          }
+          if (error) console.error('[Webhook] subscription cancel error:', error);
+          else console.log('[Webhook] Subscription cancelled for customer:', customerCode);
         }
         break;
       }
+
+      case 'invoice.payment_failed': {
+        const customerCode = data.customer?.customer_code;
+        console.warn('[Webhook] invoice.payment_failed for customer:', customerCode);
+        // Don't auto-cancel; Paystack will retry. Just log.
+        break;
+      }
+
+      case 'invoice.update':
+      case 'invoice.create':
+      case 'subscription.expiring_cards': {
+        console.log('[Webhook] Informational event:', event);
+        break;
+      }
+
+      default:
+        console.log('[Webhook] Unhandled event type:', event);
     }
 
     return new Response(JSON.stringify({ received: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Webhook error:', error);
+    console.error('[Webhook] processing error:', error);
     return new Response(JSON.stringify({ error: 'Webhook processing failed' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
