@@ -100,6 +100,96 @@ async function reconcileOne(supabase: any, attempt: any): Promise<'recovered' | 
   }
 }
 
+/**
+ * Sync one active subscription with Paystack.
+ * Pulls /customer/{code}, finds the most relevant subscription, and updates
+ * current_period_end (from next_payment_date) + status (entitlement).
+ */
+async function syncSubscription(supabase: any, sub: any): Promise<'synced' | 'expired' | 'cancelled' | 'unchanged' | 'error'> {
+  const customerCode = sub.paystack_customer_code;
+  if (!customerCode) return 'unchanged';
+
+  try {
+    const res = await fetch(`https://api.paystack.co/customer/${customerCode}`, {
+      headers: { 'Authorization': `Bearer ${PAYSTACK_SECRET_KEY}` },
+    });
+    const data = await res.json();
+    if (!data.status) {
+      console.warn(`[SyncSub] ${customerCode} paystack lookup failed:`, data?.message);
+      return 'error';
+    }
+
+    const subscriptions: any[] = data.data?.subscriptions || [];
+    if (subscriptions.length === 0) {
+      // No Paystack subscription found → if our period_end has passed, expire
+      if (sub.current_period_end && new Date(sub.current_period_end) < new Date()) {
+        await supabase
+          .from('subscriptions')
+          .update({ status: 'expired', updated_at: new Date().toISOString() })
+          .eq('user_id', sub.user_id);
+        console.log(`[SyncSub] ${sub.user_id} expired (no Paystack sub, period ended)`);
+        return 'expired';
+      }
+      return 'unchanged';
+    }
+
+    // Pick the matching plan_code if possible, else most recent
+    const matched = subscriptions.find((s) => s.plan?.plan_code === sub.plan_code) || subscriptions[0];
+    const paystackStatus: string = matched.status; // active | non-renewing | attention | cancelled | completed
+    const nextPayment: string | null = matched.next_payment_date || null;
+
+    // Map Paystack status -> our entitlement status
+    let newStatus = sub.status;
+    if (paystackStatus === 'active' || paystackStatus === 'attention' || paystackStatus === 'non-renewing') {
+      newStatus = 'active';
+    } else if (paystackStatus === 'cancelled' || paystackStatus === 'completed') {
+      // Keep active until period_end passes, then expire
+      const stillInPeriod = sub.current_period_end && new Date(sub.current_period_end) > new Date();
+      newStatus = stillInPeriod ? 'cancelled' : 'expired';
+    }
+
+    const updates: Record<string, any> = {
+      status: newStatus,
+      paystack_subscription_code: matched.subscription_code || sub.paystack_subscription_code,
+      updated_at: new Date().toISOString(),
+    };
+
+    // Sync period end from Paystack's authoritative next_payment_date
+    if (nextPayment) {
+      updates.current_period_end = new Date(nextPayment).toISOString();
+    } else if (newStatus === 'expired') {
+      updates.current_period_end = updates.current_period_end || new Date().toISOString();
+    }
+
+    if (newStatus !== 'active' && newStatus !== sub.status) {
+      updates.cancelled_at = updates.cancelled_at || new Date().toISOString();
+    }
+
+    // Only write if something actually changed
+    const periodChanged = nextPayment && new Date(nextPayment).toISOString() !== sub.current_period_end;
+    const statusChanged = newStatus !== sub.status;
+    if (!periodChanged && !statusChanged) return 'unchanged';
+
+    const { error } = await supabase
+      .from('subscriptions')
+      .update(updates)
+      .eq('user_id', sub.user_id);
+
+    if (error) {
+      console.error(`[SyncSub] ${sub.user_id} update error:`, error);
+      return 'error';
+    }
+
+    console.log(`[SyncSub] ${sub.user_id} synced: status=${newStatus} period_end=${updates.current_period_end || 'unchanged'} (paystack=${paystackStatus})`);
+    if (newStatus === 'expired') return 'expired';
+    if (newStatus === 'cancelled' && statusChanged) return 'cancelled';
+    return 'synced';
+  } catch (err) {
+    console.error(`[SyncSub] ${customerCode} error:`, err);
+    return 'error';
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -109,7 +199,7 @@ serve(async (req) => {
   const startedAt = Date.now();
 
   try {
-    // Pull pending attempts in last 30 days (covers older stuck ones too)
+    // ---------- Pass 1: recover stuck initial payments ----------
     const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
     const { data: pending, error } = await supabase
       .from('payment_attempts')
@@ -121,17 +211,40 @@ serve(async (req) => {
 
     if (error) throw error;
 
-    const results = { checked: pending?.length || 0, recovered: 0, still_pending: 0, failed: 0, skipped: 0 };
-
+    const payResults = { checked: pending?.length || 0, recovered: 0, still_pending: 0, failed: 0, skipped: 0 };
     for (const attempt of pending || []) {
       const r = await reconcileOne(supabase, attempt);
-      results[r]++;
+      payResults[r]++;
+    }
+
+    // ---------- Pass 2: sync recurring subscriptions with Paystack ----------
+    // Pull all paid subs (active or cancelled-but-still-in-period) that have a Paystack customer.
+    // Skip free + trial rows.
+    const { data: subs, error: subsErr } = await supabase
+      .from('subscriptions')
+      .select('user_id, plan, status, plan_code, paystack_customer_code, paystack_subscription_code, current_period_end')
+      .neq('plan', 'free')
+      .in('status', ['active', 'cancelled', 'past_due'])
+      .not('paystack_customer_code', 'is', null)
+      .limit(500);
+
+    if (subsErr) throw subsErr;
+
+    const subResults = { checked: subs?.length || 0, synced: 0, expired: 0, cancelled: 0, unchanged: 0, error: 0 };
+    for (const sub of subs || []) {
+      const r = await syncSubscription(supabase, sub);
+      subResults[r]++;
     }
 
     const elapsedMs = Date.now() - startedAt;
-    console.log(`[Reconcile] Run complete in ${elapsedMs}ms:`, results);
+    console.log(`[Reconcile] Run complete in ${elapsedMs}ms. Payments:`, payResults, 'Subscriptions:', subResults);
 
-    return new Response(JSON.stringify({ success: true, ...results, elapsed_ms: elapsedMs }), {
+    return new Response(JSON.stringify({
+      success: true,
+      payments: payResults,
+      subscriptions: subResults,
+      elapsed_ms: elapsedMs,
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err) {
