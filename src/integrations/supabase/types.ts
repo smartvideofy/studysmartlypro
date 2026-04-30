@@ -1416,9 +1416,12 @@ export type Database = {
         Row: {
           amount: number | null
           billing_interval: string
+          callback_token: string | null
           completed_at: string | null
           created_at: string
           id: string
+          last_paystack_status: string | null
+          last_verified_at: string | null
           paystack_reference: string
           plan: string
           status: string
@@ -1427,9 +1430,12 @@ export type Database = {
         Insert: {
           amount?: number | null
           billing_interval: string
+          callback_token?: string | null
           completed_at?: string | null
           created_at?: string
           id?: string
+          last_paystack_status?: string | null
+          last_verified_at?: string | null
           paystack_reference: string
           plan: string
           status?: string
@@ -1438,9 +1444,12 @@ export type Database = {
         Update: {
           amount?: number | null
           billing_interval?: string
+          callback_token?: string | null
           completed_at?: string | null
           created_at?: string
           id?: string
+          last_paystack_status?: string | null
+          last_verified_at?: string | null
           paystack_reference?: string
           plan?: string
           status?: string
