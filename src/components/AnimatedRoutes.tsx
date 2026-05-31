@@ -1,216 +1,87 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import PageTransition from "@/components/PageTransition";
+
+// Eager: tiny + first paint
 import SplashScreen from "@/pages/SplashScreen";
 import AuthPage from "@/pages/AuthPage";
-import OnboardingPage from "@/pages/OnboardingPage";
-import Dashboard from "@/pages/Dashboard";
-import StudyMaterialsPage from "@/pages/StudyMaterialsPage";
-import MaterialWorkspace from "@/pages/MaterialWorkspace";
-import NotebookWorkspace from "@/pages/NotebookWorkspace";
-import MaterialSettingsPage from "@/pages/MaterialSettingsPage";
-import FlashcardsPage from "@/pages/FlashcardsPage";
-import DeckDetailPage from "@/pages/DeckDetailPage";
-import StudySession from "@/pages/StudySession";
-import GroupsPage from "@/pages/GroupsPage";
-import GroupDetailPage from "@/pages/GroupDetailPage";
-import JoinGroupPage from "@/pages/JoinGroupPage";
-import ProgressPage from "@/pages/ProgressPage";
-import SettingsPage from "@/pages/SettingsPage";
-import HelpPage from "@/pages/HelpPage";
-import HelpCategoryPage from "@/pages/HelpCategoryPage";
-import HelpArticlePage from "@/pages/HelpArticlePage";
-import PricingPage from "@/pages/PricingPage";
-
-import AchievementsPage from "@/pages/AchievementsPage";
-import SitemapRedirect from "@/pages/SitemapRedirect";
-import UnsubscribePage from "@/pages/UnsubscribePage";
-import InstallPage from "@/pages/InstallPage";
 import NotFound from "@/pages/NotFound";
+import SitemapRedirect from "@/pages/SitemapRedirect";
+
+// Lazy: everything else
+const OnboardingPage = lazy(() => import("@/pages/OnboardingPage"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const StudyMaterialsPage = lazy(() => import("@/pages/StudyMaterialsPage"));
+const MaterialWorkspace = lazy(() => import("@/pages/MaterialWorkspace"));
+const NotebookWorkspace = lazy(() => import("@/pages/NotebookWorkspace"));
+const MaterialSettingsPage = lazy(() => import("@/pages/MaterialSettingsPage"));
+const FlashcardsPage = lazy(() => import("@/pages/FlashcardsPage"));
+const DeckDetailPage = lazy(() => import("@/pages/DeckDetailPage"));
+const StudySession = lazy(() => import("@/pages/StudySession"));
+const GroupsPage = lazy(() => import("@/pages/GroupsPage"));
+const GroupDetailPage = lazy(() => import("@/pages/GroupDetailPage"));
+const JoinGroupPage = lazy(() => import("@/pages/JoinGroupPage"));
+const ProgressPage = lazy(() => import("@/pages/ProgressPage"));
+const SettingsPage = lazy(() => import("@/pages/SettingsPage"));
+const HelpPage = lazy(() => import("@/pages/HelpPage"));
+const HelpCategoryPage = lazy(() => import("@/pages/HelpCategoryPage"));
+const HelpArticlePage = lazy(() => import("@/pages/HelpArticlePage"));
+const PricingPage = lazy(() => import("@/pages/PricingPage"));
+const AchievementsPage = lazy(() => import("@/pages/AchievementsPage"));
+const UnsubscribePage = lazy(() => import("@/pages/UnsubscribePage"));
+const InstallPage = lazy(() => import("@/pages/InstallPage"));
+
+const RouteFallback = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+  </div>
+);
+
+const wrap = (el: JSX.Element) => <PageTransition>{el}</PageTransition>;
+const guard = (el: JSX.Element) => <ProtectedRoute>{wrap(el)}</ProtectedRoute>;
 
 export const AnimatedRoutes = () => {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={
-          <PageTransition>
-            <SplashScreen />
-          </PageTransition>
-        } />
-        <Route path="/auth" element={
-          <PageTransition>
-            <AuthPage />
-          </PageTransition>
-        } />
-        <Route path="/onboarding" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <OnboardingPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/dashboard" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <Dashboard />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        {/* Study Materials - new primary flow */}
-        <Route path="/materials" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <StudyMaterialsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/materials/:id" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <MaterialWorkspace />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/materials/:id/settings" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <MaterialSettingsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/notebooks/:id" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <NotebookWorkspace />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        
+    <Suspense fallback={<RouteFallback />}>
+      <Routes location={location}>
+        <Route path="/" element={wrap(<SplashScreen />)} />
+        <Route path="/auth" element={wrap(<AuthPage />)} />
+        <Route path="/onboarding" element={guard(<OnboardingPage />)} />
+        <Route path="/dashboard" element={guard(<Dashboard />)} />
+        <Route path="/materials" element={guard(<StudyMaterialsPage />)} />
+        <Route path="/materials/:id" element={guard(<MaterialWorkspace />)} />
+        <Route path="/materials/:id/settings" element={guard(<MaterialSettingsPage />)} />
+        <Route path="/notebooks/:id" element={guard(<NotebookWorkspace />)} />
+
         {/* Legacy Notes routes - redirect to materials */}
         <Route path="/notes" element={<Navigate to="/materials" replace />} />
         <Route path="/notes/new" element={<Navigate to="/materials" replace />} />
         <Route path="/notes/:id" element={<Navigate to="/materials" replace />} />
-        
-        <Route path="/flashcards" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <FlashcardsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/flashcards/new" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <FlashcardsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/flashcards/:deckId" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <DeckDetailPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/study" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <StudySession />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/study/:deckId" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <StudySession />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/groups" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <GroupsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/groups/:groupId" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <GroupDetailPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/groups/join/:inviteCode" element={
-          <PageTransition>
-            <JoinGroupPage />
-          </PageTransition>
-        } />
-        <Route path="/progress" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <ProgressPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/settings" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <SettingsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/help" element={
-          <PageTransition>
-            <HelpPage />
-          </PageTransition>
-        } />
-        <Route path="/help/category/:categorySlug" element={
-          <PageTransition>
-            <HelpCategoryPage />
-          </PageTransition>
-        } />
-        <Route path="/help/article/:articleSlug" element={
-          <PageTransition>
-            <HelpArticlePage />
-          </PageTransition>
-        } />
-        <Route path="/pricing" element={
-          <PageTransition>
-            <PricingPage />
-          </PageTransition>
-        } />
-        <Route path="/achievements" element={
-          <ProtectedRoute>
-            <PageTransition>
-              <AchievementsPage />
-            </PageTransition>
-          </ProtectedRoute>
-        } />
-        {/* Sitemap redirect for SEO */}
+
+        <Route path="/flashcards" element={guard(<FlashcardsPage />)} />
+        <Route path="/flashcards/new" element={guard(<FlashcardsPage />)} />
+        <Route path="/flashcards/:deckId" element={guard(<DeckDetailPage />)} />
+        <Route path="/study" element={guard(<StudySession />)} />
+        <Route path="/study/:deckId" element={guard(<StudySession />)} />
+        <Route path="/groups" element={guard(<GroupsPage />)} />
+        <Route path="/groups/:groupId" element={guard(<GroupDetailPage />)} />
+        <Route path="/groups/join/:inviteCode" element={wrap(<JoinGroupPage />)} />
+        <Route path="/progress" element={guard(<ProgressPage />)} />
+        <Route path="/settings" element={guard(<SettingsPage />)} />
+        <Route path="/help" element={wrap(<HelpPage />)} />
+        <Route path="/help/category/:categorySlug" element={wrap(<HelpCategoryPage />)} />
+        <Route path="/help/article/:articleSlug" element={wrap(<HelpArticlePage />)} />
+        <Route path="/pricing" element={wrap(<PricingPage />)} />
+        <Route path="/achievements" element={guard(<AchievementsPage />)} />
         <Route path="/sitemap.xml" element={<SitemapRedirect />} />
-        {/* Unsubscribe page - public route */}
-        <Route path="/unsubscribe/:token" element={
-          <PageTransition>
-            <UnsubscribePage />
-          </PageTransition>
-        } />
-        {/* PWA Install page - public route */}
-        <Route path="/install" element={
-          <PageTransition>
-            <InstallPage />
-          </PageTransition>
-        } />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={
-          <PageTransition>
-            <NotFound />
-          </PageTransition>
-        } />
+        <Route path="/unsubscribe/:token" element={wrap(<UnsubscribePage />)} />
+        <Route path="/install" element={wrap(<InstallPage />)} />
+        <Route path="*" element={wrap(<NotFound />)} />
       </Routes>
-    </AnimatePresence>
+    </Suspense>
   );
 };
 

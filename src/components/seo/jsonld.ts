@@ -33,7 +33,7 @@ export const createArticleJsonLd = ({
   "@type": "Article",
   headline: title,
   description: description,
-  image: image || `${SITE_URL}/og-image.png`,
+  image: image || `${SITE_URL}/og-image.jpg`,
   author: {
     "@type": "Organization",
     name: author,
