@@ -3,7 +3,7 @@ import { Helmet } from "react-helmet-async";
 const SITE_URL = "https://app.getstudily.com";
 const DEFAULT_TITLE = "Getstudily - Study Smarter, Not Harder";
 const DEFAULT_DESCRIPTION = "Getstudily is your AI-powered study companion. Create flashcards, organize notes, and master any subject with smart learning tools.";
-const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
+const DEFAULT_IMAGE = `${SITE_URL}/og-image.jpg`;
 
 interface SEOHeadProps {
   title?: string;
