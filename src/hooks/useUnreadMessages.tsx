@@ -11,43 +11,28 @@ export function useUnreadCounts(groupIds: string[]) {
   const { user } = useAuth();
 
   return useQuery({
-    queryKey: ['unread-counts', user?.id, groupIds],
+    queryKey: ['unread-counts', user?.id, [...groupIds].sort().join(',')],
     queryFn: async () => {
       if (!user?.id || groupIds.length === 0) return {};
 
-      // Get last read times for all groups
-      const { data: readData } = await supabase
-        .from('group_message_reads')
-        .select('group_id, last_read_at')
-        .eq('user_id', user.id)
-        .in('group_id', groupIds);
+      const { data, error } = await supabase.rpc('get_group_unread_counts', {
+        p_group_ids: groupIds,
+      });
 
-      const readMap = new Map(readData?.map(r => [r.group_id, r.last_read_at]) || []);
-
-      // Get message counts for each group
-      const counts: Record<string, number> = {};
-      
-      for (const groupId of groupIds) {
-        const lastRead = readMap.get(groupId);
-        
-        let query = supabase
-          .from('group_messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('group_id', groupId)
-          .neq('user_id', user.id);
-
-        if (lastRead) {
-          query = query.gt('created_at', lastRead);
-        }
-
-        const { count } = await query;
-        counts[groupId] = count || 0;
+      if (error) {
+        console.error('unread counts rpc failed:', error.message);
+        return {};
       }
 
+      const counts: Record<string, number> = {};
+      for (const row of (data || []) as Array<{ group_id: string; count: number }>) {
+        counts[row.group_id] = Number(row.count) || 0;
+      }
       return counts;
     },
     enabled: !!user?.id && groupIds.length > 0,
-    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchInterval: 60_000,
+    staleTime: 30_000,
   });
 }
 

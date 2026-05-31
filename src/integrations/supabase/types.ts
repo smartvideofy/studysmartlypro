@@ -2224,6 +2224,13 @@ export type Database = {
         Args: { p_group_id: string; p_user_id: string }
         Returns: number
       }
+      get_group_unread_counts: {
+        Args: { p_group_ids: string[] }
+        Returns: {
+          count: number
+          group_id: string
+        }[]
+      }
       get_user_plan: { Args: { p_user_id: string }; Returns: string }
       has_role: {
         Args: {
