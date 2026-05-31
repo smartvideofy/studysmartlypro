@@ -527,6 +527,7 @@ export type Database = {
           group_id: string
           id: string
           joined_at: string
+          last_read_at: string | null
           role: string | null
           user_id: string
         }
@@ -534,6 +535,7 @@ export type Database = {
           group_id: string
           id?: string
           joined_at?: string
+          last_read_at?: string | null
           role?: string | null
           user_id: string
         }
@@ -541,6 +543,7 @@ export type Database = {
           group_id?: string
           id?: string
           joined_at?: string
+          last_read_at?: string | null
           role?: string | null
           user_id?: string
         }
@@ -1577,14 +1580,18 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           daily_study_minutes: number | null
+          exam_date: string | null
+          experience_level: string | null
           full_name: string | null
           id: string
           last_study_date: string | null
           level: number | null
           notification_enabled: boolean | null
+          onboarded_at: string | null
           preferred_study_time: string | null
           streak_days: number | null
           study_goal: string | null
+          subjects: string[] | null
           updated_at: string
           user_id: string
           xp: number | null
@@ -1593,14 +1600,18 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           daily_study_minutes?: number | null
+          exam_date?: string | null
+          experience_level?: string | null
           full_name?: string | null
           id?: string
           last_study_date?: string | null
           level?: number | null
           notification_enabled?: boolean | null
+          onboarded_at?: string | null
           preferred_study_time?: string | null
           streak_days?: number | null
           study_goal?: string | null
+          subjects?: string[] | null
           updated_at?: string
           user_id: string
           xp?: number | null
@@ -1609,14 +1620,18 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           daily_study_minutes?: number | null
+          exam_date?: string | null
+          experience_level?: string | null
           full_name?: string | null
           id?: string
           last_study_date?: string | null
           level?: number | null
           notification_enabled?: boolean | null
+          onboarded_at?: string | null
           preferred_study_time?: string | null
           streak_days?: number | null
           study_goal?: string | null
+          subjects?: string[] | null
           updated_at?: string
           user_id?: string
           xp?: number | null
