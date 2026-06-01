@@ -886,6 +886,11 @@ serve(async (req) => {
           const { data: matC } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
           await handleConceptMapStep(supabase, matC || material, materialId, materialUserId, isPremium);
           break;
+        case 'generate_all': {
+          const { data: matAll } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleGenerateAllStep(supabase, matAll || material, materialId, materialUserId, isPremium);
+          break;
+        }
         case 'complete':
           await handleCompleteStep(supabase, materialId);
           break;
