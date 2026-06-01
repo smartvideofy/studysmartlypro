@@ -424,7 +424,7 @@ ${content.substring(0, 40000)}`;
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 2500);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
