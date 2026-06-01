@@ -34,7 +34,7 @@ interface StudyMaterial {
   generate_concept_map: boolean;
 }
 
-type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
+type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'generate_all' | 'complete';
 
 // ─── Helper: call OpenAI API ───
 async function callOpenAI(messages: any[], maxTokens?: number): Promise<string> {
