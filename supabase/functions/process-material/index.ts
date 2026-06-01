@@ -215,21 +215,13 @@ Be thorough and comprehensive. The extracted content will be used to generate st
 async function generateTutorNotes(content: string, material: StudyMaterial): Promise<object> {
   console.log('Generating comprehensive tutor notes...');
   
-  const systemPrompt = `You are an expert academic tutor and curriculum designer. Your task is to create exceptionally detailed and comprehensive tutor notes that would be valuable for a student studying this material.
+  const systemPrompt = `You are an expert academic tutor. Create concise, well-structured tutor notes.
 
-Your notes must be:
-- DETAILED: Each subtopic should have thorough explanations (minimum 200-300 words per subtopic)
-- ACADEMIC: Use precise terminology with clear definitions
-- STRUCTURED: Organize hierarchically with clear topic/subtopic relationships
-- PRACTICAL: Include real-world applications and examples
-- EXAM-FOCUSED: Highlight key points that are likely to appear in assessments
-
-For each subtopic, you MUST include:
-1. A comprehensive explanation of the concept
-2. At least 3-5 key definitions with clear, academic definitions
-3. Multiple practical examples (at least 2-3)
-4. Exam tips highlighting common misconceptions and key points
-5. Connections to other related topics
+Requirements per subtopic:
+- A clear explanation (~120-180 words, not more)
+- 2-3 key definitions
+- 2 practical examples
+- 2 exam tips
 
 Respond ONLY with valid JSON in this exact structure:
 {
@@ -239,22 +231,12 @@ Respond ONLY with valid JSON in this exact structure:
       "subtopics": [
         {
           "title": "Subtopic Title",
-          "content": "Comprehensive explanation of 200-300 words...",
+          "content": "Concise explanation (~120-180 words)...",
           "definitions": [
-            {"term": "Key Term 1", "definition": "Detailed academic definition"},
-            {"term": "Key Term 2", "definition": "Detailed academic definition"},
-            {"term": "Key Term 3", "definition": "Detailed academic definition"}
+            {"term": "Term", "definition": "Definition"}
           ],
-          "examples": [
-            "Detailed Example 1 with context and explanation",
-            "Detailed Example 2 showing real-world application",
-            "Detailed Example 3 demonstrating the concept"
-          ],
-          "exam_tips": [
-            "Common exam question patterns related to this topic",
-            "Key points examiners look for",
-            "Common mistakes to avoid"
-          ]
+          "examples": ["Example 1", "Example 2"],
+          "exam_tips": ["Tip 1", "Tip 2"]
         }
       ]
     }
