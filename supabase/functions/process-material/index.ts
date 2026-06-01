@@ -382,7 +382,7 @@ Generate 15 diverse, challenging practice questions.`;
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 3000);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
