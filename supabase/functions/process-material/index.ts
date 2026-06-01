@@ -277,9 +277,7 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
 }
 
 async function generateSummaries(content: string, material: StudyMaterial): Promise<{ type: string; content: string }[]> {
-  console.log('Generating comprehensive summaries...');
-  
-  const summaries: { type: string; content: string }[] = [];
+  console.log('Generating comprehensive summaries (parallel)...');
 
   const quickPrompt = `Create a concise 2-minute summary of this study material. Focus on the main idea and 3-5 key takeaways.
 
@@ -290,14 +288,6 @@ Content:
 ${content.substring(0, 30000)}
 
 Format: Write 2-3 paragraphs that capture the essence of the material.`;
-
-  try {
-    const quickContent = await callOpenAI([{ role: 'user', content: quickPrompt }]);
-    summaries.push({ type: 'quick', content: quickContent });
-  } catch (e) {
-    console.error('Quick summary failed:', e);
-    throw e; // Re-throw rate limit / quota errors
-  }
 
   const detailedPrompt = `Create a comprehensive, detailed summary of this study material.
 
@@ -310,13 +300,6 @@ ${content.substring(0, 40000)}
 
 Structure your summary with: Overview, Key Concepts, Important Details, Connections and Relationships, Summary.`;
 
-  try {
-    const detailedContent = await callOpenAI([{ role: 'user', content: detailedPrompt }]);
-    summaries.push({ type: 'detailed', content: detailedContent });
-  } catch (e) {
-    console.error('Detailed summary failed:', e);
-  }
-
   const bulletPrompt = `Extract the key points from this study material as a numbered list.
 
 Title: ${material.title}
@@ -327,11 +310,31 @@ ${content.substring(0, 30000)}
 
 Create 10-15 key points. Each point should be a complete, standalone statement.`;
 
-  try {
-    const bulletContent = await callOpenAI([{ role: 'user', content: bulletPrompt }]);
-    summaries.push({ type: 'bullet_points', content: bulletContent });
-  } catch (e) {
-    console.error('Bullet summary failed:', e);
+  const [quickRes, detailedRes, bulletRes] = await Promise.allSettled([
+    callOpenAI([{ role: 'user', content: quickPrompt }], 800),
+    callOpenAI([{ role: 'user', content: detailedPrompt }], 1500),
+    callOpenAI([{ role: 'user', content: bulletPrompt }], 800),
+  ]);
+
+  const summaries: { type: string; content: string }[] = [];
+
+  if (quickRes.status === 'fulfilled') {
+    summaries.push({ type: 'quick', content: quickRes.value });
+  } else {
+    console.error('Quick summary failed:', quickRes.reason);
+    // Re-throw rate limit / quota so caller can mark failure
+    const msg = String(quickRes.reason?.message || quickRes.reason);
+    if (msg.includes('RATE_LIMIT') || msg.includes('QUOTA')) throw quickRes.reason;
+  }
+  if (detailedRes.status === 'fulfilled') {
+    summaries.push({ type: 'detailed', content: detailedRes.value });
+  } else {
+    console.error('Detailed summary failed:', detailedRes.reason);
+  }
+  if (bulletRes.status === 'fulfilled') {
+    summaries.push({ type: 'bullet_points', content: bulletRes.value });
+  } else {
+    console.error('Bullet summary failed:', bulletRes.reason);
   }
 
   return summaries;
