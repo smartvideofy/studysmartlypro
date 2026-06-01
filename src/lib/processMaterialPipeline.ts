@@ -1,24 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
+export type PipelineStep = 'extract' | 'generate_all' | 'complete';
 
 const PIPELINE_STEPS: PipelineStep[] = [
   'extract',
-  'tutor_notes',
-  'summaries',
-  'flashcards',
-  'questions',
-  'concept_map',
+  'generate_all',
   'complete',
 ];
 
 const STEP_LABELS: Record<PipelineStep, string> = {
   extract: 'Extracting content',
-  tutor_notes: 'Generating tutor notes',
-  summaries: 'Generating summaries',
-  flashcards: 'Generating flashcards',
-  questions: 'Generating practice questions',
-  concept_map: 'Generating concept map',
+  generate_all: 'Generating study materials',
   complete: 'Finalizing',
 };
 
