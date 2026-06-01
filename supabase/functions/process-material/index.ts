@@ -36,18 +36,21 @@ interface StudyMaterial {
 
 type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
 
-// ─── Helper: call Gemini API ───
-async function callOpenAI(messages: any[]): Promise<string> {
+// ─── Helper: call OpenAI API ───
+async function callOpenAI(messages: any[], maxTokens?: number): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: OPENAI_MODEL,
+    messages,
+  };
+  if (maxTokens) body.max_tokens = maxTokens;
+
   const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      messages,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
