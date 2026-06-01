@@ -588,46 +588,46 @@ async function handleTutorNotesStep(supabase: any, material: StudyMaterial, mate
 
 async function handleSummariesStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
   await updateProgress(supabase, materialId, '⏳ Generating summaries...');
-  
+
   const content = material.extracted_content || '';
   const summaries = await generateSummaries(content, material);
-  for (const summary of summaries) {
-    await supabase
-      .from('summaries')
-      .insert({
+  if (summaries.length > 0) {
+    await supabase.from('summaries').insert(
+      summaries.map((s) => ({
         material_id: materialId,
         user_id: userId,
-        summary_type: summary.type,
-        content: summary.content,
-      });
+        summary_type: s.type,
+        content: s.content,
+      }))
+    );
   }
   console.log('Summaries generated');
 }
 
 async function handleFlashcardsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
   if (!material.generate_flashcards) return;
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating flashcards...');
-  
+
   const content = material.extracted_content || '';
   const flashcards = await generateFlashcards(content, material);
-  for (const card of flashcards) {
-    await supabase
-      .from('material_flashcards')
-      .insert({
+
+  if (flashcards.length > 0) {
+    await supabase.from('material_flashcards').insert(
+      flashcards.map((card: any) => ({
         material_id: materialId,
         user_id: userId,
-        front: (card as any).front,
-        back: (card as any).back,
-        hint: (card as any).hint || null,
-        difficulty: (card as any).difficulty || 'medium',
-      });
+        front: card.front,
+        back: card.back,
+        hint: card.hint || null,
+        difficulty: card.difficulty || 'medium',
+      }))
+    );
   }
   console.log('Flashcards generated');
 
   // Auto-save to flashcard_decks + flashcards
   try {
-    // Check if a deck already exists for this material
     const { data: existingDeck } = await supabase
       .from('flashcard_decks')
       .select('id')
@@ -639,9 +639,7 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
 
     if (existingDeck) {
       deckId = existingDeck.id;
-      // Delete old cards on reprocessing
       await supabase.from('flashcards').delete().eq('deck_id', deckId);
-      // Reset card count
       await supabase.from('flashcard_decks').update({ card_count: 0 }).eq('id', deckId);
     } else {
       const { data: newDeck, error: deckError } = await supabase
@@ -664,14 +662,15 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
       deckId = newDeck.id;
     }
 
-    // Insert cards into the flashcards table
-    for (const card of flashcards) {
-      await supabase.from('flashcards').insert({
-        deck_id: deckId,
-        front: (card as any).front,
-        back: (card as any).back,
-        hint: (card as any).hint || null,
-      });
+    if (flashcards.length > 0) {
+      await supabase.from('flashcards').insert(
+        flashcards.map((card: any) => ({
+          deck_id: deckId,
+          front: card.front,
+          back: card.back,
+          hint: card.hint || null,
+        }))
+      );
     }
     console.log(`Auto-saved ${flashcards.length} flashcards to deck ${deckId}`);
   } catch (autoSaveError) {
@@ -685,23 +684,23 @@ async function handleQuestionsStep(supabase: any, material: StudyMaterial, mater
     console.log('Skipping practice questions - requires Pro plan');
     return;
   }
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating practice questions...');
-  
+
   const content = material.extracted_content || '';
   const questions = await generatePracticeQuestions(content, material);
-  for (const q of questions) {
-    await supabase
-      .from('practice_questions')
-      .insert({
+  if (questions.length > 0) {
+    await supabase.from('practice_questions').insert(
+      questions.map((q: any) => ({
         material_id: materialId,
         user_id: userId,
-        question_type: (q as any).question_type || 'short_answer',
-        question: (q as any).question,
-        options: (q as any).options || null,
-        correct_answer: (q as any).correct_answer || null,
-        explanation: (q as any).explanation || null,
-      });
+        question_type: q.question_type || 'short_answer',
+        question: q.question,
+        options: q.options || null,
+        correct_answer: q.correct_answer || null,
+        explanation: q.explanation || null,
+      }))
+    );
   }
   console.log('Practice questions generated');
 }
@@ -712,9 +711,9 @@ async function handleConceptMapStep(supabase: any, material: StudyMaterial, mate
     console.log('Skipping concept map - requires Pro plan');
     return;
   }
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating concept map...');
-  
+
   const content = material.extracted_content || '';
   const conceptMap = await generateConceptMap(content, material);
   await supabase
@@ -726,6 +725,43 @@ async function handleConceptMapStep(supabase: any, material: StudyMaterial, mate
       edges: (conceptMap as any).edges || [],
     });
   console.log('Concept map generated');
+}
+
+async function handleGenerateAllStep(
+  supabase: any,
+  material: StudyMaterial,
+  materialId: string,
+  userId: string,
+  isPremium: boolean,
+) {
+  await updateProgress(supabase, materialId, '⏳ Generating study materials...');
+
+  // Run all five generators concurrently. Each handler internally checks
+  // the relevant material.generate_* flag and isPremium gates.
+  const results = await Promise.allSettled([
+    handleTutorNotesStep(supabase, material, materialId, userId),
+    handleSummariesStep(supabase, material, materialId, userId),
+    handleFlashcardsStep(supabase, material, materialId, userId),
+    handleQuestionsStep(supabase, material, materialId, userId, isPremium),
+    handleConceptMapStep(supabase, material, materialId, userId, isPremium),
+  ]);
+
+  const failures = results
+    .map((r, i) => ({ r, name: ['tutor_notes', 'summaries', 'flashcards', 'questions', 'concept_map'][i] }))
+    .filter(({ r }) => r.status === 'rejected');
+
+  if (failures.length === results.length) {
+    // Everything failed — surface the first error
+    const first = failures[0].r as PromiseRejectedResult;
+    throw first.reason instanceof Error ? first.reason : new Error(String(first.reason));
+  }
+
+  if (failures.length > 0) {
+    console.error(
+      'Some generators failed (non-fatal):',
+      failures.map((f) => `${f.name}: ${(f.r as PromiseRejectedResult).reason}`),
+    );
+  }
 }
 
 async function handleCompleteStep(supabase: any, materialId: string) {
