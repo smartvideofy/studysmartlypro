@@ -1587,9 +1587,11 @@ export type Database = {
           last_study_date: string | null
           level: number | null
           notification_enabled: boolean | null
+          notification_prefs: Json | null
           onboarded_at: string | null
           preferred_study_time: string | null
           streak_days: number | null
+          streak_freezes: number | null
           study_goal: string | null
           subjects: string[] | null
           updated_at: string
@@ -1607,9 +1609,11 @@ export type Database = {
           last_study_date?: string | null
           level?: number | null
           notification_enabled?: boolean | null
+          notification_prefs?: Json | null
           onboarded_at?: string | null
           preferred_study_time?: string | null
           streak_days?: number | null
+          streak_freezes?: number | null
           study_goal?: string | null
           subjects?: string[] | null
           updated_at?: string
@@ -1627,9 +1631,11 @@ export type Database = {
           last_study_date?: string | null
           level?: number | null
           notification_enabled?: boolean | null
+          notification_prefs?: Json | null
           onboarded_at?: string | null
           preferred_study_time?: string | null
           streak_days?: number | null
+          streak_freezes?: number | null
           study_goal?: string | null
           subjects?: string[] | null
           updated_at?: string

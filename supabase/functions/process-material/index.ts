@@ -34,20 +34,23 @@ interface StudyMaterial {
   generate_concept_map: boolean;
 }
 
-type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
+type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'generate_all' | 'complete';
 
-// ─── Helper: call Gemini API ───
-async function callOpenAI(messages: any[]): Promise<string> {
+// ─── Helper: call OpenAI API ───
+async function callOpenAI(messages: any[], maxTokens?: number): Promise<string> {
+  const body: Record<string, unknown> = {
+    model: OPENAI_MODEL,
+    messages,
+  };
+  if (maxTokens) body.max_tokens = maxTokens;
+
   const response = await fetch(OPENAI_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${openaiApiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      messages,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -212,21 +215,13 @@ Be thorough and comprehensive. The extracted content will be used to generate st
 async function generateTutorNotes(content: string, material: StudyMaterial): Promise<object> {
   console.log('Generating comprehensive tutor notes...');
   
-  const systemPrompt = `You are an expert academic tutor and curriculum designer. Your task is to create exceptionally detailed and comprehensive tutor notes that would be valuable for a student studying this material.
+  const systemPrompt = `You are an expert academic tutor. Create concise, well-structured tutor notes.
 
-Your notes must be:
-- DETAILED: Each subtopic should have thorough explanations (minimum 200-300 words per subtopic)
-- ACADEMIC: Use precise terminology with clear definitions
-- STRUCTURED: Organize hierarchically with clear topic/subtopic relationships
-- PRACTICAL: Include real-world applications and examples
-- EXAM-FOCUSED: Highlight key points that are likely to appear in assessments
-
-For each subtopic, you MUST include:
-1. A comprehensive explanation of the concept
-2. At least 3-5 key definitions with clear, academic definitions
-3. Multiple practical examples (at least 2-3)
-4. Exam tips highlighting common misconceptions and key points
-5. Connections to other related topics
+Requirements per subtopic:
+- A clear explanation (~120-180 words, not more)
+- 2-3 key definitions
+- 2 practical examples
+- 2 exam tips
 
 Respond ONLY with valid JSON in this exact structure:
 {
@@ -236,22 +231,12 @@ Respond ONLY with valid JSON in this exact structure:
       "subtopics": [
         {
           "title": "Subtopic Title",
-          "content": "Comprehensive explanation of 200-300 words...",
+          "content": "Concise explanation (~120-180 words)...",
           "definitions": [
-            {"term": "Key Term 1", "definition": "Detailed academic definition"},
-            {"term": "Key Term 2", "definition": "Detailed academic definition"},
-            {"term": "Key Term 3", "definition": "Detailed academic definition"}
+            {"term": "Term", "definition": "Definition"}
           ],
-          "examples": [
-            "Detailed Example 1 with context and explanation",
-            "Detailed Example 2 showing real-world application",
-            "Detailed Example 3 demonstrating the concept"
-          ],
-          "exam_tips": [
-            "Common exam question patterns related to this topic",
-            "Key points examiners look for",
-            "Common mistakes to avoid"
-          ]
+          "examples": ["Example 1", "Example 2"],
+          "exam_tips": ["Tip 1", "Tip 2"]
         }
       ]
     }
@@ -275,7 +260,7 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 4000);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -292,9 +277,7 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
 }
 
 async function generateSummaries(content: string, material: StudyMaterial): Promise<{ type: string; content: string }[]> {
-  console.log('Generating comprehensive summaries...');
-  
-  const summaries: { type: string; content: string }[] = [];
+  console.log('Generating comprehensive summaries (parallel)...');
 
   const quickPrompt = `Create a concise 2-minute summary of this study material. Focus on the main idea and 3-5 key takeaways.
 
@@ -305,14 +288,6 @@ Content:
 ${content.substring(0, 30000)}
 
 Format: Write 2-3 paragraphs that capture the essence of the material.`;
-
-  try {
-    const quickContent = await callOpenAI([{ role: 'user', content: quickPrompt }]);
-    summaries.push({ type: 'quick', content: quickContent });
-  } catch (e) {
-    console.error('Quick summary failed:', e);
-    throw e; // Re-throw rate limit / quota errors
-  }
 
   const detailedPrompt = `Create a comprehensive, detailed summary of this study material.
 
@@ -325,13 +300,6 @@ ${content.substring(0, 40000)}
 
 Structure your summary with: Overview, Key Concepts, Important Details, Connections and Relationships, Summary.`;
 
-  try {
-    const detailedContent = await callOpenAI([{ role: 'user', content: detailedPrompt }]);
-    summaries.push({ type: 'detailed', content: detailedContent });
-  } catch (e) {
-    console.error('Detailed summary failed:', e);
-  }
-
   const bulletPrompt = `Extract the key points from this study material as a numbered list.
 
 Title: ${material.title}
@@ -342,11 +310,31 @@ ${content.substring(0, 30000)}
 
 Create 10-15 key points. Each point should be a complete, standalone statement.`;
 
-  try {
-    const bulletContent = await callOpenAI([{ role: 'user', content: bulletPrompt }]);
-    summaries.push({ type: 'bullet_points', content: bulletContent });
-  } catch (e) {
-    console.error('Bullet summary failed:', e);
+  const [quickRes, detailedRes, bulletRes] = await Promise.allSettled([
+    callOpenAI([{ role: 'user', content: quickPrompt }], 800),
+    callOpenAI([{ role: 'user', content: detailedPrompt }], 1500),
+    callOpenAI([{ role: 'user', content: bulletPrompt }], 800),
+  ]);
+
+  const summaries: { type: string; content: string }[] = [];
+
+  if (quickRes.status === 'fulfilled') {
+    summaries.push({ type: 'quick', content: quickRes.value });
+  } else {
+    console.error('Quick summary failed:', quickRes.reason);
+    // Re-throw rate limit / quota so caller can mark failure
+    const msg = String(quickRes.reason?.message || quickRes.reason);
+    if (msg.includes('RATE_LIMIT') || msg.includes('QUOTA')) throw quickRes.reason;
+  }
+  if (detailedRes.status === 'fulfilled') {
+    summaries.push({ type: 'detailed', content: detailedRes.value });
+  } else {
+    console.error('Detailed summary failed:', detailedRes.reason);
+  }
+  if (bulletRes.status === 'fulfilled') {
+    summaries.push({ type: 'bullet_points', content: bulletRes.value });
+  } else {
+    console.error('Bullet summary failed:', bulletRes.reason);
   }
 
   return summaries;
@@ -394,7 +382,7 @@ Generate 15 diverse, challenging practice questions.`;
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 3000);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -436,7 +424,7 @@ ${content.substring(0, 40000)}`;
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 2500);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -478,7 +466,7 @@ ${content.substring(0, 30000)}`;
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 2000);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -600,46 +588,46 @@ async function handleTutorNotesStep(supabase: any, material: StudyMaterial, mate
 
 async function handleSummariesStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
   await updateProgress(supabase, materialId, '⏳ Generating summaries...');
-  
+
   const content = material.extracted_content || '';
   const summaries = await generateSummaries(content, material);
-  for (const summary of summaries) {
-    await supabase
-      .from('summaries')
-      .insert({
+  if (summaries.length > 0) {
+    await supabase.from('summaries').insert(
+      summaries.map((s) => ({
         material_id: materialId,
         user_id: userId,
-        summary_type: summary.type,
-        content: summary.content,
-      });
+        summary_type: s.type,
+        content: s.content,
+      }))
+    );
   }
   console.log('Summaries generated');
 }
 
 async function handleFlashcardsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string) {
   if (!material.generate_flashcards) return;
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating flashcards...');
-  
+
   const content = material.extracted_content || '';
   const flashcards = await generateFlashcards(content, material);
-  for (const card of flashcards) {
-    await supabase
-      .from('material_flashcards')
-      .insert({
+
+  if (flashcards.length > 0) {
+    await supabase.from('material_flashcards').insert(
+      flashcards.map((card: any) => ({
         material_id: materialId,
         user_id: userId,
-        front: (card as any).front,
-        back: (card as any).back,
-        hint: (card as any).hint || null,
-        difficulty: (card as any).difficulty || 'medium',
-      });
+        front: card.front,
+        back: card.back,
+        hint: card.hint || null,
+        difficulty: card.difficulty || 'medium',
+      }))
+    );
   }
   console.log('Flashcards generated');
 
   // Auto-save to flashcard_decks + flashcards
   try {
-    // Check if a deck already exists for this material
     const { data: existingDeck } = await supabase
       .from('flashcard_decks')
       .select('id')
@@ -651,9 +639,7 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
 
     if (existingDeck) {
       deckId = existingDeck.id;
-      // Delete old cards on reprocessing
       await supabase.from('flashcards').delete().eq('deck_id', deckId);
-      // Reset card count
       await supabase.from('flashcard_decks').update({ card_count: 0 }).eq('id', deckId);
     } else {
       const { data: newDeck, error: deckError } = await supabase
@@ -676,14 +662,15 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
       deckId = newDeck.id;
     }
 
-    // Insert cards into the flashcards table
-    for (const card of flashcards) {
-      await supabase.from('flashcards').insert({
-        deck_id: deckId,
-        front: (card as any).front,
-        back: (card as any).back,
-        hint: (card as any).hint || null,
-      });
+    if (flashcards.length > 0) {
+      await supabase.from('flashcards').insert(
+        flashcards.map((card: any) => ({
+          deck_id: deckId,
+          front: card.front,
+          back: card.back,
+          hint: card.hint || null,
+        }))
+      );
     }
     console.log(`Auto-saved ${flashcards.length} flashcards to deck ${deckId}`);
   } catch (autoSaveError) {
@@ -697,23 +684,23 @@ async function handleQuestionsStep(supabase: any, material: StudyMaterial, mater
     console.log('Skipping practice questions - requires Pro plan');
     return;
   }
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating practice questions...');
-  
+
   const content = material.extracted_content || '';
   const questions = await generatePracticeQuestions(content, material);
-  for (const q of questions) {
-    await supabase
-      .from('practice_questions')
-      .insert({
+  if (questions.length > 0) {
+    await supabase.from('practice_questions').insert(
+      questions.map((q: any) => ({
         material_id: materialId,
         user_id: userId,
-        question_type: (q as any).question_type || 'short_answer',
-        question: (q as any).question,
-        options: (q as any).options || null,
-        correct_answer: (q as any).correct_answer || null,
-        explanation: (q as any).explanation || null,
-      });
+        question_type: q.question_type || 'short_answer',
+        question: q.question,
+        options: q.options || null,
+        correct_answer: q.correct_answer || null,
+        explanation: q.explanation || null,
+      }))
+    );
   }
   console.log('Practice questions generated');
 }
@@ -724,9 +711,9 @@ async function handleConceptMapStep(supabase: any, material: StudyMaterial, mate
     console.log('Skipping concept map - requires Pro plan');
     return;
   }
-  
+
   await updateProgress(supabase, materialId, '⏳ Generating concept map...');
-  
+
   const content = material.extracted_content || '';
   const conceptMap = await generateConceptMap(content, material);
   await supabase
@@ -738,6 +725,43 @@ async function handleConceptMapStep(supabase: any, material: StudyMaterial, mate
       edges: (conceptMap as any).edges || [],
     });
   console.log('Concept map generated');
+}
+
+async function handleGenerateAllStep(
+  supabase: any,
+  material: StudyMaterial,
+  materialId: string,
+  userId: string,
+  isPremium: boolean,
+) {
+  await updateProgress(supabase, materialId, '⏳ Generating study materials...');
+
+  // Run all five generators concurrently. Each handler internally checks
+  // the relevant material.generate_* flag and isPremium gates.
+  const results = await Promise.allSettled([
+    handleTutorNotesStep(supabase, material, materialId, userId),
+    handleSummariesStep(supabase, material, materialId, userId),
+    handleFlashcardsStep(supabase, material, materialId, userId),
+    handleQuestionsStep(supabase, material, materialId, userId, isPremium),
+    handleConceptMapStep(supabase, material, materialId, userId, isPremium),
+  ]);
+
+  const failures = results
+    .map((r, i) => ({ r, name: ['tutor_notes', 'summaries', 'flashcards', 'questions', 'concept_map'][i] }))
+    .filter(({ r }) => r.status === 'rejected');
+
+  if (failures.length === results.length) {
+    // Everything failed — surface the first error
+    const first = failures[0].r as PromiseRejectedResult;
+    throw first.reason instanceof Error ? first.reason : new Error(String(first.reason));
+  }
+
+  if (failures.length > 0) {
+    console.error(
+      'Some generators failed (non-fatal):',
+      failures.map((f) => `${f.name}: ${(f.r as PromiseRejectedResult).reason}`),
+    );
+  }
 }
 
 async function handleCompleteStep(supabase: any, materialId: string) {
@@ -862,6 +886,11 @@ serve(async (req) => {
           const { data: matC } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
           await handleConceptMapStep(supabase, matC || material, materialId, materialUserId, isPremium);
           break;
+        case 'generate_all': {
+          const { data: matAll } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
+          await handleGenerateAllStep(supabase, matAll || material, materialId, materialUserId, isPremium);
+          break;
+        }
         case 'complete':
           await handleCompleteStep(supabase, materialId);
           break;
