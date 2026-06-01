@@ -260,7 +260,7 @@ Generate detailed, comprehensive tutor notes covering ALL the key concepts from 
   const responseText = await callOpenAI([
     { role: 'system', content: systemPrompt },
     { role: 'user', content: userPrompt },
-  ]);
+  ], 4000);
   
   let jsonContent = responseText;
   const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/);
