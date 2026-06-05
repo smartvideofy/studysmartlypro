@@ -165,6 +165,40 @@ async function blobToBase64(blob: Blob): Promise<string> {
   return btoa(chunks.join(''));
 }
 
+async function transcribeAudio(fileData: Blob, fileName: string): Promise<string> {
+  console.log(`Transcribing audio file: ${fileName} (${fileData.size} bytes)`);
+  const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // Whisper limit
+  if (fileData.size > MAX_AUDIO_SIZE) {
+    throw new Error(`Audio file too large (${(fileData.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 25MB.`);
+  }
+
+  const form = new FormData();
+  form.append('file', fileData, fileName);
+  form.append('model', 'whisper-1');
+  form.append('response_format', 'text');
+
+  const resp = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${openaiApiKey}` },
+    body: form,
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    console.error('Whisper API error:', resp.status, errText);
+    if (resp.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
+    if (resp.status === 402 || resp.status === 403) throw new Error('QUOTA_EXCEEDED');
+    throw new Error(`Audio transcription failed: ${resp.status}`);
+  }
+
+  const transcript = (await resp.text()).trim();
+  if (!transcript) {
+    throw new Error('Audio transcription returned no content. The audio may be silent or unclear.');
+  }
+  console.log(`Transcription complete: ${transcript.length} chars`);
+  return transcript.substring(0, 50000);
+}
+
 async function extractContentWithVision(base64Data: string, fileType: string, title: string): Promise<string> {
   console.log(`Extracting content from ${fileType} using AI vision...`);
   
