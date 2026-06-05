@@ -633,6 +633,7 @@ export type Database = {
           forwarded_from: string | null
           group_id: string
           id: string
+          image_url: string | null
           is_edited: boolean | null
           is_pinned: boolean | null
           link_preview: Json | null
@@ -649,6 +650,7 @@ export type Database = {
           forwarded_from?: string | null
           group_id: string
           id?: string
+          image_url?: string | null
           is_edited?: boolean | null
           is_pinned?: boolean | null
           link_preview?: Json | null
@@ -665,6 +667,7 @@ export type Database = {
           forwarded_from?: string | null
           group_id?: string
           id?: string
+          image_url?: string | null
           is_edited?: boolean | null
           is_pinned?: boolean | null
           link_preview?: Json | null
