@@ -2277,7 +2277,42 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      subscriptions_v: {
+        Row: {
+          cancelled_at: string | null
+          current_period_end: string | null
+          interval: string | null
+          is_trial: boolean | null
+          plan: string | null
+          status: string | null
+          trial_days_remaining: number | null
+          trial_end_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          current_period_end?: string | null
+          interval?: string | null
+          is_trial?: never
+          plan?: string | null
+          status?: string | null
+          trial_days_remaining?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          current_period_end?: string | null
+          interval?: string | null
+          is_trial?: never
+          plan?: string | null
+          status?: string | null
+          trial_days_remaining?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_group_unread_count: {
