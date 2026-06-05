@@ -121,7 +121,7 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
   }
 
   if (fileType === 'audio') {
-    return 'Audio content - transcription not yet implemented. Please provide a text-based document for AI processing.';
+    return await transcribeAudio(fileData, material.file_name || 'audio.webm');
   }
 
   if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
