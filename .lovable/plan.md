@@ -118,3 +118,25 @@ For every `(user_id, material_id)` with rows in `material_flashcards` but no `fl
 - New `xp`-category achievements.
 - Removing `study_sessions` writes from any pre-existing non-flashcard caller (none today).
 - Server-side rejection of direct `profiles.xp` writes (deferred until all mobile clients update).
+---
+
+## Execution log (this turn)
+
+**Shipped server-side (mobile-unblocking):**
+1. ✅ Migration: `study_activity` table + `study_activity_v` view + grants + indexes + `unique(user_id, event_id)`.
+2. ✅ `record-activity` edge function (idempotent on `event_id`, in-code JWT validation, achievement re-check inline, server-side level/streak updates).
+3. ✅ `process-material` flashcards step rewritten to use `upsertLinkedDeck` — preserves SRS state on exact normalized front+back match (both helper functions and legacy fallback path wired).
+4. ✅ `regenerate-content` flashcards branch rewritten to use `upsertLinkedDeckRegen` with the same preservation rule.
+5. ✅ Backfill migration: every existing `(user_id, material_id)` with `material_flashcards` rows but no linked `flashcard_decks` row now has one, with cards copied at default SRS state. Idempotent.
+6. ✅ `supabase/config.toml` registers `record-activity` with `verify_jwt = false` (JWT validated in-code).
+
+**Mobile can now build against:** `POST /functions/v1/record-activity` with the payload spec in this plan. Returns `{ xp_awarded, new_level, total_xp, current_streak, newly_earned, already_recorded }`.
+
+**Deferred to a follow-up pass (web client cutover — does not block mobile):**
+- `useReviewFlashcard` / end-of-session: switch to `record-activity` (batched single call) and stop inserting `study_sessions` for new reviews.
+- `useStudyStats` + Progress reads → `study_activity_v`.
+- Emit `record-activity` from `SummariesTab`, `TutorNotesTab`, `ConceptMapTab`, `AIChatTab`, `PracticeQuestionsTab`.
+- Remove `useAwardXP` / `useCheckAchievements` call sites (keep hook files temporarily so build doesn't break).
+- Hub Flashcards "Study" CTA → linked deck SRS page.
+
+The deferred web changes have no schema dependency — they can ship anytime before the mobile cutover release. Until they ship, web continues using the legacy client-side award path; the server tolerates this (no rejection of direct `profiles.xp` writes), so there is no double-counting risk because `study_sessions` and `study_activity` flashcard rows do NOT both get written for the same session (web still writes `study_sessions`; mobile will write `study_activity`; the union view counts each once).
