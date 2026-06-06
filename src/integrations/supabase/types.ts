@@ -1851,6 +1851,63 @@ export type Database = {
           },
         ]
       }
+      study_activity: {
+        Row: {
+          activity_type: string
+          correct_count: number
+          created_at: string
+          deck_id: string | null
+          duration_seconds: number
+          event_id: string | null
+          id: string
+          items_count: number
+          material_id: string | null
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          activity_type: string
+          correct_count?: number
+          created_at?: string
+          deck_id?: string | null
+          duration_seconds?: number
+          event_id?: string | null
+          id?: string
+          items_count?: number
+          material_id?: string | null
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          activity_type?: string
+          correct_count?: number
+          created_at?: string
+          deck_id?: string | null
+          duration_seconds?: number
+          event_id?: string | null
+          id?: string
+          items_count?: number
+          material_id?: string | null
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_activity_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_activity_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_groups: {
         Row: {
           created_at: string
@@ -2277,6 +2334,18 @@ export type Database = {
       }
     }
     Views: {
+      study_activity_v: {
+        Row: {
+          activity_type: string | null
+          cards_or_items: number | null
+          correct_count: number | null
+          duration_seconds: number | null
+          material_id: string | null
+          occurred_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
       subscriptions_v: {
         Row: {
           cancelled_at: string | null

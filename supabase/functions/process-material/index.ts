@@ -660,56 +660,114 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
   }
   console.log('Flashcards generated');
 
-  // Auto-save to flashcard_decks + flashcards
+  // Auto-link to flashcard_decks + flashcards, preserving SRS state on exact front+back match.
   try {
-    const { data: existingDeck } = await supabase
-      .from('flashcard_decks')
-      .select('id')
-      .eq('source_material_id', materialId)
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    let deckId: string;
-
-    if (existingDeck) {
-      deckId = existingDeck.id;
-      await supabase.from('flashcards').delete().eq('deck_id', deckId);
-      await supabase.from('flashcard_decks').update({ card_count: 0 }).eq('id', deckId);
-    } else {
-      const { data: newDeck, error: deckError } = await supabase
-        .from('flashcard_decks')
-        .insert({
-          name: material.title,
-          user_id: userId,
-          description: `Auto-generated from "${material.title}"`,
-          subject: material.subject || null,
-          source_material_id: materialId,
-          card_count: 0,
-        })
-        .select('id')
-        .single();
-
-      if (deckError) {
-        console.error('Failed to create auto-save deck:', deckError);
-        return;
-      }
-      deckId = newDeck.id;
-    }
-
-    if (flashcards.length > 0) {
-      await supabase.from('flashcards').insert(
-        flashcards.map((card: any) => ({
-          deck_id: deckId,
-          front: card.front,
-          back: card.back,
-          hint: card.hint || null,
-        }))
-      );
-    }
-    console.log(`Auto-saved ${flashcards.length} flashcards to deck ${deckId}`);
+    await upsertLinkedDeck(supabase, {
+      userId,
+      materialId,
+      title: material.title,
+      subject: material.subject || null,
+      cards: flashcards,
+    });
   } catch (autoSaveError) {
     console.error('Auto-save to deck failed (non-fatal):', autoSaveError);
   }
+}
+
+function normalizeKey(front: string, back: string): string {
+  const n = (s: string) => (s ?? '').trim().replace(/\s+/g, ' ');
+  return `${n(front)}\u0001${n(back)}`;
+}
+
+async function upsertLinkedDeck(
+  supabase: any,
+  args: {
+    userId: string;
+    materialId: string;
+    title: string;
+    subject: string | null;
+    cards: Array<{ front: string; back: string; hint?: string | null }>;
+  },
+) {
+  const { userId, materialId, title, subject, cards } = args;
+
+  // Find or create the linked deck.
+  const { data: existingDeck } = await supabase
+    .from('flashcard_decks')
+    .select('id')
+    .eq('source_material_id', materialId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  let deckId: string;
+  if (existingDeck) {
+    deckId = existingDeck.id;
+  } else {
+    const { data: newDeck, error: deckError } = await supabase
+      .from('flashcard_decks')
+      .insert({
+        name: title,
+        user_id: userId,
+        description: `Auto-generated from "${title}"`,
+        subject,
+        source_material_id: materialId,
+        card_count: 0,
+      })
+      .select('id')
+      .single();
+    if (deckError) throw deckError;
+    deckId = newDeck.id;
+  }
+
+  // Load existing cards in deck and build normalized-key → SRS state map.
+  const { data: existingCards } = await supabase
+    .from('flashcards')
+    .select('id, front, back, ease_factor, interval_days, repetitions, next_review')
+    .eq('deck_id', deckId);
+
+  const existingByKey = new Map<string, any>();
+  for (const c of existingCards ?? []) {
+    existingByKey.set(normalizeKey(c.front, c.back), c);
+  }
+
+  const newKeys = new Set<string>();
+  const inserts: any[] = [];
+
+  for (const card of cards) {
+    const key = normalizeKey(card.front, card.back);
+    if (newKeys.has(key)) continue;
+    newKeys.add(key);
+
+    const prior = existingByKey.get(key);
+    if (prior) continue; // already exists with same front+back → preserve as-is
+    inserts.push({
+      deck_id: deckId,
+      front: card.front,
+      back: card.back,
+      hint: card.hint ?? null,
+    });
+  }
+
+  // Delete cards whose normalized key is no longer present.
+  const toDelete = (existingCards ?? [])
+    .filter((c: any) => !newKeys.has(normalizeKey(c.front, c.back)))
+    .map((c: any) => c.id);
+
+  if (toDelete.length > 0) {
+    await supabase.from('flashcards').delete().in('id', toDelete);
+  }
+  if (inserts.length > 0) {
+    await supabase.from('flashcards').insert(inserts);
+  }
+
+  // Refresh card_count.
+  const { count } = await supabase
+    .from('flashcards')
+    .select('id', { count: 'exact', head: true })
+    .eq('deck_id', deckId);
+  await supabase.from('flashcard_decks').update({ card_count: count ?? 0 }).eq('id', deckId);
+
+  console.log(`Linked deck ${deckId}: +${inserts.length} new, -${toDelete.length} removed, ${count ?? 0} total`);
 }
 
 async function handleQuestionsStep(supabase: any, material: StudyMaterial, materialId: string, userId: string, isPremium: boolean) {
@@ -1010,6 +1068,15 @@ serve(async (req) => {
           await supabase.from('material_flashcards').insert({ material_id: materialId, user_id: materialUserId, front: (card as any).front, back: (card as any).back, hint: (card as any).hint || null, difficulty: (card as any).difficulty || 'medium' });
         }
         console.log('Flashcards generated');
+        try {
+          await upsertLinkedDeck(supabase, {
+            userId: materialUserId,
+            materialId,
+            title: material.title,
+            subject: material.subject || null,
+            cards: flashcards as any,
+          });
+        } catch (e) { console.error('Auto-link deck failed (non-fatal):', e); }
       } catch (e) { console.error('Error generating flashcards:', e); }
     }
 

@@ -339,7 +339,7 @@ async function regenerateFlashcards(
   topic: string
 ) {
   console.log("Regenerating flashcards...");
-  
+
   await supabase.from("material_flashcards").delete().eq("material_id", materialId);
 
   const systemPrompt = `You are an expert flashcard creator for academic study materials.`;
@@ -361,8 +361,8 @@ Generate a JSON array of flashcards:
 Make answers detailed (50-150 words). Return ONLY the JSON array.`;
 
   const response = await callOpenAI(apiKey, prompt, systemPrompt);
-  
-  let flashcards;
+
+  let flashcards: any[];
   try {
     const cleanedResponse = response.replace(/```json\n?|\n?```/g, "").trim();
     flashcards = JSON.parse(cleanedResponse);
@@ -383,7 +383,114 @@ Make answers detailed (50-150 words). Return ONLY the JSON array.`;
     await supabase.from("material_flashcards").insert(flashcardRecords);
   }
 
+  // Look up material title/subject for deck name.
+  const { data: mat } = await supabase
+    .from('study_materials')
+    .select('title, subject')
+    .eq('id', materialId)
+    .maybeSingle();
+
+  // Sync linked deck, preserving SRS state on exact normalized front+back match.
+  try {
+    await upsertLinkedDeckRegen(supabase, {
+      userId,
+      materialId,
+      title: mat?.title ?? topic,
+      subject: mat?.subject ?? subject ?? null,
+      cards: flashcards,
+    });
+  } catch (e) {
+    console.error('Linked deck sync failed (non-fatal):', e);
+  }
+
   console.log(`Flashcards regenerated: ${flashcards.length}`);
+}
+
+function normalizeKey(front: string, back: string): string {
+  const n = (s: string) => (s ?? '').trim().replace(/\s+/g, ' ');
+  return `${n(front)}\u0001${n(back)}`;
+}
+
+async function upsertLinkedDeckRegen(
+  supabase: any,
+  args: {
+    userId: string;
+    materialId: string;
+    title: string;
+    subject: string | null;
+    cards: Array<{ front: string; back: string; hint?: string | null }>;
+  },
+) {
+  const { userId, materialId, title, subject, cards } = args;
+
+  const { data: existingDeck } = await supabase
+    .from('flashcard_decks')
+    .select('id')
+    .eq('source_material_id', materialId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  let deckId: string;
+  if (existingDeck) {
+    deckId = existingDeck.id;
+  } else {
+    const { data: newDeck, error: deckError } = await supabase
+      .from('flashcard_decks')
+      .insert({
+        name: title,
+        user_id: userId,
+        description: `Auto-generated from "${title}"`,
+        subject,
+        source_material_id: materialId,
+        card_count: 0,
+      })
+      .select('id')
+      .single();
+    if (deckError) throw deckError;
+    deckId = newDeck.id;
+  }
+
+  const { data: existingCards } = await supabase
+    .from('flashcards')
+    .select('id, front, back')
+    .eq('deck_id', deckId);
+
+  const existingByKey = new Map<string, any>();
+  for (const c of existingCards ?? []) {
+    existingByKey.set(normalizeKey(c.front, c.back), c);
+  }
+
+  const newKeys = new Set<string>();
+  const inserts: any[] = [];
+  for (const card of cards) {
+    const key = normalizeKey(card.front, card.back);
+    if (newKeys.has(key)) continue;
+    newKeys.add(key);
+    if (existingByKey.has(key)) continue; // preserve existing card + SRS state
+    inserts.push({
+      deck_id: deckId,
+      front: card.front,
+      back: card.back,
+      hint: card.hint ?? null,
+    });
+  }
+
+  const toDelete = (existingCards ?? [])
+    .filter((c: any) => !newKeys.has(normalizeKey(c.front, c.back)))
+    .map((c: any) => c.id);
+
+  if (toDelete.length > 0) {
+    await supabase.from('flashcards').delete().in('id', toDelete);
+  }
+  if (inserts.length > 0) {
+    await supabase.from('flashcards').insert(inserts);
+  }
+
+  const { count } = await supabase
+    .from('flashcards')
+    .select('id', { count: 'exact', head: true })
+    .eq('deck_id', deckId);
+  await supabase.from('flashcard_decks').update({ card_count: count ?? 0 }).eq('id', deckId);
 }
 
 async function regeneratePracticeQuestions(
