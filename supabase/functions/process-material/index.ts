@@ -1068,6 +1068,15 @@ serve(async (req) => {
           await supabase.from('material_flashcards').insert({ material_id: materialId, user_id: materialUserId, front: (card as any).front, back: (card as any).back, hint: (card as any).hint || null, difficulty: (card as any).difficulty || 'medium' });
         }
         console.log('Flashcards generated');
+        try {
+          await upsertLinkedDeck(supabase, {
+            userId: materialUserId,
+            materialId,
+            title: material.title,
+            subject: material.subject || null,
+            cards: flashcards as any,
+          });
+        } catch (e) { console.error('Auto-link deck failed (non-fatal):', e); }
       } catch (e) { console.error('Error generating flashcards:', e); }
     }
 
