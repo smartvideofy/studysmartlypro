@@ -882,6 +882,7 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  let capturedMaterialId: string | null = null;
 
   try {
     const authHeader = req.headers.get('Authorization');
