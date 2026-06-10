@@ -1003,9 +1003,10 @@ serve(async (req) => {
       const { count, error: countError } = await supabase
         .from('study_materials')
         .select('id', { count: 'exact', head: true })
-        .eq('user_id', materialUserId);
-      if (!countError && count !== null && count > 5) {
-        throw new Error('Document limit reached. Please upgrade to Pro for unlimited uploads.');
+        .eq('user_id', materialUserId)
+        .neq('processing_status', 'failed');
+      if (!countError && count !== null && count > 1) {
+        throw new Error('Free study set used. Start your Studily Pro free trial for unlimited uploads.');
       }
     }
 
