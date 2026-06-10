@@ -581,6 +581,13 @@ async function handleExtractStep(supabase: any, material: StudyMaterial, materia
       .eq('id', materialId);
   } catch (extractError) {
     console.error('Content extraction error:', extractError);
+    const msg = extractError instanceof Error ? extractError.message : String(extractError);
+    // For audio (or any explicit "too large" message), surface the real error
+    // so the user sees a friendly failure instead of silently generating
+    // nonsense study content from a placeholder.
+    if (material.file_type === 'audio' || /too large|transcription/i.test(msg)) {
+      throw extractError;
+    }
     extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
     await supabase
       .from('study_materials')
@@ -1120,6 +1127,10 @@ serve(async (req) => {
       userFriendlyError = 'Could not access the uploaded file. Please try uploading again.';
     } else if (errorMessage.includes('extract content')) {
       userFriendlyError = 'Unable to read content from this file format. Try a PDF, image, or text document.';
+    } else if (/audio file too large/i.test(errorMessage)) {
+      userFriendlyError = 'This recording is too long. Audio uploads must be 25 MB or smaller (roughly 25 minutes). Please trim and try again.';
+    } else if (/transcription returned no content/i.test(errorMessage)) {
+      userFriendlyError = 'We could not hear any speech in this recording. Please re-record in a quieter environment.';
     } else if (errorMessage.includes('Material not found')) {
       userFriendlyError = 'Study material not found. It may have been deleted.';
     }
