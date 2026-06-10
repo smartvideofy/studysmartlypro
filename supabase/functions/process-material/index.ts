@@ -1127,6 +1127,10 @@ serve(async (req) => {
       userFriendlyError = 'Could not access the uploaded file. Please try uploading again.';
     } else if (errorMessage.includes('extract content')) {
       userFriendlyError = 'Unable to read content from this file format. Try a PDF, image, or text document.';
+    } else if (/audio file too large/i.test(errorMessage)) {
+      userFriendlyError = 'This recording is too long. Audio uploads must be 25 MB or smaller (roughly 25 minutes). Please trim and try again.';
+    } else if (/transcription returned no content/i.test(errorMessage)) {
+      userFriendlyError = 'We could not hear any speech in this recording. Please re-record in a quieter environment.';
     } else if (errorMessage.includes('Material not found')) {
       userFriendlyError = 'Study material not found. It may have been deleted.';
     }
