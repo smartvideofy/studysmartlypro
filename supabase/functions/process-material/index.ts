@@ -1138,12 +1138,11 @@ serve(async (req) => {
     }
     
     try {
-      const { materialId } = await req.clone().json();
-      if (materialId) {
+      if (capturedMaterialId) {
         await supabase
           .from('study_materials')
           .update({ processing_status: 'failed', processing_error: userFriendlyError })
-          .eq('id', materialId);
+          .eq('id', capturedMaterialId);
       }
     } catch {
       console.error('Failed to update material status');
