@@ -581,6 +581,13 @@ async function handleExtractStep(supabase: any, material: StudyMaterial, materia
       .eq('id', materialId);
   } catch (extractError) {
     console.error('Content extraction error:', extractError);
+    const msg = extractError instanceof Error ? extractError.message : String(extractError);
+    // For audio (or any explicit "too large" message), surface the real error
+    // so the user sees a friendly failure instead of silently generating
+    // nonsense study content from a placeholder.
+    if (material.file_type === 'audio' || /too large|transcription/i.test(msg)) {
+      throw extractError;
+    }
     extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
     await supabase
       .from('study_materials')
