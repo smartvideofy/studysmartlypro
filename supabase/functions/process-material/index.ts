@@ -882,6 +882,7 @@ serve(async (req) => {
   }
 
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  let capturedMaterialId: string | null = null;
 
   try {
     const authHeader = req.headers.get('Authorization');
@@ -910,6 +911,7 @@ serve(async (req) => {
     console.log(`Authenticated user: ${userId}`);
 
     const { materialId, step } = await req.json();
+    capturedMaterialId = materialId ?? null;
     
     if (!materialId) {
       throw new Error('Material ID is required');
@@ -1136,12 +1138,11 @@ serve(async (req) => {
     }
     
     try {
-      const { materialId } = await req.clone().json();
-      if (materialId) {
+      if (capturedMaterialId) {
         await supabase
           .from('study_materials')
           .update({ processing_status: 'failed', processing_error: userFriendlyError })
-          .eq('id', materialId);
+          .eq('id', capturedMaterialId);
       }
     } catch {
       console.error('Failed to update material status');
