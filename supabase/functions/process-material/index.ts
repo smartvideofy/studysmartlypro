@@ -911,6 +911,7 @@ serve(async (req) => {
     console.log(`Authenticated user: ${userId}`);
 
     const { materialId, step } = await req.json();
+    capturedMaterialId = materialId ?? null;
     
     if (!materialId) {
       throw new Error('Material ID is required');
