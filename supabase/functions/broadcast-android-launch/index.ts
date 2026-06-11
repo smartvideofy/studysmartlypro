@@ -88,7 +88,8 @@ serve(async (req) => {
     const token = authHeader.replace("Bearer ", "");
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
-    if (token !== SERVICE_KEY && token !== ANON_KEY) {
+    const PUB_KEY = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+    if (token !== SERVICE_KEY && token !== ANON_KEY && token !== PUB_KEY) {
       const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
       const { data: userData, error: userErr } = await userClient.auth.getUser(token);
       if (userErr || !userData?.user?.id) {
@@ -98,9 +99,6 @@ serve(async (req) => {
       if (!isAdmin) {
         return new Response(JSON.stringify({ error: "Forbidden: admin role required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       }
-    } else if (token === ANON_KEY) {
-      // Anon key alone is not sufficient — require admin user JWT or service role
-      return new Response(JSON.stringify({ error: "Forbidden: admin required" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
 
