@@ -80,8 +80,28 @@ serve(async (req) => {
     const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
     const APP_URL = Deno.env.get("APP_URL") || "https://getstudily.com";
 
+    // Auth: accept service-role key, publishable/anon keys, or admin JWT
+    const authHeader = req.headers.get("Authorization");
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    // TEMP: auth disabled for targeted re-send. Will be restored after this run.
+    const PUB_KEY = Deno.env.get("SUPABASE_PUBLISHABLE_KEY") ?? "";
+    const allowedKeys = new Set([SERVICE_KEY, ANON_KEY, PUB_KEY].filter(Boolean));
+    let authorized = false;
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.replace("Bearer ", "");
+      if (allowedKeys.has(token)) {
+        authorized = true;
+      } else {
+        const userClient = createClient(SUPABASE_URL, ANON_KEY, { global: { headers: { Authorization: authHeader } } });
+        const { data: userData } = await userClient.auth.getUser(token);
+        if (userData?.user?.id) {
+          const { data: isAdmin } = await admin.rpc("has_role", { _user_id: userData.user.id, _role: "admin" });
+          if (isAdmin) authorized = true;
+        }
+      }
+    }
+    if (!authorized) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
 
 
 
