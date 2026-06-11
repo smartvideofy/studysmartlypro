@@ -61,3 +61,7 @@ verify_jwt = false
 [functions.broadcast-android-launch]
 verify_jwt = false
 
+[functions.android-launch-report]
+verify_jwt = false
+
+
