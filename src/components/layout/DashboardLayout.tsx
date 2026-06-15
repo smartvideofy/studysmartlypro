@@ -35,6 +35,7 @@ import { ExpiredTrialBanner } from "@/components/subscription/ExpiredTrialBanner
 import logoImage from "@/assets/logo.png";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { useOfflineSync } from "@/hooks/useOfflineStorage";
+import { AndroidAppLink } from "@/components/cta/AndroidAppLink";
 
 // Grouped navigation items
 const mainNavItems = [
@@ -289,6 +290,7 @@ export default function DashboardLayout({
 
         {/* Bottom Navigation */}
         <div className="p-3 border-t border-border/30 space-y-1">
+          <AndroidAppLink variant="sidebar" collapsed={collapsed} />
           {bottomNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;

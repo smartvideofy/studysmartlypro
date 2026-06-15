@@ -40,6 +40,7 @@ import { XPProgress } from "@/components/gamification/XPProgress";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { createDashboardJsonLd } from "@/components/seo/jsonld";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
+import { AndroidAppBanner } from "@/components/cta/AndroidAppBanner";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -188,6 +189,11 @@ export default function Dashboard() {
         animate="visible"
         className="space-y-6 md:space-y-8"
       >
+        {/* Android app announcement (Android devices only, dismissible 7 days) */}
+        <motion.div variants={itemVariants}>
+          <AndroidAppBanner />
+        </motion.div>
+
         {/* Welcome Section - Clean design */}
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden">
