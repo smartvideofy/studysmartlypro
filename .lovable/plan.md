@@ -1,44 +1,56 @@
-## Goal
-Send a one-time Android app pre-launch announcement to every Studily web user who hasn't opted out, with the Play Store URL rendered as a hyperlinked CTA button (and an inline text link) — never as a raw URL.
+# Add "Get the Android App" CTA
 
-## What I'll build
+Promote the Play Store listing (`https://play.google.com/store/apps/details?id=com.studily.app`) inside the web app — without cluttering the UI for users who can't act on it.
 
-### 1. New edge function: `supabase/functions/broadcast-android-launch/index.ts`
-- `verify_jwt = false` in code, but **admin-gated**: validates the caller's JWT via `getClaims()` and confirms `has_role(user_id, 'admin')`. Non-admins get 403.
-- Accepts optional `{ dryRun: true }` to return the recipient count + a preview of the HTML without sending.
-- Logic:
-  1. Page through `profiles` (1000-row Supabase limit) to get all `user_id`s.
-  2. For each user, look up `email_preferences` — skip if `marketing_emails = false` OR `product_updates = false` (whichever is the stricter opt-out flag we have; I'll inspect the table to pick the right column).
-  3. Fetch the user's email from `auth.users` via the admin client (`SUPABASE_SERVICE_ROLE_KEY`).
-  4. Render the HTML email (template inlined in the function — the existing `send-email` function uses a template registry, but this is a one-off so an inline template keeps it isolated).
-  5. Send via Resend (already configured: `RESEND_API_KEY`, from `noreply@getstudily.com`).
-  6. Insert a row into `email_logs` with `template_name = 'android_launch_announcement'` so we have an audit trail and the existing duplicate-protection in `email-engagement` ignores it.
-  7. Batch in chunks of 50 with a small delay to stay under Resend's rate limit; return `{ sent, skipped, failed, total }`.
+## What we'll build
 
-### 2. Email content
-Exact copy you provided, formatted with:
-- **Subject:** `The Studily Android app is almost here 🚀`
-- Greeting using `profiles.full_name` when available, else "Hello".
-- Body paragraphs as written.
-- Feature checklist as a styled list.
-- **Primary CTA:** Bold Pink button labeled **"View on Google Play"** linking to `https://play.google.com/store/apps/details?id=com.studily.app`.
-- Inline hyperlinked text version of the same link in the "👉 Check out the Android app:" line (anchor text "Check out the Android app on Google Play") — never the raw URL.
-- Footer with unsubscribe link pointing to the existing `unsubscribe` edge function, matching other transactional emails.
-- Plain-text fallback included (with the URL written out for text clients).
+### 1. Dashboard banner (Android devices only)
+A premium, dismissible banner at the top of the Dashboard that only renders on Android phones/tablets.
 
-### 3. How you trigger it
-After deploy, I'll run it for you via `supabase--curl_edge_functions` using your logged-in admin session:
-- First: `{ "dryRun": true }` → returns recipient count + renders the HTML so you can eyeball it.
-- Then: `{}` → sends for real.
+- Bold Pink accent (matches brand), Play Store icon, single-line headline + sub-copy.
+- Primary CTA: **"Get it on Google Play"** → opens Play Store link in a new tab.
+- Secondary action: **dismiss (✕)** — hides the banner for **7 days**, then it returns.
+- Persisted in `localStorage` (key: `android_cta_dismissed_until`) — no DB schema changes, no extra server calls.
 
-No UI is added.
+```text
+┌──────────────────────────────────────────────────────────┐
+│ 📱  Studily is on Android                            ✕  │
+│     Take your flashcards & notes anywhere.              │
+│                          [ Get it on Google Play ]      │
+└──────────────────────────────────────────────────────────┘
+```
 
-## Technical notes
-- Reuses existing `RESEND_API_KEY` and `noreply@getstudily.com` sender — no new secrets needed.
-- Respects `email_preferences` opt-outs (I'll confirm the exact column name when reading the table; the existing `send-email` function already implements this check, so I'll mirror its logic).
-- Logs to `email_logs` so engagement reports remain accurate and re-runs are safe (the function will refuse to re-send to a user who already received `android_launch_announcement`).
-- Admin check uses the existing `has_role(auth.uid(), 'admin')` RPC — no new DB objects.
+### 2. Persistent entry — always reachable
+For users who dismissed the banner or want to share the link later:
 
-## Out of scope
-- No push notifications, no in-app banner, no scheduling — just the one-time email.
-- No changes to existing email templates or the `send-email` function.
+- **Desktop sidebar**: a small "Get the Android app" row above/below the existing upgrade CTA in `SidebarUpgradeCTA` area.
+- **Mobile menu drawer** (`MobileMenuDrawer`): a list item with the Play Store icon.
+- Both open the same Play Store URL in a new tab. Shown to **everyone**, not just Android — so iPhone users can send the link to a friend or open it on their other device.
+
+### 3. Android detection
+Single helper `isAndroidDevice()` reading `navigator.userAgent` (matches `/Android/i`, excludes `Windows`). Used only to decide whether the Dashboard banner renders. The sidebar/drawer entries don't gate on device.
+
+## Files to add / edit
+
+**New**
+- `src/lib/device.ts` — `isAndroidDevice()` helper.
+- `src/components/cta/AndroidAppBanner.tsx` — the dismissible Dashboard banner (uses `localStorage` for 7-day re-show logic).
+- `src/components/cta/AndroidAppLink.tsx` — small reusable row for sidebar/drawer (icon + label + external-link affordance).
+
+**Edited**
+- `src/pages/Dashboard.tsx` — mount `<AndroidAppBanner />` at the top of the content area.
+- `src/components/layout/MobileMenuDrawer.tsx` — add `<AndroidAppLink />` near the bottom of the drawer.
+- `src/components/layout/sidebar/SidebarUpgradeCTA.tsx` (or the sidebar index that renders it) — add `<AndroidAppLink />` underneath the upgrade card.
+
+## Technical details
+
+- **No DB changes.** Dismissal lives in `localStorage` — keeps it simple and per-device, which is appropriate since the banner targets the device, not the account.
+- **Dismissal logic**: on dismiss, write `Date.now() + 7 * 24 * 60 * 60 * 1000`. On mount, read the timestamp; hide banner if `Date.now() < storedTimestamp`.
+- **Link**: `https://play.google.com/store/apps/details?id=com.studily.app`, opened with `target="_blank"` + `rel="noopener noreferrer"`.
+- **Styling**: uses existing semantic tokens (`bg-primary`, `text-primary-foreground`, etc.) per the Bold Pink design system — no hardcoded colors, no glassmorphism.
+- **A11y**: banner has an accessible label, dismiss button has `aria-label="Dismiss"`, CTA is a real `<a>` for keyboard/screen-reader support.
+
+## Out of scope (can add later if you want)
+- Server-side dismissal sync across devices (would need a `user_ui_state` table or a column on `profiles`).
+- iOS App Store CTA (no iOS app yet — `/install` already covers PWA on iOS).
+- Install attribution / click tracking (can layer in via an `email_logs`-style `cta_clicks` table later).
