@@ -31,6 +31,7 @@ import {
   DrawerTitle,
   DrawerClose,
 } from "@/components/ui/drawer";
+import { AndroidAppLink } from "@/components/cta/AndroidAppLink";
 
 interface MobileMenuDrawerProps {
   open: boolean;
@@ -210,6 +211,7 @@ export function MobileMenuDrawer({ open, onOpenChange }: MobileMenuDrawerProps) 
             {/* Bottom navigation */}
             <div className="mt-auto border-t border-border/50 py-4 px-4">
               <div className="space-y-1">
+                <AndroidAppLink variant="drawer" onClick={() => onOpenChange(false)} />
                 {bottomNavItems.map((item) => {
                   const Icon = item.icon;
                   
