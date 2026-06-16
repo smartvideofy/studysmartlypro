@@ -51,9 +51,9 @@ export function AndroidQRModal({ trigger, open, onOpenChange }: AndroidQRModalPr
           <div className="rounded-2xl bg-white p-4 ring-1 ring-border shadow-sm">
             <QRCodeSVG
               value={PLAY_STORE_URL}
-              size={208}
-              level="M"
-              marginSize={0}
+              size={240}
+              level="H"
+              marginSize={4}
             />
           </div>
 
