@@ -1,56 +1,44 @@
-# Add "Get the Android App" CTA
+# Feature comparison — web app vs Play Store Android app
 
-Promote the Play Store listing (`https://play.google.com/store/apps/details?id=com.studily.app`) inside the web app — without cluttering the UI for users who can't act on it.
+Based on the Play Store listing for **Studily: AI Study App** (`com.studily.app`, updated Jun 23 2026) versus the current web app in this repo. This is a feature-level diff only — no native hardware capabilities (push, camera, biometrics, etc.).
 
-## What we'll build
+## Verdict
 
-### 1. Dashboard banner (Android devices only)
-A premium, dismissible banner at the top of the Dashboard that only renders on Android phones/tablets.
+Web has near-complete feature parity with the advertised Android feature set. The only meaningful gap is **in-app purchases / Google Play billing**, which is a platform mechanic the web cannot match (web uses Paystack). Everything else listed on the Play Store is present in the web app.
 
-- Bold Pink accent (matches brand), Play Store icon, single-line headline + sub-copy.
-- Primary CTA: **"Get it on Google Play"** → opens Play Store link in a new tab.
-- Secondary action: **dismiss (✕)** — hides the banner for **7 days**, then it returns.
-- Persisted in `localStorage` (key: `android_cta_dismissed_until`) — no DB schema changes, no extra server calls.
+## Feature-by-feature
 
-```text
-┌──────────────────────────────────────────────────────────┐
-│ 📱  Studily is on Android                            ✕  │
-│     Take your flashcards & notes anywhere.              │
-│                          [ Get it on Google Play ]      │
-└──────────────────────────────────────────────────────────┘
-```
+| Play Store feature | Web app today | Status |
+| --- | --- | --- |
+| AI study notes from PDFs / Word / lecture notes | `StudyMaterialsPage`, `UploadMaterialModal`, `processNotebookPipeline` | Present |
+| AI flashcards with spaced repetition | `FlashcardsPage`, `DeckDetailPage`, `StudySession` (SM-2 engine) | Present |
+| AI quizzes / practice questions | Quiz tab in `MaterialWorkspace`, `StudySession` | Present |
+| Concept maps | `ConceptMapTab`, `NotebookConceptMapTab` | Present |
+| Personal AI tutor (ask questions about uploads) | `AIChatTab`, `TutorNotesTab` | Present |
+| Progress tracking, streaks, XP, achievements | `ProgressPage`, `AchievementsPage`, gamification system | Present |
+| Study groups / collaboration | `GroupsPage`, `GroupDetailPage`, `JoinGroupPage` | Present |
+| Onboarding | `OnboardingPage` | Present |
+| Pricing / Pro upgrade | `PricingPage`, Paystack integration | Present (different billing) |
+| 7-day Pro trial | Trial logic in `useSubscription` (currently 3-day per project memory) | **Mismatch — see below** |
+| Live upload generation progress (latest release note) | `ProcessingStatus` component | Present |
+| Delete a single tool's content per material (latest release note) | Need to verify in `DeleteMaterialModal` | **Likely gap — verify** |
+| Redesigned onboarding (latest release note) | `OnboardingPage` exists; not necessarily the same redesign | **Possible drift** |
+| In-app purchases (Google Play billing) | Paystack only | **Platform gap — won't fix** |
 
-### 2. Persistent entry — always reachable
-For users who dismissed the banner or want to share the link later:
+## What this means
 
-- **Desktop sidebar**: a small "Get the Android app" row above/below the existing upgrade CTA in `SidebarUpgradeCTA` area.
-- **Mobile menu drawer** (`MobileMenuDrawer`): a list item with the Play Store icon.
-- Both open the same Play Store URL in a new tab. Shown to **everyone**, not just Android — so iPhone users can send the link to a friend or open it on their other device.
+Three small things actually worth deciding on:
 
-### 3. Android detection
-Single helper `isAndroidDevice()` reading `navigator.userAgent` (matches `/Android/i`, excludes `Windows`). Used only to decide whether the Dashboard banner renders. The sidebar/drawer entries don't gate on device.
+1. **Free-trial length mismatch** — Play Store advertises a **7-day** Pro trial; project memory and web app are on a **3-day** trial. Pick one number and align the web copy (or update the Play listing). 
+2. **Per-tool content deletion** — Play Store release notes say users can delete a single tool's content (notes only, or quiz only, etc.) without removing the whole material. Need to check whether the web `DeleteMaterialModal` exposes this; if not, add a per-tab "Clear this content" action in `MaterialWorkspace`.
+3. **Onboarding parity** — confirm the web `OnboardingPage` matches the "smoother, redesigned" Android onboarding so new web signups don't get a worse first impression.
 
-## Files to add / edit
+No native-hardware items are in scope here per your direction.
 
-**New**
-- `src/lib/device.ts` — `isAndroidDevice()` helper.
-- `src/components/cta/AndroidAppBanner.tsx` — the dismissible Dashboard banner (uses `localStorage` for 7-day re-show logic).
-- `src/components/cta/AndroidAppLink.tsx` — small reusable row for sidebar/drawer (icon + label + external-link affordance).
+## Suggested next step
 
-**Edited**
-- `src/pages/Dashboard.tsx` — mount `<AndroidAppBanner />` at the top of the content area.
-- `src/components/layout/MobileMenuDrawer.tsx` — add `<AndroidAppLink />` near the bottom of the drawer.
-- `src/components/layout/sidebar/SidebarUpgradeCTA.tsx` (or the sidebar index that renders it) — add `<AndroidAppLink />` underneath the upgrade card.
-
-## Technical details
-
-- **No DB changes.** Dismissal lives in `localStorage` — keeps it simple and per-device, which is appropriate since the banner targets the device, not the account.
-- **Dismissal logic**: on dismiss, write `Date.now() + 7 * 24 * 60 * 60 * 1000`. On mount, read the timestamp; hide banner if `Date.now() < storedTimestamp`.
-- **Link**: `https://play.google.com/store/apps/details?id=com.studily.app`, opened with `target="_blank"` + `rel="noopener noreferrer"`.
-- **Styling**: uses existing semantic tokens (`bg-primary`, `text-primary-foreground`, etc.) per the Bold Pink design system — no hardcoded colors, no glassmorphism.
-- **A11y**: banner has an accessible label, dismiss button has `aria-label="Dismiss"`, CTA is a real `<a>` for keyboard/screen-reader support.
-
-## Out of scope (can add later if you want)
-- Server-side dismissal sync across devices (would need a `user_ui_state` table or a column on `profiles`).
-- iOS App Store CTA (no iOS app yet — `/install` already covers PWA on iOS).
-- Install attribution / click tracking (can layer in via an `email_logs`-style `cta_clicks` table later).
+Pick which (if any) of the three to act on:
+- **A.** Align free-trial length (web ↔ Play Store) — quick copy + config change.
+- **B.** Add per-tool content delete in `MaterialWorkspace` — small feature.
+- **C.** Audit and refresh `OnboardingPage` to match the Android redesign — needs a reference (screenshots from the Android app).
+- **D.** None — comparison only, no build.
