@@ -31,6 +31,7 @@ const PricingPage = lazy(() => import("@/pages/PricingPage"));
 const AchievementsPage = lazy(() => import("@/pages/AchievementsPage"));
 const UnsubscribePage = lazy(() => import("@/pages/UnsubscribePage"));
 const InstallPage = lazy(() => import("@/pages/InstallPage"));
+const DeleteAccountPage = lazy(() => import("@/pages/DeleteAccountPage"));
 
 const RouteFallback = () => (
   <div className="min-h-screen flex items-center justify-center">
@@ -79,6 +80,7 @@ export const AnimatedRoutes = () => {
         <Route path="/sitemap.xml" element={<SitemapRedirect />} />
         <Route path="/unsubscribe/:token" element={wrap(<UnsubscribePage />)} />
         <Route path="/install" element={wrap(<InstallPage />)} />
+        <Route path="/delete-account" element={wrap(<DeleteAccountPage />)} />
         <Route path="*" element={wrap(<NotFound />)} />
       </Routes>
     </Suspense>
