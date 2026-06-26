@@ -80,6 +80,7 @@ export const AnimatedRoutes = () => {
         <Route path="/sitemap.xml" element={<SitemapRedirect />} />
         <Route path="/unsubscribe/:token" element={wrap(<UnsubscribePage />)} />
         <Route path="/install" element={wrap(<InstallPage />)} />
+        <Route path="/delete-account" element={wrap(<DeleteAccountPage />)} />
         <Route path="*" element={wrap(<NotFound />)} />
       </Routes>
     </Suspense>
