@@ -10,7 +10,10 @@ import {
   Trash2,
   Play,
   Layers,
-  CreditCard
+  CreditCard,
+  Brain,
+  Download,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +31,8 @@ import { PageBreadcrumb } from "@/components/PageBreadcrumb";
 import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { FlashcardEditorModal } from "@/components/flashcards/FlashcardEditorModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
+import { ImportDeckModal } from "@/components/flashcards/ImportDeckModal";
+import { ExportDeckModal } from "@/components/flashcards/ExportDeckModal";
 import { useDeck, useFlashcards, useDeleteDeck, useDeleteFlashcard, Flashcard } from "@/hooks/useFlashcards";
 import { formatDistanceToNow } from "date-fns";
 import { Skeleton, SkeletonFlashcardRow } from "@/components/ui/skeleton";
@@ -58,6 +63,8 @@ export default function DeckDetailPage() {
   const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
   const [deleteDeckOpen, setDeleteDeckOpen] = useState(false);
   const [deletingCard, setDeletingCard] = useState<Flashcard | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const { data: deck, isLoading: deckLoading } = useDeck(deckId || "");
   const { data: flashcards, isLoading: cardsLoading } = useFlashcards(deckId || "");
@@ -181,7 +188,13 @@ export default function DeckDetailPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 self-start">
+          <div className="flex items-center gap-2 self-start flex-wrap">
+            <Button variant="outline" asChild>
+              <Link to={`/learn/${deck.id}`}>
+                <Brain className="w-4 h-4" />
+                Learn
+              </Link>
+            </Button>
             <Button variant="hero" asChild>
               <Link to={`/study/${deck.id}`}>
                 <Play className="w-4 h-4" />
@@ -198,6 +211,17 @@ export default function DeckDetailPage() {
                 <DropdownMenuItem onClick={() => setEditDeckOpen(true)}>
                   <Edit className="w-4 h-4 mr-2" />
                   Edit Deck
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setImportOpen(true)}>
+                  <Upload className="w-4 h-4 mr-2" />
+                  Import Cards
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => setExportOpen(true)}
+                  disabled={!flashcards || flashcards.length === 0}
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export Deck
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
@@ -354,6 +378,20 @@ export default function DeckDetailPage() {
         description="Are you sure you want to delete this flashcard? This action cannot be undone."
         onConfirm={handleDeleteCard}
         isLoading={deleteFlashcard.isPending}
+      />
+
+      <ImportDeckModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        targetDeckId={deckId}
+        targetDeckName={deck.name}
+      />
+
+      <ExportDeckModal
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        deckName={deck.name}
+        cards={flashcards ?? []}
       />
     </DashboardLayout>
   );

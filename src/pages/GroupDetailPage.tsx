@@ -56,6 +56,8 @@ import { useGroupStudySessions } from "@/hooks/useGroupStudySessions";
 import { useReadReceipts, useBulkMarkAsRead } from "@/hooks/useReadReceipts";
 import { useEditMessage } from "@/hooks/useEditMessage";
 import { useGroupPolls } from "@/hooks/useGroupPolls";
+import { useBlockedIds, useBlockUser } from "@/hooks/useModeration";
+import { ReportContentModal } from "@/components/moderation/ReportContentModal";
 import ShareNoteModal from "@/components/groups/ShareNoteModal";
 import UploadNoteModal from "@/components/groups/UploadNoteModal";
 import { GroupSettingsModal } from "@/components/groups/GroupSettingsModal";
@@ -107,7 +109,11 @@ export default function GroupDetailPage() {
 
   const { data: group, isLoading: groupLoading } = useGroup(groupId || "");
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId || "");
-  const { data: messages, isLoading: messagesLoading } = useGroupMessages(groupId || "");
+  const { data: messagesRaw, isLoading: messagesLoading } = useGroupMessages(groupId || "");
+  const blockedIds = useBlockedIds();
+  const blockUser = useBlockUser();
+  const [reportTarget, setReportTarget] = useState<{ id: string; userId: string } | null>(null);
+  const messages = messagesRaw?.filter((m) => !blockedIds.has(m.user_id));
   const { data: sharedNotes, isLoading: notesLoading } = useSharedNotes(groupId || "");
   const { data: profile } = useProfile();
   const { data: pinnedMessages } = usePinnedMessages(groupId || "");
@@ -565,6 +571,8 @@ export default function GroupDetailPage() {
                                 toggleReaction.mutate({ messageId: msg.id, emoji, groupId: groupId || "" })
                               }
                               onEdit={() => setEditingMessage(msg)}
+                              onReport={!isMe ? () => setReportTarget({ id: msg.id, userId: msg.user_id }) : undefined}
+                              onBlock={!isMe ? () => blockUser.mutate(msg.user_id) : undefined}
                               isPinned={msg.is_pinned}
                               reactionsPending={toggleReaction.isPending}
                             />
@@ -855,6 +863,16 @@ export default function GroupDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {reportTarget && (
+        <ReportContentModal
+          open={!!reportTarget}
+          onOpenChange={(o) => !o && setReportTarget(null)}
+          contentType="message"
+          contentId={reportTarget.id}
+          reportedUserId={reportTarget.userId}
+        />
+      )}
     </DashboardLayout>
   );
 }

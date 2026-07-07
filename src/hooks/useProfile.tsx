@@ -12,6 +12,9 @@ export interface Profile {
   daily_study_minutes: number | null;
   preferred_study_time: string | null;
   notification_enabled: boolean | null;
+  exam_date: string | null;
+  experience_level: string | null;
+  subjects: string[] | null;
   created_at: string;
   updated_at: string;
 }

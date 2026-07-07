@@ -10,7 +10,8 @@ import {
   Sparkles,
   Brain,
   Target,
-  CheckCircle2
+  CheckCircle2,
+  Upload
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { CreateDeckModal } from "@/components/flashcards/CreateDeckModal";
 import { DeleteConfirmModal } from "@/components/flashcards/DeleteConfirmModal";
 import { AIGeneratorModal } from "@/components/flashcards/AIGeneratorModal";
+import { ImportDeckModal } from "@/components/flashcards/ImportDeckModal";
 import { FlashcardDeckCard } from "@/components/flashcards/FlashcardDeckCard";
 import { useDecks, useDueCards, useDeleteDeck, useMasteredCards, FlashcardDeck } from "@/hooks/useFlashcards";
 import { Skeleton, SkeletonDeckCard, SkeletonFlashcardStat } from "@/components/ui/skeleton";
@@ -76,6 +78,7 @@ export default function FlashcardsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [createDeckOpen, setCreateDeckOpen] = useState(false);
   const [aiGeneratorOpen, setAiGeneratorOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingDeck, setEditingDeck] = useState<FlashcardDeck | null>(null);
   const [deletingDeck, setDeletingDeck] = useState<FlashcardDeck | null>(null);
   
@@ -228,6 +231,10 @@ export default function FlashcardsPage() {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setImportOpen(true)}>
+                <Upload className="w-4 h-4" />
+                <span className="hidden sm:inline ml-1">Import</span>
+              </Button>
               <Button variant="outline" size="sm" onClick={() => guardAction(() => setAiGeneratorOpen(true))}>
                 <Sparkles className="w-4 h-4" />
                 <span className="hidden sm:inline ml-1">AI Generate</span>
@@ -312,6 +319,12 @@ export default function FlashcardsPage() {
       <AIGeneratorModal
         open={aiGeneratorOpen}
         onOpenChange={setAiGeneratorOpen}
+      />
+
+      <ImportDeckModal
+        open={importOpen}
+        onOpenChange={setImportOpen}
+        onImported={(deckId) => navigate(`/flashcards/${deckId}`)}
       />
     </DashboardLayout>
   );

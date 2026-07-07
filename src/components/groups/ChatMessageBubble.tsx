@@ -13,7 +13,9 @@ import {
   Forward,
   Star,
   Edit3,
-  Pencil
+  Pencil,
+  Flag,
+  UserX
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -57,6 +59,8 @@ interface ChatMessageBubbleProps {
   onPin: () => void;
   onToggleReaction: (emoji: string) => void;
   onEdit?: () => void;
+  onReport?: () => void;
+  onBlock?: () => void;
   isPinned?: boolean;
   reactionsPending?: boolean;
 }
@@ -81,6 +85,8 @@ export function ChatMessageBubble({
   onPin,
   onToggleReaction,
   onEdit,
+  onReport,
+  onBlock,
   isPinned,
   reactionsPending,
 }: ChatMessageBubbleProps) {
@@ -397,6 +403,30 @@ export function ChatMessageBubble({
           <Star className="w-4 h-4" />
           Star message
         </ContextMenuItem>
+
+        {!isMe && (onReport || onBlock) && (
+          <>
+            <ContextMenuSeparator />
+            {onReport && (
+              <ContextMenuItem
+                onClick={onReport}
+                className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <Flag className="w-4 h-4" />
+                Report message
+              </ContextMenuItem>
+            )}
+            {onBlock && (
+              <ContextMenuItem
+                onClick={onBlock}
+                className="gap-2 text-destructive focus:text-destructive focus:bg-destructive/10"
+              >
+                <UserX className="w-4 h-4" />
+                Block {displayName}
+              </ContextMenuItem>
+            )}
+          </>
+        )}
 
         {isMe && (
           <>
