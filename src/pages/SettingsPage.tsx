@@ -21,7 +21,11 @@ import {
   ChevronDown,
   Mail,
   Trophy,
-  BarChart3
+  BarChart3,
+  CalendarDays,
+  GraduationCap,
+  BookMarked,
+  UserX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +63,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { haptics } from "@/lib/haptics";
 import { ConnectedAccountsSection } from "@/components/settings/ConnectedAccountsSection";
+import { BlockedAccountsModal } from "@/components/moderation/BlockedAccountsModal";
+import { GOALS, EXPERIENCE_LEVELS, MAX_PREF_SUBJECTS, toggleSubjectSelection, subjectsSummary } from "@/lib/studyPreferences";
+import { SUBJECTS } from "@/lib/subjects";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
 
 const APP_VERSION = "1.0.1";
 
@@ -86,8 +96,12 @@ export default function SettingsPage() {
   const [dailyMinutes, setDailyMinutes] = useState(30);
   const [preferredTime, setPreferredTime] = useState("morning");
   const [notificationEnabled, setNotificationEnabled] = useState(true);
+  const [examDate, setExamDate] = useState<Date | undefined>(undefined);
+  const [experienceLevel, setExperienceLevel] = useState<string>("intermediate");
+  const [subjects, setSubjects] = useState<string[]>([]);
   const [hasChanges, setHasChanges] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [blockedOpen, setBlockedOpen] = useState(false);
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || "");
@@ -95,6 +109,9 @@ export default function SettingsPage() {
       setDailyMinutes(profile.daily_study_minutes || 30);
       setPreferredTime(profile.preferred_study_time || "morning");
       setNotificationEnabled(profile.notification_enabled ?? true);
+      setExamDate(profile.exam_date ? new Date(profile.exam_date) : undefined);
+      setExperienceLevel(profile.experience_level || "intermediate");
+      setSubjects(profile.subjects || []);
     }
   }, [profile]);
 
@@ -105,6 +122,9 @@ export default function SettingsPage() {
       daily_study_minutes: dailyMinutes,
       preferred_study_time: preferredTime,
       notification_enabled: notificationEnabled,
+      exam_date: examDate ? examDate.toISOString() : null,
+      experience_level: experienceLevel,
+      subjects,
     }, {
       onSuccess: () => setHasChanges(false),
     });
@@ -307,14 +327,13 @@ export default function SettingsPage() {
             description="What's your main focus?"
           >
             <Select value={studyGoal} onValueChange={(v) => { setStudyGoal(v); setHasChanges(true); }}>
-              <SelectTrigger className="w-[140px] h-9">
+              <SelectTrigger className="w-[160px] h-9">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="general">General</SelectItem>
-                <SelectItem value="exams">Exam Prep</SelectItem>
-                <SelectItem value="language">Language</SelectItem>
-                <SelectItem value="professional">Professional</SelectItem>
+                {GOALS.map((g) => (
+                  <SelectItem key={g.value} value={g.value}>{g.label}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </SettingRow>
@@ -352,6 +371,109 @@ export default function SettingsPage() {
               </SelectContent>
             </Select>
           </SettingRow>
+          <Separator />
+          <SettingRow
+            icon={<GraduationCap className="w-4 h-4" />}
+            label="Experience Level"
+            description="How familiar are you with your material?"
+          >
+            <Select value={experienceLevel} onValueChange={(v) => { setExperienceLevel(v); setHasChanges(true); }}>
+              <SelectTrigger className="w-[160px] h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {EXPERIENCE_LEVELS.map((e) => (
+                  <SelectItem key={e.value} value={e.value}>{e.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </SettingRow>
+          <Separator />
+          <SettingRow
+            icon={<CalendarDays className="w-4 h-4" />}
+            label="Exam Date"
+            description="Shows a countdown on your dashboard"
+          >
+            <div className="flex items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className={cn("h-9 w-[160px] justify-start font-normal", !examDate && "text-muted-foreground")}>
+                    {examDate ? examDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "Not set"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-auto p-0">
+                  <Calendar
+                    mode="single"
+                    selected={examDate}
+                    onSelect={(d) => { setExamDate(d); setHasChanges(true); }}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              {examDate && (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => { setExamDate(undefined); setHasChanges(true); }}
+                  aria-label="Clear exam date"
+                >
+                  <UserX className="w-3.5 h-3.5" />
+                </Button>
+              )}
+            </div>
+          </SettingRow>
+          <Separator />
+          <div className="p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <BookMarked className="w-4 h-4 mt-0.5 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Subjects</p>
+                <p className="text-xs text-muted-foreground">
+                  Pick up to {MAX_PREF_SUBJECTS} — powers smart recommendations. {subjectsSummary(subjects)}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SUBJECTS.map((s) => {
+                const active = subjects.includes(s.value);
+                const Icon = s.icon;
+                return (
+                  <button
+                    key={s.value}
+                    type="button"
+                    onClick={() => {
+                      const { next, limitReached } = toggleSubjectSelection(subjects, s.value);
+                      if (limitReached) {
+                        toast.info(`You can pick up to ${MAX_PREF_SUBJECTS} subjects. Remove one to add another.`);
+                        return;
+                      }
+                      setSubjects(next);
+                      setHasChanges(true);
+                    }}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+                      active
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-card text-muted-foreground hover:text-foreground hover:border-primary/40"
+                    )}
+                  >
+                    <Icon className="w-3.5 h-3.5" />
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </Section>
+
+        {/* Privacy */}
+        <Section title="Privacy & Safety">
+          <LinkRow
+            icon={<Shield className="w-4 h-4" />}
+            label="Blocked accounts"
+            description="Manage who can't message you in groups"
+            onClick={() => setBlockedOpen(true)}
+          />
         </Section>
 
         {/* Notifications */}
@@ -487,6 +609,7 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
+      <BlockedAccountsModal open={blockedOpen} onOpenChange={setBlockedOpen} />
     </DashboardLayout>
   );
 }

@@ -19,6 +19,7 @@ const MaterialSettingsPage = lazy(() => import("@/pages/MaterialSettingsPage"));
 const FlashcardsPage = lazy(() => import("@/pages/FlashcardsPage"));
 const DeckDetailPage = lazy(() => import("@/pages/DeckDetailPage"));
 const StudySession = lazy(() => import("@/pages/StudySession"));
+const LearnSession = lazy(() => import("@/pages/LearnSession"));
 const GroupsPage = lazy(() => import("@/pages/GroupsPage"));
 const GroupDetailPage = lazy(() => import("@/pages/GroupDetailPage"));
 const JoinGroupPage = lazy(() => import("@/pages/JoinGroupPage"));
@@ -67,6 +68,7 @@ export const AnimatedRoutes = () => {
         <Route path="/flashcards/:deckId" element={guard(<DeckDetailPage />)} />
         <Route path="/study" element={guard(<StudySession />)} />
         <Route path="/study/:deckId" element={guard(<StudySession />)} />
+        <Route path="/learn/:deckId" element={guard(<LearnSession />)} />
         <Route path="/groups" element={guard(<GroupsPage />)} />
         <Route path="/groups/:groupId" element={guard(<GroupDetailPage />)} />
         <Route path="/groups/join/:inviteCode" element={wrap(<JoinGroupPage />)} />

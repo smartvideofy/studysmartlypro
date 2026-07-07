@@ -41,6 +41,7 @@ import { SEOHead } from "@/components/seo/SEOHead";
 import { createDashboardJsonLd } from "@/components/seo/jsonld";
 import { AnimatedCounter } from "@/components/ui/animated-counter";
 import { AndroidAppBanner } from "@/components/cta/AndroidAppBanner";
+import { ExamCountdown } from "@/components/ExamCountdown";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -198,11 +199,12 @@ export default function Dashboard() {
         <motion.div variants={itemVariants}>
           <Card className="overflow-hidden">
             <div className="p-5 md:p-8">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="flex items-center gap-2 flex-wrap mb-3">
                 <Badge variant="secondary" className="gap-1">
                   <Flame className="w-3 h-3 text-orange-500" />
                   {streakDays} Day Streak
                 </Badge>
+                <ExamCountdown examDate={profile?.exam_date} />
               </div>
               <h2 className="font-display text-xl md:text-2xl font-bold mb-2">
                 Welcome back, {userName}! 👋
