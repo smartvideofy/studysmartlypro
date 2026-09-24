@@ -64,4 +64,7 @@ verify_jwt = false
 [functions.android-launch-report]
 verify_jwt = false
 
+[functions.storage-cleanup]
+verify_jwt = false
+
 
