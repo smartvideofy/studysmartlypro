@@ -147,40 +147,14 @@ serve(async (req) => {
   }
 });
 
-async function callOpenAI(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
-  console.log("Calling OpenAI...");
-  
-  const response = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-    }),
-  });
+async function callOpenAI(_apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
+  console.log("Calling AI (OpenAI primary, Gemini fallback)...");
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("OpenAI API error:", response.status, errorText);
-    
-    if (response.status === 429) {
-      throw new Error("RATE_LIMIT_EXCEEDED");
-    }
-    if (response.status === 402 || response.status === 403) {
-      throw new Error("QUOTA_EXCEEDED");
-    }
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
+  const content = await callAI([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: prompt },
+  ]);
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
   console.log(`AI response received: ${content.length} characters`);
   return content;
 }
