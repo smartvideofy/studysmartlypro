@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -212,40 +213,25 @@ Keep each card focused on a single concept. Be concise but complete.`;
 
     console.log(`Processing ${action} request for user ${userId.substring(0, 8)}...`);
 
-    const response = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${OPENAI_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: 'Rate limit exceeded. Please try again later.' }), {
+    let content: string;
+    try {
+      content = await callAI([
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ]);
+    } catch (aiError) {
+      const aiMessage = aiError instanceof Error ? aiError.message : 'AI_UNAVAILABLE';
+      if (aiMessage === 'RATE_LIMIT_EXCEEDED') {
+        return new Response(JSON.stringify({ error: 'AI is busy right now. Please try again in a moment.' }), {
           status: 429,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402 || response.status === 403) {
-        return new Response(JSON.stringify({ error: 'OpenAI API quota exceeded. Please check your API key usage.' }), {
-          status: 402,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      console.error('OpenAI API error:', response.status);
-      throw new Error('AI service temporarily unavailable');
+      return new Response(JSON.stringify({ error: 'AI is temporarily unavailable. Please try again later.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
 
     if (!content) {
       throw new Error('Failed to generate content');
