@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -92,39 +93,25 @@ serve(async (req) => {
 
     const scriptPrompt = getScriptPrompt(style, content, material.title);
     
-    const scriptResponse = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: scriptPrompt },
-          { role: 'user', content: `Create an engaging podcast script about this material:\n\n${content.substring(0, 30000)}` }
-        ],
-      }),
-    });
-
-    if (!scriptResponse.ok) {
-      if (scriptResponse.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded" }), {
+    let script = '';
+    try {
+      script = await callAI([
+        { role: 'system', content: scriptPrompt },
+        { role: 'user', content: `Create an engaging podcast script about this material:\n\n${content.substring(0, 30000)}` },
+      ]);
+    } catch (aiError) {
+      const aiMessage = aiError instanceof Error ? aiError.message : 'AI_UNAVAILABLE';
+      if (aiMessage === 'RATE_LIMIT_EXCEEDED') {
+        return new Response(JSON.stringify({ error: 'AI is busy right now. Please try again in a moment.' }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (scriptResponse.status === 402 || scriptResponse.status === 403) {
-        return new Response(JSON.stringify({ error: "OpenAI API quota exceeded." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      throw new Error('Failed to generate script');
+      return new Response(JSON.stringify({ error: 'AI is temporarily unavailable. Please try again later.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-
-    const scriptData = await scriptResponse.json();
-    const script = scriptData.choices?.[0]?.message?.content || '';
 
     const segments = parseScript(script);
 
