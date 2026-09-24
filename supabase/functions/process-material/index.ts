@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -36,33 +37,9 @@ interface StudyMaterial {
 
 type PipelineStep = 'extract' | 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'generate_all' | 'complete';
 
-// ─── Helper: call OpenAI API ───
+// ─── Helper: call AI (OpenAI primary, Gemini fallback) ───
 async function callOpenAI(messages: any[], maxTokens?: number): Promise<string> {
-  const body: Record<string, unknown> = {
-    model: OPENAI_MODEL,
-    messages,
-  };
-  if (maxTokens) body.max_tokens = maxTokens;
-
-  const response = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  return await callAI(messages, maxTokens);
 }
 
 // ─── Helper: update progress message ───
