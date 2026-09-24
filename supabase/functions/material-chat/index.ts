@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { streamAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -180,38 +181,24 @@ CITATION RULES (CRITICAL):
 - Only use passage numbers that exist in the material above
 - Example: "Photosynthesis converts light energy into chemical energy [3]. This process occurs in the chloroplasts [5]."`;
 
-    const response = await fetch(OPENAI_URL, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: OPENAI_MODEL,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          ...messages.map((m: any) => ({ role: m.role, content: m.content })),
-        ],
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limits exceeded, please try again later." }), {
+    let stream: ReadableStream<Uint8Array>;
+    try {
+      stream = await streamAI([
+        { role: 'system', content: systemPrompt },
+        ...messages.map((m: any) => ({ role: m.role, content: m.content })),
+      ]);
+    } catch (aiError) {
+      const aiMessage = aiError instanceof Error ? aiError.message : 'AI_UNAVAILABLE';
+      if (aiMessage === 'RATE_LIMIT_EXCEEDED') {
+        return new Response(JSON.stringify({ error: 'AI is busy right now. Please try again in a moment.' }), {
           status: 429,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
-      if (response.status === 402 || response.status === 403) {
-        return new Response(JSON.stringify({ error: "OpenAI API quota exceeded. Please check your API key usage." }), {
-          status: 402,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const errorText = await response.text();
-      console.error('OpenAI API error:', response.status, errorText);
-      throw new Error('AI service error');
+      return new Response(JSON.stringify({ error: 'AI is temporarily unavailable. Please try again later.' }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Return chunks metadata encoded in base64 to avoid non-ASCII ByteString errors in headers
@@ -224,7 +211,7 @@ CITATION RULES (CRITICAL):
       'X-Citation-Chunks': encodedChunks,
     };
 
-    return new Response(response.body, { headers: responseHeaders });
+    return new Response(stream, { headers: responseHeaders });
   } catch (error) {
     console.error('Chat error:', error);
     

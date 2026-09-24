@@ -1,6 +1,7 @@
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -17,25 +18,7 @@ const OPENAI_MODEL = 'gpt-4o-mini';
 type NotebookStep = 'tutor_notes' | 'summaries' | 'flashcards' | 'questions' | 'concept_map' | 'complete';
 
 async function callOpenAI(messages: any[]): Promise<string> {
-  const response = await fetch(OPENAI_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${openaiApiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ model: OPENAI_MODEL, messages }),
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error('OpenAI API error:', response.status, errorText);
-    if (response.status === 429) throw new Error('RATE_LIMIT_EXCEEDED');
-    if (response.status === 402 || response.status === 403) throw new Error('QUOTA_EXCEEDED');
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
-
-  const data = await response.json();
-  return data.choices?.[0]?.message?.content || '';
+  return await callAI(messages);
 }
 
 function parseJSON(text: string): any {

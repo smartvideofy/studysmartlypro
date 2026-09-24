@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const OPENAI_MODEL = 'gpt-4o-mini';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY")!;
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
 
     // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
@@ -128,14 +126,14 @@ serve(async (req) => {
     
     if (errorMessage === "RATE_LIMIT_EXCEEDED") {
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    if (errorMessage === "QUOTA_EXCEEDED") {
+    if (errorMessage === "QUOTA_EXCEEDED" || errorMessage === "AI_UNAVAILABLE") {
       return new Response(
-        JSON.stringify({ error: "OpenAI API quota exceeded. Please check your API key usage." }),
+        JSON.stringify({ error: "AI is temporarily unavailable. Please try again later." }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -147,40 +145,14 @@ serve(async (req) => {
   }
 });
 
-async function callOpenAI(apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
-  console.log("Calling OpenAI...");
-  
-  const response = await fetch(OPENAI_URL, {
-    method: "POST",
-    headers: {
-      "Authorization": `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: OPENAI_MODEL,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-    }),
-  });
+async function callOpenAI(_apiKey: string, prompt: string, systemPrompt: string): Promise<string> {
+  console.log("Calling AI (OpenAI primary, Gemini fallback)...");
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error("OpenAI API error:", response.status, errorText);
-    
-    if (response.status === 429) {
-      throw new Error("RATE_LIMIT_EXCEEDED");
-    }
-    if (response.status === 402 || response.status === 403) {
-      throw new Error("QUOTA_EXCEEDED");
-    }
-    throw new Error(`OpenAI API error: ${response.status}`);
-  }
+  const content = await callAI([
+    { role: "system", content: systemPrompt },
+    { role: "user", content: prompt },
+  ]);
 
-  const data = await response.json();
-  const content = data.choices?.[0]?.message?.content || "";
   console.log(`AI response received: ${content.length} characters`);
   return content;
 }
