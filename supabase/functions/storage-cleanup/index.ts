@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const runSecret = Deno.env.get("AGENT_RUN_SECRET");
+    const runSecret = Deno.env.get("STORAGE_CLEANUP_SECRET");
     const provided = req.headers.get("x-run-secret");
     if (!runSecret || provided !== runSecret) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
