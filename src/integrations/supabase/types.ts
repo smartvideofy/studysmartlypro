@@ -150,6 +150,39 @@ export type Database = {
           },
         ]
       }
+      content_reports: {
+        Row: {
+          content_id: string | null
+          content_type: string
+          created_at: string
+          details: string | null
+          id: string
+          reason: string
+          reported_user_id: string | null
+          reporter_id: string
+        }
+        Insert: {
+          content_id?: string | null
+          content_type: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason: string
+          reported_user_id?: string | null
+          reporter_id: string
+        }
+        Update: {
+          content_id?: string | null
+          content_type?: string
+          created_at?: string
+          details?: string | null
+          id?: string
+          reason?: string
+          reported_user_id?: string | null
+          reporter_id?: string
+        }
+        Relationships: []
+      }
       daily_challenges: {
         Row: {
           challenge_date: string
@@ -1713,6 +1746,63 @@ export type Database = {
           },
         ]
       }
+      study_activity: {
+        Row: {
+          activity_type: string
+          correct_count: number
+          created_at: string
+          deck_id: string | null
+          duration_seconds: number
+          event_id: string | null
+          id: string
+          items_count: number
+          material_id: string | null
+          user_id: string
+          xp_awarded: number
+        }
+        Insert: {
+          activity_type: string
+          correct_count?: number
+          created_at?: string
+          deck_id?: string | null
+          duration_seconds?: number
+          event_id?: string | null
+          id?: string
+          items_count?: number
+          material_id?: string | null
+          user_id: string
+          xp_awarded?: number
+        }
+        Update: {
+          activity_type?: string
+          correct_count?: number
+          created_at?: string
+          deck_id?: string | null
+          duration_seconds?: number
+          event_id?: string | null
+          id?: string
+          items_count?: number
+          material_id?: string | null
+          user_id?: string
+          xp_awarded?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "study_activity_deck_id_fkey"
+            columns: ["deck_id"]
+            isOneToOne: false
+            referencedRelation: "flashcard_decks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "study_activity_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "study_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       study_groups: {
         Row: {
           created_at: string
@@ -2098,6 +2188,24 @@ export type Database = {
           },
         ]
       }
+      user_blocks: {
+        Row: {
+          blocked_id: string
+          blocker_id: string
+          created_at: string
+        }
+        Insert: {
+          blocked_id: string
+          blocker_id: string
+          created_at?: string
+        }
+        Update: {
+          blocked_id?: string
+          blocker_id?: string
+          created_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -2121,7 +2229,54 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      study_activity_v: {
+        Row: {
+          activity_type: string | null
+          cards_or_items: number | null
+          correct_count: number | null
+          duration_seconds: number | null
+          material_id: string | null
+          occurred_at: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
+      subscriptions_v: {
+        Row: {
+          cancelled_at: string | null
+          current_period_end: string | null
+          interval: string | null
+          is_trial: boolean | null
+          plan: string | null
+          status: string | null
+          trial_days_remaining: number | null
+          trial_end_date: string | null
+          user_id: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          current_period_end?: string | null
+          interval?: string | null
+          is_trial?: never
+          plan?: string | null
+          status?: string | null
+          trial_days_remaining?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          current_period_end?: string | null
+          interval?: string | null
+          is_trial?: never
+          plan?: string | null
+          status?: string | null
+          trial_days_remaining?: never
+          trial_end_date?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_group_unread_count: {
