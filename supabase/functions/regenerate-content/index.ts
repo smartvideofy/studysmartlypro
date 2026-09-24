@@ -1,13 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { callAI } from "../_shared/ai-provider.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-const OPENAI_MODEL = 'gpt-4o-mini';
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -17,7 +15,7 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const openaiApiKey = Deno.env.get("OPENAI_API_KEY")!;
+    const openaiApiKey = Deno.env.get("OPENAI_API_KEY") ?? "";
 
     // Verify user authentication using getClaims
     const authHeader = req.headers.get('Authorization');
@@ -128,14 +126,14 @@ serve(async (req) => {
     
     if (errorMessage === "RATE_LIMIT_EXCEEDED") {
       return new Response(
-        JSON.stringify({ error: "Rate limit exceeded. Please try again later." }),
+        JSON.stringify({ error: "AI is busy right now. Please try again in a moment." }),
         { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     
-    if (errorMessage === "QUOTA_EXCEEDED") {
+    if (errorMessage === "QUOTA_EXCEEDED" || errorMessage === "AI_UNAVAILABLE") {
       return new Response(
-        JSON.stringify({ error: "OpenAI API quota exceeded. Please check your API key usage." }),
+        JSON.stringify({ error: "AI is temporarily unavailable. Please try again later." }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
