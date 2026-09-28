@@ -622,9 +622,12 @@ serve(async (req) => {
   }
 
   try {
-    // Auth guard: only allow service role or authenticated users
+    // Auth guard: only allow service role, the internal cron secret, or authenticated users
     const authHeader = req.headers.get("Authorization");
-    const isServiceRole = authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY);
+    const internalCronSecret = Deno.env.get("INTERNAL_CRON_SECRET");
+    const isServiceRole =
+      authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY) ||
+      (!!internalCronSecret && authHeader === `Bearer ${internalCronSecret}`);
 
     if (!isServiceRole) {
       // If not service role, validate user JWT
