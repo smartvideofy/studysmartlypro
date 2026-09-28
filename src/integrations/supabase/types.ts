@@ -882,6 +882,57 @@ export type Database = {
         }
         Relationships: []
       }
+      legacy_recipients: {
+        Row: {
+          campaign: string
+          created_at: string
+          email: string
+          error: string | null
+          full_name: string | null
+          id: string
+          legacy_user_id: string | null
+          resend_id: string | null
+          sent_at: string | null
+          status: string
+          unsubscribe_token: string
+          unsubscribed: boolean
+          unsubscribed_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          campaign?: string
+          created_at?: string
+          email: string
+          error?: string | null
+          full_name?: string | null
+          id?: string
+          legacy_user_id?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed?: boolean
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          campaign?: string
+          created_at?: string
+          email?: string
+          error?: string | null
+          full_name?: string | null
+          id?: string
+          legacy_user_id?: string | null
+          resend_id?: string | null
+          sent_at?: string | null
+          status?: string
+          unsubscribe_token?: string
+          unsubscribed?: boolean
+          unsubscribed_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       material_flashcards: {
         Row: {
           back: string
