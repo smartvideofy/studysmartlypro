@@ -39,10 +39,17 @@ function renderHtml(name: string, unsubscribeUrl: string): string {
     <p style="${p}">Start a 7-day free Pro trial through the Studily mobile app.</p>
 
     <div style="text-align:center;margin:28px 0;">
-      <a href="${PLAY_URL}" style="display:inline-block;background:${PINK};color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;padding:14px 28px;border-radius:10px;">Download Studily on Android</a>
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto;border-collapse:collapse;">
+        <tr>
+          <td style="padding:0 6px;">
+            <a href="${PLAY_URL}" style="display:inline-block;background:${PINK};color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 22px;border-radius:10px;">Download on Android</a>
+          </td>
+          <td style="padding:0 6px;">
+            <a href="${IOS_URL}" style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:14px 22px;border-radius:10px;">Download on iPhone</a>
+          </td>
+        </tr>
+      </table>
     </div>
-
-    <p style="${p}">If you're using an iPhone, you can <a href="${IOS_URL}" style="color:${PINK};font-weight:600;text-decoration:underline;">download Studily for iPhone</a> and start your trial there too.</p>
     <p style="${p}">Your previous Studily login may need to be reactivated on our new platform. Simply use the email address you previously registered with, or sign up again if needed.</p>
     <p style="${p}">We'd love to have you back.</p>
     <p style="${p}">Happy studying,<br/><strong>The Studily Team</strong></p>
