@@ -154,6 +154,11 @@ serve(async (req) => {
         }
       }
     }
+    const OPS_SECRET = Deno.env.get("BROADCAST_OPS_SECRET");
+    if (!authorized && OPS_SECRET && req.headers.get("x-run-secret") === OPS_SECRET) {
+      authorized = true;
+    }
+
     if (!authorized) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
