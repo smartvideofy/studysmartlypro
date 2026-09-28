@@ -48,15 +48,20 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization');
     const cronSecret = Deno.env.get('CRON_SECRET');
-    
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-      if (!authHeader?.includes(SUPABASE_SERVICE_ROLE_KEY!)) {
-        console.log('Unauthorized cron call attempt');
-        return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-          status: 401,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
+    const internalCronSecret = Deno.env.get('INTERNAL_CRON_SECRET');
+
+    const isAuthorized =
+      !!authHeader &&
+      (authHeader.includes(SUPABASE_SERVICE_ROLE_KEY!) ||
+        (!!cronSecret && authHeader === `Bearer ${cronSecret}`) ||
+        (!!internalCronSecret && authHeader === `Bearer ${internalCronSecret}`));
+
+    if (!isAuthorized) {
+      console.log('Unauthorized cron call attempt');
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
