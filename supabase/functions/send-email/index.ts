@@ -173,25 +173,30 @@ function generateEmailContent(
 
     case "onboarding_day2":
       return {
-        subject: "Create your first note in 30 seconds ✍️",
+        subject: "Turn one lecture into a full study set ✍️",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, ready to upload your first study material? 📝</h1>
-            <p>The best way to get started is to upload something you're currently studying.</p>
-            <p>Just:</p>
-            <ol style="margin: 16px 0; padding-left: 20px;">
-              <li>Click "Upload Material"</li>
-              <li>Add a PDF, document, or YouTube video</li>
-              <li>Watch AI generate notes, flashcards, and quizzes automatically!</li>
-            </ol>
-            <a href="${appUrl}/materials" style="${buttonStyle}">Upload Your First Material</a>
-            <p style="margin-top: 24px; color: #6b7280;">
-              <strong>Pro tip:</strong> Start with a topic you have an exam on soon - you'll be amazed how fast you can prepare!
+            <h1 style="color: #EC4899; font-size: 24px;">${userName}, pick the topic that worries you most 📝</h1>
+            <p>The fastest way to feel the difference is to give Studily something you're actually struggling with right now.</p>
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 14px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Three ways to feed it:</strong></p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>📄 A PDF, Word file or slide deck from class</li>
+                <li>🎙️ A recorded lecture — it gets transcribed automatically</li>
+                <li>▶️ A YouTube link to a lesson you were about to watch</li>
+              </ul>
+            </div>
+            <p>In under a minute you get a plain-English summary, tutor notes, flashcards and practice questions from it.</p>
+            <a href="${appUrl}/materials" style="${buttonStyle}">Upload a material now</a>
+            <p style="margin-top: 20px; color: #6b7280;">
+              <strong>Coach's tip:</strong> Don't upload your whole semester. Start with one chapter you have a test on — you'll finish a real revision round in 10 minutes.
             </p>
+            ${appButtons}
             ${footer}
           </div>
         `,
       };
+
 
     case "onboarding_day5":
       return {
