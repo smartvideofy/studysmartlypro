@@ -109,28 +109,67 @@ function generateEmailContent(
     margin: 16px 0;
   `;
 
+  const ANDROID_URL = "https://play.google.com/store/apps/details?id=com.studily.app";
+  const IOS_URL = "https://testflight.apple.com/join/2CHgmH96";
+
+  const appButtons = `
+    <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 20px 0;">
+      <tr>
+        <td style="padding-right: 8px;">
+          <a href="${ANDROID_URL}" style="display:inline-block;padding:13px 20px;background:#EC4899;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;">Get the Android app</a>
+        </td>
+        <td>
+          <a href="${IOS_URL}" style="display:inline-block;padding:13px 20px;background:#1a1a1a;color:#ffffff;text-decoration:none;border-radius:10px;font-weight:600;font-size:15px;">Get it on iPhone</a>
+        </td>
+      </tr>
+    </table>
+  `;
+
   switch (template) {
     case "welcome":
       return {
-        subject: "Welcome to Studily! 🎉",
+        subject: `Welcome to Studily, ${userName} — here's your 60-second start 🎓`,
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #EC4899; font-size: 28px; margin-bottom: 24px;">Welcome to Studily, ${userName}! 🎓</h1>
-            <p>We're thrilled to have you join our community of smart learners!</p>
-            <p>Studily uses AI-powered tools to help you study more effectively:</p>
-            <ul style="margin: 16px 0; padding-left: 20px;">
-              <li><strong>📚 Smart Notes</strong> - Upload any study material and get AI summaries</li>
-              <li><strong>🎴 AI Flashcards</strong> - Auto-generate flashcards from your content</li>
-              <li><strong>🧠 Spaced Repetition</strong> - Review at the optimal time for retention</li>
-              <li><strong>📊 Progress Tracking</strong> - Watch your knowledge grow</li>
+            <h1 style="color: #EC4899; font-size: 28px; margin-bottom: 20px;">Welcome to Studily, ${userName}! 🎓</h1>
+            <p>You've just joined thousands of students who stopped re-reading notes and started actually remembering them.</p>
+
+            <div style="background: #FDF2F8; border-radius: 14px; padding: 22px; margin: 24px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #BE185D; font-size: 18px;">⚡ Your 60-second quick start</h3>
+              <ol style="margin: 0; padding-left: 20px;">
+                <li>Upload one lecture slide deck, PDF, or a photo of your notes.</li>
+                <li>Studily reads it and builds a summary, flashcards and a quiz automatically.</li>
+                <li>Review for five minutes — that's a real study session done.</li>
+              </ol>
+            </div>
+
+            <a href="${appUrl}/materials" style="${buttonStyle}">Upload your first material</a>
+
+            <h3 style="color: #1f2937; font-size: 18px; margin: 28px 0 8px 0;">What else you can do</h3>
+            <ul style="margin: 0 0 16px 0; padding-left: 20px;">
+              <li><strong>Record or upload audio</strong> — lectures get transcribed and turned into notes.</li>
+              <li><strong>Paste a YouTube link</strong> — get a full study set from any video.</li>
+              <li><strong>Concept maps</strong> — see how ideas in a topic connect.</li>
+              <li><strong>Spaced repetition</strong> — Studily schedules reviews right before you'd forget.</li>
             </ul>
-            <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Learning Now</a>
-            <p style="margin-top: 24px;">Happy studying! 📖</p>
-            <p style="color: #6b7280;">- The Studily Team</p>
+
+            <div style="background: #ffffff; border: 1px solid #FBCFE8; border-radius: 14px; padding: 20px; margin: 24px 0;">
+              <p style="margin: 0 0 6px 0;"><strong>📅 Got an exam coming up?</strong></p>
+              <p style="margin: 0; color: #6b7280;">Add the date and Studily will count down and pace your revision for you.</p>
+              <p style="margin: 12px 0 0 0;"><a href="${appUrl}/settings" style="color: #EC4899; font-weight: 600;">Set your exam date →</a></p>
+            </div>
+
+            <h3 style="color: #1f2937; font-size: 18px; margin: 28px 0 4px 0;">Study on your phone too</h3>
+            <p style="margin: 0; color: #6b7280;">Same account, same notes — wherever you are.</p>
+            ${appButtons}
+
+            <p style="margin-top: 24px;">Happy studying 📖</p>
+            <p style="color: #6b7280;">— The Studily Team</p>
             ${footer}
           </div>
         `,
       };
+
 
     case "onboarding_day2":
       return {
