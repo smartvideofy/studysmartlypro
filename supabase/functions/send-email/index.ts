@@ -80,9 +80,9 @@ function generateEmailContent(
   
   const footer = `
     <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 12px;">
-      <p>Getstudily - Learn smarter, not harder</p>
+      <p>Studily - Learn smarter, not harder</p>
       <p style="margin-top: 4px;">
-        Questions? Contact us at <a href="mailto:support@getstudily.com" style="color: #8b5cf6;">support@getstudily.com</a>
+        Questions? Contact us at <a href="mailto:support@getstudily.com" style="color: #EC4899;">support@getstudily.com</a>
       </p>
       <p style="margin-top: 8px;">
         <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a> · 
@@ -101,7 +101,7 @@ function generateEmailContent(
   const buttonStyle = `
     display: inline-block;
     padding: 12px 24px;
-    background: linear-gradient(135deg, #8b5cf6, #a855f7);
+    background: linear-gradient(135deg, #EC4899, #DB2777);
     color: white;
     text-decoration: none;
     border-radius: 8px;
@@ -112,12 +112,12 @@ function generateEmailContent(
   switch (template) {
     case "welcome":
       return {
-        subject: "Welcome to Getstudily! 🎉",
+        subject: "Welcome to Studily! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Welcome to Getstudily, ${userName}! 🎓</h1>
+            <h1 style="color: #EC4899; font-size: 28px; margin-bottom: 24px;">Welcome to Studily, ${userName}! 🎓</h1>
             <p>We're thrilled to have you join our community of smart learners!</p>
-            <p>Getstudily uses AI-powered tools to help you study more effectively:</p>
+            <p>Studily uses AI-powered tools to help you study more effectively:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
               <li><strong>📚 Smart Notes</strong> - Upload any study material and get AI summaries</li>
               <li><strong>🎴 AI Flashcards</strong> - Auto-generate flashcards from your content</li>
@@ -126,7 +126,7 @@ function generateEmailContent(
             </ul>
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Learning Now</a>
             <p style="margin-top: 24px;">Happy studying! 📖</p>
-            <p style="color: #6b7280;">- The Getstudily Team</p>
+            <p style="color: #6b7280;">- The Studily Team</p>
             ${footer}
           </div>
         `,
@@ -137,7 +137,7 @@ function generateEmailContent(
         subject: "Create your first note in 30 seconds ✍️",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, ready to upload your first study material? 📝</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, ready to upload your first study material? 📝</h1>
             <p>The best way to get started is to upload something you're currently studying.</p>
             <p>Just:</p>
             <ol style="margin: 16px 0; padding-left: 20px;">
@@ -159,7 +159,7 @@ function generateEmailContent(
         subject: "Try AI-powered flashcards 🎴",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Level up your learning, ${userName}! 🚀</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Level up your learning, ${userName}! 🚀</h1>
             <p>Did you know you can generate flashcards automatically from any study material?</p>
             <p>Our AI analyzes your content and creates:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
@@ -182,11 +182,11 @@ function generateEmailContent(
         subject: "Unlock more with Pro ⭐",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">You're doing great, ${userName}! 🌟</h1>
-            <p>After a week with Getstudily, you've experienced what smart studying feels like.</p>
+            <h1 style="color: #EC4899; font-size: 24px;">You're doing great, ${userName}! 🌟</h1>
+            <p>After a week with Studily, you've experienced what smart studying feels like.</p>
             <p>Want to unlock even more?</p>
-            <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <h3 style="margin: 0 0 12px 0; color: #7c3aed;">Pro Features Include:</h3>
+            <div style="background: linear-gradient(135deg, #FDF2F8, #FCE7F3); padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #BE185D;">Pro Features Include:</h3>
               <ul style="margin: 0; padding-left: 20px;">
                 <li>Unlimited AI generations</li>
                 <li>Advanced analytics</li>
@@ -208,11 +208,11 @@ function generateEmailContent(
         subject: `Your weekly study recap 📊 ${data.xpGained || 0} XP earned!`,
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Your Week in Review, ${userName} 📈</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Your Week in Review, ${userName} 📈</h1>
             <div style="background: #f9fafb; padding: 24px; border-radius: 12px; margin: 20px 0;">
               <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; text-align: center;">
                 <div>
-                  <p style="font-size: 32px; font-weight: bold; color: #8b5cf6; margin: 0;">${data.xpGained || 0}</p>
+                  <p style="font-size: 32px; font-weight: bold; color: #EC4899; margin: 0;">${data.xpGained || 0}</p>
                   <p style="color: #6b7280; margin: 4px 0 0 0;">XP Earned</p>
                 </div>
                 <div>
@@ -261,12 +261,12 @@ function generateEmailContent(
         subject: "Your streak ended, but you can start fresh! 💪",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, it happens to the best of us 💪</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, it happens to the best of us 💪</h1>
             <p>Your streak ended, but that's okay! Every expert was once a beginner.</p>
             <p>What matters is getting back on track. A new streak starts with just one study session.</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
               <p style="font-size: 20px; margin: 0;">Your previous best: <strong>${data.previousStreak || 0} days</strong></p>
-              <p style="color: #7c3aed; margin: 8px 0 0 0;">Can you beat it this time? 🎯</p>
+              <p style="color: #BE185D; margin: 8px 0 0 0;">Can you beat it this time? 🎯</p>
             </div>
             <a href="${appUrl}/study" style="${buttonStyle}">Start New Streak</a>
             ${footer}
@@ -279,10 +279,10 @@ function generateEmailContent(
         subject: `You earned a new achievement: ${data.achievementName}! 🏆`,
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Congratulations, ${userName}! 🏆</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Congratulations, ${userName}! 🏆</h1>
             <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 32px; border-radius: 16px; margin: 20px 0; text-align: center;">
               <p style="font-size: 64px; margin: 0;">${data.achievementIcon || "🏆"}</p>
-              <h2 style="margin: 16px 0 8px 0; color: #7c3aed;">${data.achievementName}</h2>
+              <h2 style="margin: 16px 0 8px 0; color: #BE185D;">${data.achievementName}</h2>
               <p style="color: #6b7280; margin: 0;">${data.achievementDescription || "You've unlocked a new achievement!"}</p>
               <p style="margin: 16px 0 0 0; font-weight: bold; color: #10b981;">+${data.xpAwarded || 50} XP</p>
             </div>
@@ -298,7 +298,7 @@ function generateEmailContent(
         subject: `Welcome to ${data.planName || "Pro"}! 🎉`,
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 28px;">Welcome to ${data.planName || "Pro"}, ${userName}! 🎉</h1>
+            <h1 style="color: #EC4899; font-size: 28px;">Welcome to ${data.planName || "Pro"}, ${userName}! 🎉</h1>
             <p>Thank you for upgrading! You now have access to all premium features:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
               <li>✓ Unlimited AI generations</li>
@@ -309,7 +309,7 @@ function generateEmailContent(
             </ul>
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Explore Premium Features</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              Questions? Reply to this email or visit our <a href="${appUrl}/help" style="color: #8b5cf6;">Help Center</a>.
+              Questions? Reply to this email or visit our <a href="${appUrl}/help" style="color: #EC4899;">Help Center</a>.
             </p>
             ${footer}
           </div>
@@ -341,10 +341,10 @@ function generateEmailContent(
         subject: "We miss you! Come back to Pro 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Your Pro subscription has ended 💜</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Your Pro subscription has ended 💜</h1>
             <p>Hey ${userName}, we noticed your subscription expired.</p>
             <p>You still have access to your study materials, but premium features are now limited.</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 12px; margin: 20px 0;">
               <p style="margin: 0 0 12px 0;"><strong>What you're missing:</strong></p>
               <ul style="margin: 0; padding-left: 20px;">
                 <li>Unlimited AI generations</li>
@@ -363,10 +363,10 @@ function generateEmailContent(
         subject: "Welcome to your 3-day Pro trial! 🎉",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 28px; margin-bottom: 24px;">Your Pro trial has started, ${userName}! 🚀</h1>
+            <h1 style="color: #EC4899; font-size: 28px; margin-bottom: 24px;">Your Pro trial has started, ${userName}! 🚀</h1>
             <p>You now have <strong>3 days of full Pro access</strong> – no credit card required.</p>
-            <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
-              <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you can do now:</h3>
+            <div style="background: linear-gradient(135deg, #FDF2F8, #FCE7F3); padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="margin: 0 0 16px 0; color: #BE185D;">What you can do now:</h3>
               <ul style="margin: 0; padding-left: 20px; color: #1f2937;">
                 <li>Upload unlimited study materials</li>
                 <li>Generate AI flashcards & practice questions</li>
@@ -380,7 +380,7 @@ function generateEmailContent(
             </p>
             <a href="${appUrl}/materials" style="${buttonStyle}">Start Exploring Pro Features</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              Questions? We're here to help at <a href="mailto:support@getstudily.com" style="color: #8b5cf6;">support@getstudily.com</a>
+              Questions? We're here to help at <a href="mailto:support@getstudily.com" style="color: #EC4899;">support@getstudily.com</a>
             </p>
             ${footer}
           </div>
@@ -418,17 +418,17 @@ function generateEmailContent(
         subject: "Your access has been paused – 30% off inside 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
-            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Getstudily experience!</p>
+            <h1 style="color: #EC4899; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
+            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
             <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
               <p style="font-size: 32px; margin: 0;">🎁</p>
-              <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Welcome back offer: 30% off</h3>
+              <h3 style="margin: 8px 0 4px 0; color: #BE185D;">Welcome back offer: 30% off</h3>
               <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe within 72 hours to claim your discount</p>
             </div>
             <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
             <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% Off</a>
             <p style="margin-top: 24px; color: #6b7280;">
-              Thanks for trying Getstudily – we'd love to have you continue with us!
+              Thanks for trying Studily – we'd love to have you continue with us!
             </p>
             ${footer}
           </div>
@@ -440,7 +440,7 @@ function generateEmailContent(
         subject: "We miss you! Come back and study 📚",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, we miss you! 👋</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, we miss you! 👋</h1>
             <p>It's been a while since your last study session. Ready to get back on track?</p>
             <p>Here's what's new:</p>
             <ul style="margin: 16px 0; padding-left: 20px;">
@@ -462,10 +462,10 @@ function generateEmailContent(
         subject: "Here's what to try first – 2 days left 🎯",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">2 days left on Pro – make them count, ${userName}! 🎯</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">2 days left on Pro – make them count, ${userName}! 🎯</h1>
             <p>Your trial ends in <strong>2 days</strong>. Here's the fastest way to see the value:</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <h3 style="margin: 0 0 12px 0; color: #7c3aed;">⚡ Quick-win in 2 minutes:</h3>
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 12px; margin: 20px 0;">
+              <h3 style="margin: 0 0 12px 0; color: #BE185D;">⚡ Quick-win in 2 minutes:</h3>
               <ol style="margin: 0; padding-left: 20px;">
                 <li>Upload a PDF or paste a YouTube link</li>
                 <li>Watch AI generate flashcards, summaries & quizzes</li>
@@ -518,11 +518,11 @@ function generateEmailContent(
             <p>This is it – your Pro access expires at the end of today.</p>
             <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
               <p style="font-size: 40px; margin: 0;">🎁</p>
-              <h3 style="margin: 8px 0 4px 0; color: #7c3aed;">Special offer: 30% off your first month</h3>
+              <h3 style="margin: 8px 0 4px 0; color: #BE185D;">Special offer: 30% off your first month</h3>
               <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe today and save – this offer won't last</p>
             </div>
             <p>Plans start at just <strong>$9/month</strong> – that's less than a coffee a week for unlimited AI study tools.</p>
-            <a href="${appUrl}/pricing" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ef4444, #8b5cf6); color: white; text-decoration: none; border-radius: 8px; font-weight: 700; margin: 16px 0; font-size: 16px;">Claim 30% Off Now</a>
+            <a href="${appUrl}/pricing" style="display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #ef4444, #EC4899); color: white; text-decoration: none; border-radius: 8px; font-weight: 700; margin: 16px 0; font-size: 16px;">Claim 30% Off Now</a>
             <p style="margin-top: 24px; color: #6b7280;">
               Your data is safe either way – but you'll lose access to Pro features after today.
             </p>
@@ -536,11 +536,11 @@ function generateEmailContent(
         subject: "Quick 5-min session? Your materials are waiting 📖",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, quick check-in! 👋</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, quick check-in! 👋</h1>
             <p>It's been 3 days since your last study session. A quick 5-minute review can make a big difference for retention!</p>
-            <div style="background: #f3e8ff; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 12px; margin: 20px 0; text-align: center;">
               <p style="font-size: 48px; margin: 0;">📖</p>
-              <p style="margin: 8px 0 0 0; color: #7c3aed; font-weight: 600;">Your materials are waiting for you</p>
+              <p style="margin: 8px 0 0 0; color: #BE185D; font-weight: 600;">Your materials are waiting for you</p>
             </div>
             <a href="${appUrl}/dashboard" style="${buttonStyle}">Start Quick Review</a>
             <p style="margin-top: 24px; color: #6b7280;">
@@ -556,7 +556,7 @@ function generateEmailContent(
         subject: "We saved your progress – come back anytime 💜",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Hey ${userName}, your progress is safe! 💜</h1>
+            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, your progress is safe! 💜</h1>
             <p>It's been a week since you last studied. Life gets busy – we get it!</p>
             <p>Good news: all your notes, flashcards, and progress are exactly where you left them.</p>
             <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin: 20px 0;">
@@ -578,17 +578,17 @@ function generateEmailContent(
         subject: "You're one step away from Pro! 🚀",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #8b5cf6; font-size: 24px;">Almost there, ${userName}! 🚀</h1>
-            <p>We noticed you started upgrading to <strong>${data.planName || "Getstudily Pro"}</strong> but didn't finish.</p>
-            <div style="background: linear-gradient(135deg, #f3e8ff, #fae8ff); padding: 24px; border-radius: 12px; margin: 24px 0;">
-              <h3 style="margin: 0 0 16px 0; color: #7c3aed;">What you'll unlock:</h3>
+            <h1 style="color: #EC4899; font-size: 24px;">Almost there, ${userName}! 🚀</h1>
+            <p>We noticed you started upgrading to <strong>${data.planName || "Studily Pro"}</strong> but didn't finish.</p>
+            <div style="background: linear-gradient(135deg, #FDF2F8, #FCE7F3); padding: 24px; border-radius: 12px; margin: 24px 0;">
+              <h3 style="margin: 0 0 16px 0; color: #BE185D;">What you'll unlock:</h3>
               <ul style="margin: 0; padding-left: 20px;">
                 <li>Unlimited AI-powered study tools</li>
                 <li>Advanced analytics & insights</li>
                 <li>Priority support</li>
                 <li>Collaborative study groups</li>
               </ul>
-              <p style="margin: 16px 0 0 0; font-size: 18px; font-weight: bold; color: #7c3aed;">
+              <p style="margin: 16px 0 0 0; font-size: 18px; font-weight: bold; color: #BE185D;">
                 ${data.amount ? `Just ${data.billingInterval === 'yearly' ? '$' + Math.round(data.amount / 100) + '/year' : '$' + Math.round(data.amount / 100) + '/month'}` : "Starting at $9/month"}
               </p>
             </div>
@@ -603,12 +603,12 @@ function generateEmailContent(
 
     default:
       return {
-        subject: "Update from Getstudily",
+        subject: "Update from Studily",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
             <p>Hello ${userName},</p>
-            <p>This is an update from Getstudily.</p>
-            <a href="${appUrl}" style="${buttonStyle}">Visit Getstudily</a>
+            <p>This is an update from Studily.</p>
+            <a href="${appUrl}" style="${buttonStyle}">Visit Studily</a>
             ${footer}
           </div>
         `,
@@ -732,7 +732,7 @@ serve(async (req) => {
 
     // Send email via Resend
     const emailResponse = await resend.emails.send({
-      from: "Getstudily <noreply@getstudily.com>",
+      from: "Studily <noreply@getstudily.com>",
       to: [userEmail],
       subject,
       html,
