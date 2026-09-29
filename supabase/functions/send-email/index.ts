@@ -200,26 +200,30 @@ function generateEmailContent(
 
     case "onboarding_day5":
       return {
-        subject: "Try AI-powered flashcards 🎴",
+        subject: "The 10-minute habit that beats an all-nighter 🎴",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #EC4899; font-size: 24px;">Level up your learning, ${userName}! 🚀</h1>
-            <p>Did you know you can generate flashcards automatically from any study material?</p>
-            <p>Our AI analyzes your content and creates:</p>
-            <ul style="margin: 16px 0; padding-left: 20px;">
-              <li>Key concept flashcards</li>
-              <li>Definition cards for terminology</li>
-              <li>Question & answer pairs</li>
-            </ul>
-            <p>Then, spaced repetition ensures you review them at the perfect time for long-term retention.</p>
-            <a href="${appUrl}/flashcards" style="${buttonStyle}">Create AI Flashcards</a>
-            <p style="margin-top: 24px; color: #6b7280;">
-              Studies show spaced repetition can improve retention by up to 200%!
+            <h1 style="color: #EC4899; font-size: 24px;">${userName}, this is where the memory gain happens 🧠</h1>
+            <p>Re-reading feels productive. Testing yourself is what actually sticks — and Studily does the hard part for you.</p>
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 14px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>How a Studily review works:</strong></p>
+              <ol style="margin: 0; padding-left: 20px;">
+                <li>Cards are made from your own material, not generic content.</li>
+                <li>You rate how well you knew each answer.</li>
+                <li>Studily schedules the next review just before you'd forget.</li>
+              </ol>
+            </div>
+            <p>Cards you find hard come back sooner. Cards you know drift further away. Ten minutes a day beats a panic night before the exam.</p>
+            <a href="${appUrl}/flashcards" style="${buttonStyle}">Review your cards</a>
+            <p style="margin-top: 20px; color: #6b7280;">
+              Try <strong>Learn mode</strong> too — it mixes multiple choice and typed answers so you can't coast on recognition.
             </p>
+            ${appButtons}
             ${footer}
           </div>
         `,
       };
+
 
     case "onboarding_day7":
       return {
