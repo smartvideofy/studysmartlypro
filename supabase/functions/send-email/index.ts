@@ -607,25 +607,28 @@ function generateEmailContent(
 
     case "nudge_7day":
       return {
-        subject: "We saved your progress – come back anytime 💜",
+        subject: "Everything you made is still here, waiting 💗",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #EC4899; font-size: 24px;">Hey ${userName}, your progress is safe! 💜</h1>
-            <p>It's been a week since you last studied. Life gets busy – we get it!</p>
-            <p>Good news: all your notes, flashcards, and progress are exactly where you left them.</p>
-            <div style="background: #f0fdf4; padding: 20px; border-radius: 12px; margin: 20px 0;">
-              <p style="margin: 0 0 8px 0;"><strong>Pick up where you left off:</strong></p>
+            <h1 style="color: #EC4899; font-size: 24px;">${userName}, your progress is exactly where you left it</h1>
+            <p>It's been a week. Life gets busy — no guilt here.</p>
+            <p>Every note, deck and summary is still in your account, and nothing expires just because you took a break.</p>
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 14px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Easiest way back in (pick one):</strong></p>
               <ul style="margin: 0; padding-left: 20px;">
-                <li>Review your flashcard decks</li>
-                <li>Check your study streaks</li>
-                <li>Upload new materials</li>
+                <li>Review 10 flashcards — about three minutes</li>
+                <li>Re-read one AI summary before bed</li>
+                <li>Upload the newest thing from class</li>
               </ul>
             </div>
-            <a href="${appUrl}/dashboard" style="${buttonStyle}">Come Back & Study</a>
+            <a href="${appUrl}/dashboard" style="${buttonStyle}">Pick up where you left off</a>
+            <p style="margin-top: 20px; color: #6b7280;">Studying on your phone makes short sessions much easier:</p>
+            ${appButtons}
             ${footer}
           </div>
         `,
       };
+
 
     case "abandoned_checkout":
       return {
