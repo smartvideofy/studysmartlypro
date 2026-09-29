@@ -463,25 +463,31 @@ function generateEmailContent(
 
     case "trial_expired":
       return {
-        subject: "Your access has been paused – 30% off inside 💜",
+        subject: "Your notes are safe — here's 30% off to unlock them fully 💗",
         html: `
           <div style="${baseStyle}; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
-            <h1 style="color: #EC4899; font-size: 24px;">Your access has been paused, ${userName} 💜</h1>
-            <p>Your 3-day Pro trial has ended. We hope you enjoyed the full Studily experience!</p>
-            <div style="background: linear-gradient(135deg, #fef3c7, #fce7f3); padding: 24px; border-radius: 12px; margin: 20px 0; text-align: center;">
+            <h1 style="color: #EC4899; font-size: 24px;">Your Pro trial has ended, ${userName}</h1>
+            <p>First, the important part: <strong>nothing has been deleted.</strong> Every note, deck and summary you created is still in your account — you're simply in view-only mode until you subscribe.</p>
+            <div style="background: #FDF2F8; padding: 20px; border-radius: 14px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Subscribing switches back on:</strong></p>
+              <ul style="margin: 0; padding-left: 20px;">
+                <li>New uploads and AI study sets</li>
+                <li>Editing your notes and flashcards</li>
+                <li>Quizzes, concept maps and tutor notes</li>
+              </ul>
+            </div>
+            <div style="background: linear-gradient(135deg, #FCE7F3, #FDF2F8); padding: 24px; border-radius: 14px; margin: 20px 0; text-align: center;">
               <p style="font-size: 32px; margin: 0;">🎁</p>
               <h3 style="margin: 8px 0 4px 0; color: #BE185D;">Welcome back offer: 30% off</h3>
-              <p style="margin: 0; color: #6b7280; font-size: 14px;">Subscribe within 72 hours to claim your discount</p>
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Claim it within 72 hours</p>
             </div>
-            <p>Your study materials and progress are safe – subscribe to pick up right where you left off.</p>
-            <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% Off</a>
-            <p style="margin-top: 24px; color: #6b7280;">
-              Thanks for trying Studily – we'd love to have you continue with us!
-            </p>
+            <a href="${appUrl}/pricing" style="${buttonStyle}">Claim 30% off</a>
+            <p style="margin-top: 24px; color: #6b7280;">Pick up exactly where you left off — no setup, no re-uploading.</p>
             ${footer}
           </div>
         `,
       };
+
 
     case "reactivation":
       return {
