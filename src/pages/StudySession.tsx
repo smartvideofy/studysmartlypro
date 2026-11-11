@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { recordActivity } from "@/lib/recordActivity";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -127,6 +128,14 @@ export default function StudySession() {
     } else {
       // Session complete
       setIsComplete(true);
+      const finished = [...results, { id: currentCard.id, correct }];
+      void recordActivity({
+        activityType: "flashcard_review",
+        deckId: deckId || null,
+        itemsCount: finished.length,
+        correctCount: finished.filter((r) => r.correct).length,
+        durationSeconds: elapsedSeconds,
+      });
       
       // Update session with final stats
       if (sessionId) {

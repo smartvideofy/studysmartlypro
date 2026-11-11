@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { emitDailyActivity } from "@/lib/recordActivity";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   MessageSquare, 
@@ -133,6 +134,7 @@ export default function AIChatTab({ materialId, extractedContent }: AIChatTabPro
     setMessages(prev => [...prev, userMessage]);
     setInput("");
     setIsLoading(true);
+    void emitDailyActivity({ activityType: "tutor_chat", materialId, durationSeconds: 0 });
 
     let assistantSoFar = "";
     

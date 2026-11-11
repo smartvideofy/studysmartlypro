@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { recordActivity } from "@/lib/recordActivity";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Play,
@@ -99,6 +100,10 @@ export default function QuizModeDrawer({ open, onOpenChange, materialId }: QuizM
       setIsTimerRunning(false);
       setQuizState("results");
       haptics.success();
+      const score = calculateScore();
+      void recordActivity({
+        activityType: "quiz", materialId, itemsCount: score.total, correctCount: score.correct, durationSeconds: timer,
+      });
     }
   };
 
