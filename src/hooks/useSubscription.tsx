@@ -29,28 +29,49 @@ export interface Subscription {
   trial_days_remaining?: number;
 }
 
-// Check if user should be blocked (expired trial, no active subscription)
+// Pricing (Nov 2026): no free trials. Without an active paid subscription you're on Free, which
+// includes one complete study set; creating more needs Pro. The server enforces the same rule
+// (process-material only counts status = 'active' subscriptions as paid).
+export const FREE_STUDY_SETS = 1;
+
+export function isPaidSubscription(subscription?: Subscription | null): boolean {
+  return subscription?.status === 'active' && !!subscription.plan && subscription.plan !== 'free';
+}
+
+/** How much of the free allowance this user has used (non-failed materials). */
+export function useFreeStudySetUsage() {
+  const { user } = useAuth();
+  const { data: subscription, isLoading: subLoading } = useSubscription();
+  const isPaid = isPaidSubscription(subscription);
+
+  const { data: used, isLoading: countLoading } = useQuery({
+    queryKey: ['free-study-set-usage', user?.id],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('study_materials')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+        .neq('processing_status', 'failed');
+      if (error) throw error;
+      return count ?? 0;
+    },
+    enabled: !!user?.id && !isPaid,
+    staleTime: 30_000,
+  });
+
+  return {
+    isPaid,
+    used: used ?? 0,
+    limitReached: !isPaid && (used ?? 0) >= FREE_STUDY_SETS,
+    isLoading: subLoading || (!isPaid && countLoading),
+  };
+}
+
+// Blocked = a free user who has used their study set. Only gates creating new content; everything
+// they already made stays available.
 export function useIsBlocked() {
-  const { data: subscription, isLoading } = useSubscription();
-  
-  if (isLoading || !subscription) {
-    return { isBlocked: false, isLoading: true };
-  }
-  
-  // Active paid subscribers - not blocked
-  if (subscription.status === 'active' && subscription.plan !== 'free') {
-    return { isBlocked: false, isLoading: false };
-  }
-  
-  // Users on trial - not blocked
-  if (subscription.is_trial) {
-    return { isBlocked: false, isLoading: false };
-  }
-  
-  // Trial used and expired, or cancelled subscription - blocked
-  const isBlocked = subscription.trial_used === true && subscription.plan === 'free';
-  
-  return { isBlocked, isLoading: false };
+  const { limitReached, isLoading } = useFreeStudySetUsage();
+  return { isBlocked: !isLoading && limitReached, isLoading };
 }
 
 export interface PlanFeatures {
@@ -71,7 +92,7 @@ export interface PlanFeatures {
 
 export const PLAN_FEATURES: Record<PlanType, PlanFeatures> = {
   free: {
-    maxDocuments: 'unlimited', // Same as Pro - trial model
+    maxDocuments: FREE_STUDY_SETS, // One complete study set, then Pro
     aiSummaries: true,
     flashcards: 'unlimited',
     practiceQuestions: true,
@@ -137,6 +158,11 @@ export function useSubscription() {
         // Ensure we always return a valid subscription object
         if (!data?.subscription) {
           return { plan: 'free', status: 'active' };
+        }
+
+        // Free trials are discontinued: a remaining "trial" row is treated as Free everywhere.
+        if (data.subscription.status === 'trial' || data.subscription.is_trial) {
+          return { ...data.subscription, plan: 'free', status: 'active', is_trial: false, trial_days_remaining: 0 };
         }
 
         return data.subscription;
@@ -248,8 +274,7 @@ export function useCancelSubscription() {
 
 export function usePlanFeatures() {
   const { data: subscription } = useSubscription();
-  // If on trial, treat as 'pro' for feature access
-  const plan = subscription?.is_trial ? 'pro' : (subscription?.plan || 'free');
+  const plan = isPaidSubscription(subscription) ? subscription!.plan : 'free';
   return PLAN_FEATURES[plan];
 }
 
@@ -258,52 +283,12 @@ export function useCanAccessFeature(feature: keyof PlanFeatures) {
   return !!features[feature];
 }
 
-export function useStartTrial() {
-  const { session } = useAuth();
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      if (!session?.access_token) {
-        throw new Error('Not authenticated');
-      }
-
-      const { data, error } = await supabase.functions.invoke('paystack/start-trial', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (error) throw error;
-      if (data?.error) throw new Error(data.message || data.error);
-      return data;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['subscription'] });
-      toast.success(data.message || 'Trial started! Enjoy 3 days of Pro features.');
-    },
-    onError: (error: any) => {
-      toast.error(error.message || 'Failed to start trial');
-    },
-  });
-}
-
+/** Free trials are discontinued; kept so older callers compile. Always "no trial". */
 export function useTrialStatus() {
-  const { data: subscription } = useSubscription();
-
-  if (!subscription?.is_trial) {
-    return {
-      isOnTrial: false,
-      trialDaysRemaining: 0,
-      trialEndDate: undefined,
-      trialExpired: subscription?.trial_used && subscription?.plan === 'free',
-    };
-  }
-
   return {
-    isOnTrial: true,
-    trialDaysRemaining: subscription.trial_days_remaining || 0,
-    trialEndDate: subscription.trial_end_date,
+    isOnTrial: false,
+    trialDaysRemaining: 0,
+    trialEndDate: undefined as string | undefined,
     trialExpired: false,
   };
 }

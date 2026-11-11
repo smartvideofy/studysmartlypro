@@ -53,7 +53,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription, useCancelSubscription, type PlanType } from "@/hooks/useSubscription";
-import { useTrialStatus } from "@/hooks/useSubscription";
+import { isPaidSubscription, useFreeStudySetUsage } from "@/hooks/useSubscription";
 import { useTheme } from "next-themes";
 import { AvatarUpload } from "@/components/settings/AvatarUpload";
 import { PushNotificationSettings } from "@/components/settings/PushNotificationSettings";
@@ -84,12 +84,11 @@ export default function SettingsPage() {
   const { data: profile, isLoading } = useProfile();
   const { data: subscription, isLoading: subLoading } = useSubscription();
   const cancelSubscription = useCancelSubscription();
-  const { isOnTrial, trialDaysRemaining, trialExpired } = useTrialStatus();
+  const { limitReached } = useFreeStudySetUsage();
   const updateProfile = useUpdateProfile();
   const { theme, setTheme } = useTheme();
 
-  // Determine display state
-  const isExpiredUser = trialExpired || (subscription?.trial_used && subscription?.plan === 'free');
+  const isPaid = isPaidSubscription(subscription);
 
   const [fullName, setFullName] = useState("");
   const [studyGoal, setStudyGoal] = useState("general");
@@ -137,8 +136,7 @@ export default function SettingsPage() {
 
 
   const isDark = theme === "dark";
-  // Show Pro label if on trial
-  const displayPlan = isOnTrial ? 'pro' : (subscription?.plan || 'free');
+  const displayPlan = isPaid ? subscription!.plan : 'free';
   const planInfo = PLAN_LABELS[displayPlan];
 
   if (isLoading) {
@@ -202,44 +200,28 @@ export default function SettingsPage() {
                 icon={<Crown className="w-4 h-4" />}
                 label="Current Plan" 
                 description={
-                  isOnTrial
-                    ? `Pro trial - ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} remaining`
-                    : isExpiredUser
-                    ? 'Your trial has ended. Subscribe to continue.'
-                    : subscription?.status === 'active' 
-                      ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
-                      : 'Start your free trial'
+                  isPaid
+                    ? `Your subscription is active${subscription?.billing_interval ? ` (${subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'})` : ''}`
+                    : limitReached
+                      ? "You've used your free study set. Upgrade for unlimited uploads."
+                      : 'Free: one complete study set'
                 }
               >
                 <div className="flex items-center gap-2">
                   <Badge className={planInfo.color}>{planInfo.label}</Badge>
-                  {isOnTrial && (
-                    <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20">
-                      Trial
-                    </Badge>
-                  )}
-                  {isExpiredUser && (
-                    <Badge variant="outline" className="bg-destructive/10 text-destructive border-destructive/20">
-                      Expired
-                    </Badge>
-                  )}
                   {subscription?.billing_interval && subscription?.plan !== 'free' && (
                     <Badge variant="outline" className="capitalize text-xs">
                       {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
                     </Badge>
                   )}
-                  {(subscription?.plan === 'free' || isOnTrial || isExpiredUser) && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => navigate('/pricing')}
-                    >
-                      {isExpiredUser ? 'Subscribe Now' : isOnTrial ? 'Subscribe' : 'Start Trial'}
+                  {!isPaid && (
+                    <Button size="sm" onClick={() => navigate('/pricing')}>
+                      Upgrade
                     </Button>
                   )}
                 </div>
               </SettingRow>
-              {subscription?.plan !== 'free' && subscription?.current_period_end && !isOnTrial && (
+              {isPaid && subscription?.current_period_end && (
                 <>
                   <Separator />
                   <SettingRow 

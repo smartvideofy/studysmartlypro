@@ -105,8 +105,8 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
   const [language, setLanguage] = useState('en');
   const [generateTutorNotes, setGenerateTutorNotes] = useState(true);
   const [generateFlashcards, setGenerateFlashcards] = useState(true);
-  const [generateQuestions, setGenerateQuestions] = useState(false);
-  const [generateConceptMap, setGenerateConceptMap] = useState(false);
+  const [generateQuestions, setGenerateQuestions] = useState(true);
+  const [generateConceptMap, setGenerateConceptMap] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
 
   const { data: folders } = useFolders();
@@ -323,7 +323,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
     setGenerateTutorNotes(true);
     setGenerateFlashcards(true);
     setGenerateQuestions(true);
-    setGenerateConceptMap(false);
+    setGenerateConceptMap(true);
     setActiveTab('file');
   };
 
@@ -353,7 +353,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
               <Crown className="w-8 h-8 text-amber-500" />
             </div>
             <p className="text-muted-foreground">
-              You've reached your limit of <span className="font-semibold text-foreground">{maxDocuments} documents</span> on the free plan.
+              You've used your free study set. Upgrade to Pro for unlimited uploads; everything you've made stays available.
             </p>
             <p className="text-sm text-muted-foreground">
               Upgrade to Pro for unlimited document uploads and premium AI features.

@@ -99,10 +99,8 @@ export function PremiumGate({
   const canAccess = useCanAccessFeature(feature);
   const { data: subscription } = useSubscription();
   
-  // Check if user is in expired state
-  const isExpiredUser = useMemo(() => {
-    return subscription?.trial_used === true && subscription?.plan === 'free';
-  }, [subscription]);
+  // Free trials are discontinued, so there is no "trial ended" state to explain.
+  const isExpiredUser = useMemo(() => false && !!subscription, [subscription]);
   
   if (canAccess) {
     return <>{children}</>;

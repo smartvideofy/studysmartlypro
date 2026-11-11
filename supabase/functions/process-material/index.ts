@@ -951,6 +951,9 @@ serve(async (req) => {
     const { data: userPlan } = await supabase.rpc('get_user_plan', { p_user_id: materialUserId });
     const plan = userPlan || 'free';
     const isPremium = plan !== 'free';
+    // Free users can only ever process one study set (enforced in the extract step below), and that
+    // set gets every tool: practice questions and the concept map included.
+    const fullStudySet = true;
     
     console.log(`User ${materialUserId} has plan: ${plan}, isPremium: ${isPremium}`);
 
@@ -965,7 +968,7 @@ serve(async (req) => {
               .eq('user_id', materialUserId)
               .neq('processing_status', 'failed');
             if (!countError && count !== null && count > 1) {
-              throw new Error('Free study set used. Start your Studily Pro free trial for unlimited uploads.');
+              throw new Error("You've used your free study set. Upgrade to Studily Pro for unlimited uploads.");
             }
           }
           await supabase
@@ -988,15 +991,15 @@ serve(async (req) => {
           break;
         case 'questions':
           const { data: matQ } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
-          await handleQuestionsStep(supabase, matQ || material, materialId, materialUserId, isPremium);
+          await handleQuestionsStep(supabase, matQ || material, materialId, materialUserId, fullStudySet);
           break;
         case 'concept_map':
           const { data: matC } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
-          await handleConceptMapStep(supabase, matC || material, materialId, materialUserId, isPremium);
+          await handleConceptMapStep(supabase, matC || material, materialId, materialUserId, fullStudySet);
           break;
         case 'generate_all': {
           const { data: matAll } = await supabase.from('study_materials').select('*').eq('id', materialId).single();
-          await handleGenerateAllStep(supabase, matAll || material, materialId, materialUserId, isPremium);
+          await handleGenerateAllStep(supabase, matAll || material, materialId, materialUserId, fullStudySet);
           break;
         }
         case 'complete':
@@ -1021,7 +1024,7 @@ serve(async (req) => {
         .eq('user_id', materialUserId)
         .neq('processing_status', 'failed');
       if (!countError && count !== null && count > 1) {
-        throw new Error('Free study set used. Start your Studily Pro free trial for unlimited uploads.');
+        throw new Error("You've used your free study set. Upgrade to Studily Pro for unlimited uploads.");
       }
     }
 
@@ -1064,7 +1067,7 @@ serve(async (req) => {
       console.log('Summaries generated');
     } catch (e) { console.error('Error generating summaries:', e); }
 
-    if (material.generate_questions && isPremium) {
+    if (material.generate_questions && fullStudySet) {
       try {
         const questions = await generatePracticeQuestions(extractedContent, material);
         for (const q of questions) {
@@ -1093,7 +1096,7 @@ serve(async (req) => {
       } catch (e) { console.error('Error generating flashcards:', e); }
     }
 
-    if (material.generate_concept_map && isPremium) {
+    if (material.generate_concept_map && fullStudySet) {
       try {
         const conceptMap = await generateConceptMap(extractedContent, material);
         await supabase.from('concept_maps').insert({ material_id: materialId, user_id: materialUserId, nodes: (conceptMap as any).nodes || [], edges: (conceptMap as any).edges || [] });

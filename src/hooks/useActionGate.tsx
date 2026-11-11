@@ -8,9 +8,9 @@ export function useActionGate() {
 
   const guardAction = (action: () => void) => {
     if (isBlocked) {
-      toast.error("Subscribe to unlock this feature", {
-        description: "Your trial has ended. Subscribe to create and generate new content.",
-        action: { label: "View Plans", onClick: () => navigate("/pricing") },
+      toast.error("You've used your free study set", {
+        description: "Upgrade to Pro to upload more materials. Everything you've made stays available.",
+        action: { label: "Upgrade", onClick: () => navigate("/pricing") },
       });
       return;
     }

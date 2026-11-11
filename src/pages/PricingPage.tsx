@@ -1,69 +1,36 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Check, X, Sparkles, Loader2, Clock } from 'lucide-react';
+import { Check, X, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import DashboardLayout from '@/components/layout/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription, useInitializePayment, useVerifyPayment, useStartTrial, useTrialStatus, PlanType, BillingInterval } from '@/hooks/useSubscription';
+import {
+  useSubscription,
+  useInitializePayment,
+  useVerifyPayment,
+  useFreeStudySetUsage,
+  isPaidSubscription,
+  BillingInterval,
+} from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { SEOHead } from '@/components/seo/SEOHead';
 import { createSoftwareApplicationJsonLd } from '@/components/seo/jsonld';
 import { cn } from '@/lib/utils';
 
-interface PlanConfig {
-  name: string;
-  monthlyPrice: number;
-  yearlyPrice: number;
-  yearlySavings: number;
-  description: string;
-  features: string[];
-  popular?: boolean;
-  cta: string;
-  planType: PlanType;
-}
+// Pricing (Nov 2026): no free trial. Free = one complete study set; Pro = unlimited.
+const PRO = { monthly: 9, yearly: 90, yearlySavings: 18 };
 
-const plans: PlanConfig[] = [
-  {
-    name: 'Pro',
-    monthlyPrice: 9,
-    yearlyPrice: 90,
-    yearlySavings: 18,
-    description: 'Everything you need to study smarter',
-    planType: 'pro',
-    popular: true,
-    cta: 'Subscribe Now',
-    features: [
-      'Unlimited documents',
-      'Advanced tutor notes',
-      'Unlimited flashcards',
-      'Practice questions',
-      'Concept maps',
-      'AI chat with materials',
-      'Priority support',
-      'Export to Anki',
-    ],
-  },
-  {
-    name: 'Team',
-    monthlyPrice: 19,
-    yearlyPrice: 190,
-    yearlySavings: 38,
-    description: 'Perfect for study groups',
-    planType: 'team',
-    cta: 'Subscribe Now',
-    features: [
-      'Everything in Pro',
-      'Up to 5 team members',
-      'Shared study library',
-      'Collaborative notes',
-      'Team analytics',
-      'Admin dashboard',
-    ],
-  },
+const STUDY_TOOLS = ['Tutor notes', 'Summaries', 'Flashcards', 'Practice quizzes', 'Concept maps', 'Ask AI about your material'];
+
+const COMPARISON_ROWS: { feature: string; free: boolean | string; pro: boolean | string }[] = [
+  { feature: 'Uploads (PDF, Word, slides, audio, links)', free: '1 study set', pro: 'Unlimited' },
+  ...STUDY_TOOLS.map((feature) => ({ feature, free: true, pro: true })),
+  { feature: 'Spaced-repetition review', free: true, pro: true },
+  { feature: 'Export to Anki', free: true, pro: true },
+  { feature: 'Priority support', free: false, pro: true },
 ];
 
 export default function PricingPage() {
@@ -71,16 +38,13 @@ export default function PricingPage() {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const { data: subscription, isLoading: subLoading } = useSubscription();
+  const { limitReached } = useFreeStudySetUsage();
   const initPayment = useInitializePayment();
   const verifyPayment = useVerifyPayment();
-  const startTrial = useStartTrial();
-  const { isOnTrial, trialDaysRemaining, trialExpired } = useTrialStatus();
-  const [processingPlan, setProcessingPlan] = useState<PlanType | null>(null);
+  const [processing, setProcessing] = useState(false);
   const [billingInterval, setBillingInterval] = useState<BillingInterval>('monthly');
-  
-  // Determine user state for messaging
-  const isExpiredUser = trialExpired || (subscription?.trial_used && subscription?.plan === 'free');
-  const canStartTrial = !subscription?.trial_used && !subscription?.is_trial && subscription?.plan === 'free';
+
+  const isPaid = isPaidSubscription(subscription);
 
   // Handle payment verification callback
   useEffect(() => {
@@ -93,441 +57,226 @@ export default function PricingPage() {
       if (ref) {
         verifyPayment.mutate(ref, {
           onSuccess: () => {
-            // Clear URL params
             window.history.replaceState({}, '', '/pricing');
           },
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  const handleSelectPlan = async (plan: PlanConfig) => {
+  const upgrade = async () => {
     if (!user) {
       navigate('/auth');
       return;
     }
-
-
-    if (subscription?.plan === plan.planType && subscription?.status === 'active') {
-      toast.info(`You are already subscribed to ${plan.name}`);
+    if (isPaid) {
+      toast.info('You are already on Pro');
       return;
     }
-
-    setProcessingPlan(plan.planType);
-
+    setProcessing(true);
     try {
       const result = await initPayment.mutateAsync({
-        plan: plan.planType,
+        plan: 'pro',
         interval: billingInterval,
         callback_url: window.location.origin + '/pricing?verify=true',
       });
-
-      if (result.authorization_url) {
-        window.location.href = result.authorization_url;
-      }
+      if (result.authorization_url) window.location.href = result.authorization_url;
     } catch (error) {
       console.error('Payment initialization failed:', error);
     } finally {
-      setProcessingPlan(null);
+      setProcessing(false);
     }
   };
 
-  // Current plan for display
-  const currentPlan = subscription?.is_trial ? 'pro' : subscription?.plan;
-
-  const pricingOffers = plans.map(plan => ({
-    name: plan.name,
-    price: billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice,
-    description: plan.description,
-    features: plan.features,
-  }));
-
-  const getDisplayPrice = (plan: PlanConfig) => {
-    if (plan.monthlyPrice === 0) return 0;
-    return billingInterval === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
-  };
-
-  const getPriceSuffix = (plan: PlanConfig) => {
-    return billingInterval === 'monthly' ? '/month' : '/year';
-  };
+  const proPrice = billingInterval === 'monthly' ? PRO.monthly : PRO.yearly;
+  const suffix = billingInterval === 'monthly' ? '/month' : '/year';
 
   return (
     <DashboardLayout title="Pricing">
       <SEOHead
         title="Pricing"
-        description="Choose the perfect Getstudily plan for your learning needs. Start free, upgrade to Pro for unlimited features. Simple, transparent pricing with no hidden fees."
+        description="Getstudily is free for your first complete study set. Upgrade to Pro for unlimited uploads."
         url="/pricing"
-        jsonLd={createSoftwareApplicationJsonLd(pricingOffers)}
+        jsonLd={createSoftwareApplicationJsonLd([
+          { name: 'Free', price: 0, description: 'One complete study set', features: STUDY_TOOLS },
+          { name: 'Pro', price: proPrice, description: 'Unlimited uploads', features: ['Unlimited uploads', ...STUDY_TOOLS] },
+        ])}
       />
-      <div className="container mx-auto px-4 py-12 max-w-6xl">
-        {/* Welcome Back Offer Banner */}
-        {isExpiredUser && <WelcomeBackBanner />}
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            {isExpiredUser ? (
-              <>Continue learning with <span className="text-primary">Getstudily</span></>
-            ) : isOnTrial ? (
-              <>Keep your <span className="text-primary">Pro access</span></>
+      <div className="container mx-auto px-4 py-10 max-w-5xl">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-5xl font-bold mb-3">
+            {isPaid ? (
+              <>You're on <span className="text-primary">Pro</span></>
             ) : (
-              <>Choose your <span className="text-primary">plan</span></>
+              <>Study everything with <span className="text-primary">Pro</span></>
             )}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {isExpiredUser 
-              ? 'Your trial has ended. Subscribe to access all your materials and study tools.'
-              : isOnTrial 
-                ? `You have ${trialDaysRemaining} day${trialDaysRemaining !== 1 ? 's' : ''} left. Subscribe now to keep full access.`
-                : canStartTrial
-                  ? 'Start with a 3-day free trial. No credit card required.'
-                  : 'All plans include everything you need to study smarter.'
-            }
+            {isPaid
+              ? 'Unlimited uploads and every study tool.'
+              : limitReached
+                ? "You've used your free study set. Upgrade to turn every lecture, chapter and handout into notes, flashcards and quizzes."
+                : 'Your first study set is free, with every tool. Upgrade when you want to add more.'}
           </p>
-        </motion.div>
+        </div>
 
-        {/* Billing Toggle */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 mb-10"
-        >
-          <div className="flex items-center gap-4">
-            <span className={cn(
-              "text-sm font-medium transition-colors",
-              billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground'
-            )}>
-              Monthly
-            </span>
-            
-            <Switch
-              checked={billingInterval === 'yearly'}
-              onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
-            />
-            
-            <span className={cn(
-              "text-sm font-medium transition-colors",
-              billingInterval === 'yearly' ? 'text-foreground' : 'text-muted-foreground'
-            )}>
-              Annually
-            </span>
-          </div>
-          
-          <AnimatePresence mode="wait">
-            {billingInterval === 'yearly' && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.8, x: -10 }}
-                animate={{ opacity: 1, scale: 1, x: 0 }}
-                exit={{ opacity: 0, scale: 0.8, x: -10 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20 whitespace-nowrap">
-                  Save up to 17%
-                </Badge>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </motion.div>
+        {/* Billing toggle */}
+        <div className="flex items-center justify-center gap-4 mb-10">
+          <span className={cn('text-sm font-medium', billingInterval === 'monthly' ? 'text-foreground' : 'text-muted-foreground')}>
+            Monthly
+          </span>
+          <Switch
+            checked={billingInterval === 'yearly'}
+            onCheckedChange={(checked) => setBillingInterval(checked ? 'yearly' : 'monthly')}
+            aria-label="Bill annually"
+          />
+          <span className={cn('text-sm font-medium', billingInterval === 'yearly' ? 'text-foreground' : 'text-muted-foreground')}>
+            Annually
+          </span>
+          <Badge className="bg-green-500/10 text-green-700 dark:text-green-400 border border-green-500/20">
+            2 months free
+          </Badge>
+        </div>
 
         {verifyPayment.isPending && (
           <div className="flex items-center justify-center gap-2 mb-8 p-4 bg-primary/10 rounded-lg">
             <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-primary font-medium">Verifying your payment...</span>
+            <span className="text-primary font-medium">Verifying your payment…</span>
           </div>
         )}
 
-        <div className="grid md:grid-cols-2 gap-6 lg:gap-8 max-w-4xl mx-auto">
-          {plans.map((plan, index) => {
-            const isCurrentPlan = currentPlan === plan.planType;
-            const isActiveSubscriber = subscription?.status === 'active' && subscription?.plan !== 'free' && !subscription?.is_trial;
+        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto items-stretch">
+          {/* Free */}
+          <Card variant="elevated" className="flex flex-col">
+            <CardHeader className="text-center pb-2">
+              <CardTitle className="text-2xl">Free</CardTitle>
+              <div className="mt-4">
+                <span className="text-4xl font-bold">$0</span>
+              </div>
+              <CardDescription className="mt-2">One complete study set</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <span className="text-sm">1 upload, with every study tool</span>
+                </li>
+                {STUDY_TOOLS.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <span className="text-sm">{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button className="w-full" variant="outline" size="lg" disabled>
+                {isPaid ? 'Included' : limitReached ? 'Free study set used' : 'Your current plan'}
+              </Button>
+            </CardFooter>
+          </Card>
 
-            return (
-              <motion.div
-                key={plan.name}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
+          {/* Pro */}
+          <Card variant="premium" className="relative flex flex-col border-primary shadow-lg shadow-primary/20">
+            <CardHeader className="text-center pb-2 pt-8">
+              <Badge className="mx-auto mb-2 w-fit bg-primary text-primary-foreground">
+                <Sparkles className="h-3 w-3" />
+                Unlimited
+              </Badge>
+              <CardTitle className="text-2xl">Pro</CardTitle>
+              <div className="mt-4">
+                <span className="text-4xl font-bold text-primary">${proPrice}</span>
+                <span className="text-muted-foreground">{suffix}</span>
+              </div>
+              <CardDescription className="mt-2">
+                {billingInterval === 'yearly' ? `Save $${PRO.yearlySavings} a year` : 'Cancel anytime'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <ul className="space-y-3">
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <span className="text-sm font-medium">Unlimited uploads</span>
+                </li>
+                {STUDY_TOOLS.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                    <span className="text-sm">{f}</span>
+                  </li>
+                ))}
+                <li className="flex items-start gap-2">
+                  <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                  <span className="text-sm">Priority support</span>
+                </li>
+              </ul>
+            </CardContent>
+            <CardFooter>
+              <Button
+                className="w-full"
+                variant="hero"
+                size="lg"
+                disabled={subLoading || processing || verifyPayment.isPending || isPaid}
+                onClick={upgrade}
               >
-                <Card
-                  variant={plan.popular ? 'premium' : 'elevated'}
-                  className={cn(
-                    "relative h-full flex flex-col",
-                    plan.popular && "border-primary shadow-lg shadow-primary/20 scale-105"
-                  )}
-                >
-                  {plan.popular && (
-                    <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground">
-                      <Sparkles className="h-3 w-3 mr-1" />
-                      Most Popular
-                    </Badge>
-                  )}
-
-                  <CardHeader className="text-center pb-2">
-                    <CardTitle className="text-2xl">{plan.name}</CardTitle>
-                    
-                    {/* Animated Price Display */}
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={`${plan.name}-${billingInterval}`}
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className="mt-4"
-                      >
-                        <span className="text-4xl font-bold text-primary">
-                          ${getDisplayPrice(plan)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          {getPriceSuffix(plan)}
-                        </span>
-                    {billingInterval === 'monthly' && (
-                      <span className="text-xs text-muted-foreground ml-1">
-                        (billed monthly)
-                      </span>
-                    )}
-                      </motion.div>
-                    </AnimatePresence>
-
-                    {/* Savings Badge for Yearly */}
-                    <AnimatePresence mode="wait">
-                      {billingInterval === 'yearly' && plan.yearlySavings > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, scale: 0.8, height: 0 }}
-                          animate={{ opacity: 1, scale: 1, height: 'auto' }}
-                          exit={{ opacity: 0, scale: 0.8, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="mt-2"
-                        >
-                          <Badge className="bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20">
-                            Save ${plan.yearlySavings}/year
-                          </Badge>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-
-                    <CardDescription className="mt-2">
-                      {plan.description}
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent className="flex-1">
-                    <ul className="space-y-3">
-                      {plan.features.map((feature, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                          <span className="text-sm">{feature}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </CardContent>
-
-                  <CardFooter>
-                    <Button
-                      className="w-full"
-                      variant={plan.popular ? 'hero' : 'outline'}
-                      size="lg"
-                      disabled={
-                        subLoading ||
-                        processingPlan !== null ||
-                        verifyPayment.isPending ||
-                        startTrial.isPending ||
-                        (isActiveSubscriber && isCurrentPlan)
-                      }
-                      onClick={() => {
-                        // If user clicks Pro and can start trial, start trial instead
-                        if (plan.planType === 'pro' && canStartTrial) {
-                          startTrial.mutate();
-                        } else {
-                          handleSelectPlan(plan);
-                        }
-                      }}
-                    >
-                      {processingPlan === plan.planType ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Processing...
-                        </>
-                      ) : startTrial.isPending && plan.planType === 'pro' ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Starting Trial...
-                        </>
-                    ) : isActiveSubscriber && isCurrentPlan ? (
-                      'Current Plan'
-                      ) : plan.planType === 'pro' && canStartTrial ? (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          Start 3-Day Free Trial
-                        </>
-                    ) : isOnTrial && plan.planType === 'pro' ? (
-                      'Subscribe Now'
-                    ) : isExpiredUser && plan.planType === 'pro' ? (
-                      'Subscribe Now'
-                      ) : (
-                        plan.cta
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            );
-          })}
+                {processing ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Opening checkout…
+                  </>
+                ) : isPaid ? (
+                  'Current plan'
+                ) : (
+                  'Upgrade to Pro'
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
         </div>
 
-        {subscription?.status === 'active' && subscription?.plan !== 'free' && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="mt-12 text-center"
-          >
+        {isPaid && (
+          <div className="mt-10 text-center">
             <p className="text-muted-foreground mb-4">
-              You are currently on the{' '}
-              <span className="font-semibold text-primary capitalize">
-                {subscription.plan}
-              </span>{' '}
-              plan
-              {subscription.billing_interval && (
-                <Badge variant="outline" className="ml-2 capitalize">
-                  {subscription.billing_interval === 'yearly' ? 'Annual' : 'Monthly'}
-                </Badge>
-              )}
-              {subscription.current_period_end && (
-                <>
-                  {' '}
-                  · Renews{' '}
-                  {subscription.billing_interval === 'yearly' ? 'annually' : 'monthly'} on{' '}
-                  {new Date(subscription.current_period_end).toLocaleDateString()}
-                </>
-              )}
+              {subscription?.billing_interval === 'yearly' ? 'Annual' : 'Monthly'} Pro plan
+              {subscription?.current_period_end && <> · renews on {new Date(subscription.current_period_end).toLocaleDateString()}</>}
             </p>
-            <Button
-              variant="ghost"
-              className="text-muted-foreground hover:text-destructive"
-              onClick={() => navigate('/settings')}
-            >
-              Manage Subscription
+            <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/settings')}>
+              Manage subscription
             </Button>
-          </motion.div>
+          </div>
         )}
 
-        {/* Feature Comparison Table */}
-        <FeatureComparisonTable />
-      </div>
-    </DashboardLayout>
-  );
-}
-
-/* ─── Feature Comparison Table ─── */
-
-const COMPARISON_ROWS: { feature: string; free: boolean | string; pro: boolean | string; team: boolean | string }[] = [
-  { feature: 'Document Uploads', free: false, pro: 'Unlimited', team: 'Unlimited' },
-  { feature: 'AI Summaries', free: false, pro: true, team: true },
-  { feature: 'Flashcard Generation', free: false, pro: 'Unlimited', team: 'Unlimited' },
-  { feature: 'Practice Questions', free: false, pro: true, team: true },
-  { feature: 'Concept Maps', free: false, pro: true, team: true },
-  { feature: 'Advanced Tutor Notes', free: false, pro: true, team: true },
-  { feature: 'AI Chat with Materials', free: false, pro: true, team: true },
-  { feature: 'Audio Overview', free: false, pro: true, team: true },
-  { feature: 'Export to Anki', free: false, pro: true, team: true },
-  { feature: 'Priority Support', free: false, pro: true, team: true },
-  { feature: 'Team Members', free: false, pro: false, team: 'Up to 5' },
-  { feature: 'Shared Library', free: false, pro: false, team: true },
-  { feature: 'Team Analytics', free: false, pro: false, team: true },
-];
-
-function FeatureComparisonTable() {
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.3 }}
-      className="mt-16 max-w-4xl mx-auto"
-    >
-      <h2 className="text-2xl font-bold text-center mb-6 font-display">Compare Plans</h2>
-      <div className="bg-card border border-border rounded-2xl overflow-hidden">
-        {/* Header */}
-        <div className="grid grid-cols-4 text-sm font-medium border-b border-border bg-secondary/30">
-          <div className="p-4 text-muted-foreground">Feature</div>
-          <div className="p-4 text-center text-muted-foreground">Free</div>
-          <div className="p-4 text-center text-primary font-semibold">Pro</div>
-          <div className="p-4 text-center text-foreground">Team</div>
-        </div>
-        {/* Rows */}
-        {COMPARISON_ROWS.map((row, i) => (
-          <div
-            key={row.feature}
-            className={cn(
-              "grid grid-cols-4 text-sm",
-              i < COMPARISON_ROWS.length - 1 && "border-b border-border/50"
-            )}
-          >
-            <div className="p-3.5 text-foreground">{row.feature}</div>
-            {(['free', 'pro', 'team'] as const).map((plan) => (
-              <div key={plan} className="p-3.5 flex justify-center items-center">
-                {row[plan] === true ? (
-                  <Check className="w-4 h-4 text-success" />
-                ) : row[plan] === false ? (
-                  <X className="w-4 h-4 text-muted-foreground/40" />
-                ) : (
-                  <span className="text-xs font-medium text-foreground">{row[plan]}</span>
-                )}
+        {/* Comparison */}
+        <div className="mt-14 max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-center mb-6 font-display">Compare plans</h2>
+          <div className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="grid grid-cols-[1fr_auto_auto] text-sm font-medium border-b border-border bg-secondary/30">
+              <div className="p-4 text-muted-foreground">Feature</div>
+              <div className="p-4 w-28 sm:w-36 text-center text-muted-foreground">Free</div>
+              <div className="p-4 w-28 sm:w-36 text-center text-primary font-semibold">Pro</div>
+            </div>
+            {COMPARISON_ROWS.map((row, i) => (
+              <div
+                key={row.feature}
+                className={cn('grid grid-cols-[1fr_auto_auto] text-sm', i < COMPARISON_ROWS.length - 1 && 'border-b border-border/50')}
+              >
+                <div className="p-3.5 text-foreground">{row.feature}</div>
+                {(['free', 'pro'] as const).map((plan) => (
+                  <div key={plan} className="p-3.5 w-28 sm:w-36 flex justify-center items-center">
+                    {row[plan] === true ? (
+                      <Check className="w-4 h-4 text-success" aria-label="Included" />
+                    ) : row[plan] === false ? (
+                      <X className="w-4 h-4 text-muted-foreground/40" aria-label="Not included" />
+                    ) : (
+                      <span className="text-xs font-medium text-foreground text-center">{row[plan]}</span>
+                    )}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
-        ))}
+        </div>
       </div>
-    </motion.div>
-  );
-}
-
-/* ─── Welcome Back Banner ─── */
-
-function WelcomeBackBanner() {
-  const [countdown, setCountdown] = useState('');
-
-  useEffect(() => {
-    const key = 'expired_offer_start';
-    let start = localStorage.getItem(key);
-    if (!start) {
-      start = Date.now().toString();
-      localStorage.setItem(key, start);
-    }
-    const endTime = parseInt(start) + 72 * 60 * 60 * 1000;
-    const tick = () => {
-      const remaining = endTime - Date.now();
-      if (remaining <= 0) { setCountdown(''); return; }
-      const h = Math.floor(remaining / 3600000);
-      const m = Math.floor((remaining % 3600000) / 60000);
-      setCountdown(`${h}h ${m}m`);
-    };
-    tick();
-    const interval = setInterval(tick, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  if (!countdown) return null;
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: -10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="mb-8 bg-gradient-to-r from-warning/15 via-warning/10 to-primary/10 border border-warning/30 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-center gap-3 text-center"
-    >
-      <Sparkles className="w-6 h-6 text-warning shrink-0" />
-      <div>
-        <p className="font-semibold text-foreground">Welcome back! Get 30% off your first month</p>
-        <p className="text-sm text-muted-foreground">Limited-time offer for returning learners</p>
-      </div>
-      <Badge variant="outline" className="border-warning/40 text-warning text-sm">
-        <Clock className="w-3.5 h-3.5 mr-1" />
-        {countdown} left
-      </Badge>
-    </motion.div>
+    </DashboardLayout>
   );
 }

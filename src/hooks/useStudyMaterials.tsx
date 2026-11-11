@@ -196,6 +196,7 @@ export function useCreateStudyMaterial() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['free-study-set-usage'] });
       toast.success('Material uploaded successfully');
     },
     onError: (error) => {
@@ -222,6 +223,7 @@ export function useUpdateStudyMaterial() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['free-study-set-usage'] });
       queryClient.invalidateQueries({ queryKey: ['study-material', data.id] });
     },
     onError: (error) => {
@@ -245,6 +247,7 @@ export function useDeleteStudyMaterial() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['study-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['free-study-set-usage'] });
       toast.success('Material deleted');
     },
     onError: (error) => {
