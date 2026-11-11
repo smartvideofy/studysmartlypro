@@ -17,10 +17,24 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "favicon.ico", "og-image.jpg"],
       workbox: {
-        globPatterns: ["**/*.{js,css,html,ico,woff2}"],
+        // index.html is NOT precached. When it was, a service worker that installed while the host
+        // was still serving the previous build stored that old HTML under the new revision, and from
+        // then on every visit loaded chunks that no longer exist ("Something went wrong" on /dashboard).
+        // Pages now always come from the network, with the last good copy only as an offline fallback.
+        globPatterns: ["**/*.{js,css,ico,woff2}"],
         globIgnores: ["**/og-image.*", "**/pwa-512x512.png"],
-        navigateFallbackDenylist: [/^\/~oauth/],
+        navigateFallback: null,
+        cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            urlPattern: ({ request, url }) => request.mode === "navigate" && !url.pathname.startsWith("/~oauth"),
+            handler: "NetworkFirst",
+            options: {
+              cacheName: "pages",
+              networkTimeoutSeconds: 5,
+              expiration: { maxEntries: 5 },
+            },
+          },
           {
             urlPattern: /\.(?:png|jpg|jpeg|svg|webp)$/i,
             handler: "CacheFirst",
@@ -29,15 +43,8 @@ export default defineConfig(({ mode }) => ({
               expiration: { maxEntries: 60, maxAgeSeconds: 60 * 60 * 24 * 30 },
             },
           },
-          {
-            urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "supabase-api",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 5 },
-              networkTimeoutSeconds: 10,
-            },
-          },
+          // Supabase API responses are deliberately not cached: they are per-user (e.g. /auth/v1/user
+          // has the same URL for everyone), so a cached copy could show stale or another account's data.
         ],
       },
       manifest: {

@@ -24,6 +24,18 @@ class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error("ErrorBoundary caught an error:", error, errorInfo);
+    // A missing code chunk means this tab is running an old build: reload once to get the current one.
+    if (/dynamically imported module|Importing a module script failed|Loading chunk/i.test(error?.message ?? "")) {
+      try {
+        const key = "studily:chunk-reload";
+        if (Date.now() - Number(sessionStorage.getItem(key) || 0) > 30_000) {
+          sessionStorage.setItem(key, String(Date.now()));
+          window.location.reload();
+        }
+      } catch {
+        // storage unavailable: leave the error screen up
+      }
+    }
   }
 
   handleReload = () => {
