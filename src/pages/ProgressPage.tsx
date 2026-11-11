@@ -19,6 +19,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { useStudyStats } from "@/hooks/useStudySessions";
 import { useDecks, useDeckMasteryStats } from "@/hooks/useFlashcards";
+import { useAchievements, useUserAchievements } from "@/hooks/useGamification";
 import { Skeleton, SkeletonProgressStat, SkeletonAchievement, SkeletonProgressChart } from "@/components/ui/skeleton";
 import { ErrorRecovery } from "@/components/ui/error-recovery";
 import { useQueryClient } from "@tanstack/react-query";
@@ -38,33 +39,30 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-// Static achievements - these could be computed from stats in the future
-const getAchievements = (stats: any, deckCount: number) => [
-  { 
-    icon: Flame, 
-    title: "7 Day Streak", 
-    description: "Study every day for a week", 
-    unlocked: (stats?.streak || 0) >= 7 
-  },
-  { 
-    icon: Brain, 
-    title: "Memory Master", 
-    description: "Master 100 flashcards", 
-    unlocked: (stats?.totalCorrect || 0) >= 100 
-  },
-  { 
-    icon: Trophy, 
-    title: "First Session", 
-    description: "Complete your first study session", 
-    unlocked: (stats?.totalSessions || 0) >= 1 
-  },
-  { 
-    icon: Target, 
-    title: "Deck Builder", 
-    description: "Create 5 flashcard decks", 
-    unlocked: deckCount >= 5 
-  },
-];
+// The same achievements the Achievements page shows (server-awarded), not a separate hard-coded set
+// that disagreed with it ("First Session: Unlocked" next to "0 of 13 unlocked").
+const CATEGORY_ICON: Record<string, typeof Flame> = {
+  streaks: Flame,
+  cards: Layers,
+  study_time: Clock,
+  mastery: Brain,
+};
+
+type AchievementRow = { id: string; name: string; description: string; category: string; requirement_value: number };
+
+function pickAchievements(all: AchievementRow[] | undefined, earnedIds: Set<string>) {
+  const rows = (all ?? []).map((a) => ({
+    id: a.id,
+    icon: CATEGORY_ICON[a.category] ?? Trophy,
+    title: a.name,
+    description: a.description,
+    unlocked: earnedIds.has(a.id),
+    requirement: a.requirement_value,
+  }));
+  // Earned first, then the easiest ones still to get.
+  rows.sort((a, b) => Number(b.unlocked) - Number(a.unlocked) || a.requirement - b.requirement);
+  return rows.slice(0, 4);
+}
 
 // Component to render individual deck progress with real mastery data
 function DeckProgressRow({ deck }: { deck: { id: string; name: string; total: number; color: string } }) {
@@ -131,7 +129,12 @@ export default function ProgressPage() {
   const totalWeekMinutes = weeklyData.reduce((sum, d) => sum + d.minutes, 0);
   const totalWeekCards = weeklyData.reduce((sum, d) => sum + d.cards, 0);
 
-  const achievements = getAchievements(stats, decks?.length || 0);
+  const { data: allAchievements } = useAchievements();
+  const { data: userAchievements } = useUserAchievements();
+  const achievements = pickAchievements(
+    allAchievements as AchievementRow[] | undefined,
+    new Set((userAchievements ?? []).map((ua: { achievement_id: string }) => ua.achievement_id)),
+  );
 
   // Format time display
   const formatTime = (minutes: number) => {
@@ -302,7 +305,7 @@ export default function ProgressPage() {
                   <>
                     <div className="flex items-end justify-between gap-2 h-48">
                       {weeklyData.map((data, i) => {
-                        const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
+                        const height = data.activities > 0 ? Math.max(12, (data.minutes / maxMinutes) * 100) : 0;
                         const isToday = i === weeklyData.length - 1;
                         
                         return (
@@ -393,7 +396,7 @@ export default function ProgressPage() {
                   
                   return (
                     <div
-                      key={achievement.title}
+                      key={achievement.id}
                       className={`p-4 rounded-xl border ${
                         achievement.unlocked 
                           ? "bg-success/5 border-success/20" 

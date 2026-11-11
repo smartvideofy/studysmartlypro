@@ -49,6 +49,9 @@ export function PushNotificationSettings() {
     }
   };
 
+  // Web push isn't set up (no VAPID key, no service worker): don't show a dead "Coming Soon" row.
+  if (!isConfigured) return null;
+
   if (!isSupported) {
     return (
       <SettingRow
@@ -57,18 +60,6 @@ export function PushNotificationSettings() {
         description="Not supported in this browser"
       >
         <span className="text-xs text-muted-foreground">Unavailable</span>
-      </SettingRow>
-    );
-  }
-
-  if (!isConfigured) {
-    return (
-      <SettingRow
-        icon={<Bell className="w-4 h-4" />}
-        label="Push Notifications"
-        description="Receive alerts even when the app is closed"
-      >
-        <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
       </SettingRow>
     );
   }

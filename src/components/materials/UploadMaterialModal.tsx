@@ -162,8 +162,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
 
   const handleSubmitFile = async () => {
     if (files.length === 0) return;
-    // For single file, require title; for multi-file, auto-derive titles
-    if (!isMultiFile && !title.trim()) return;
+    // Title is optional: it falls back to the file name.
 
     setIsUploading(true);
     let successCount = 0;
@@ -173,7 +172,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
       for (const f of files) {
         try {
           const uploadResult = await uploadFile.mutateAsync(f);
-          const fileTitle = isMultiFile ? fileNameToTitle(f.name) : title.trim();
+          const fileTitle = isMultiFile || !title.trim() ? fileNameToTitle(f.name) : title.trim();
           await createMaterial.mutateAsync({
             title: fileTitle,
             file_name: uploadResult.fileName,
@@ -330,7 +329,7 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
 
   // For multi-file, title is auto-derived so not required
   const canSubmit = activeTab === 'file' 
-    ? files.length > 0 && (isMultiFile || title.trim()) && !isAtLimit
+    ? files.length > 0 && !isAtLimit
     : activeTab === 'youtube'
     ? videoUrl && isValidUrl && title.trim() && !isAtLimit
     : webUrl && isValidWebUrlState && title.trim() && !isAtLimit;
@@ -613,12 +612,12 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
           {/* Hide title field for multi-file (titles auto-derived from filenames) */}
           {!isMultiFile && (
             <div className="space-y-2">
-              <Label htmlFor="title">Title *</Label>
+              <Label htmlFor="title">{activeTab === 'file' ? <>Title <span className="text-muted-foreground font-normal">(optional)</span></> : "Title *"}</Label>
               <Input
                 id="title"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={activeTab === 'youtube' ? "e.g., Calculus Lecture 5" : "e.g., Chapter 5 - Cell Biology"}
+                placeholder={activeTab === 'youtube' ? "e.g., Calculus Lecture 5" : activeTab === 'file' ? "Uses the file name if left blank" : "e.g., Chapter 5 - Cell Biology"}
               />
             </div>
           )}
@@ -629,6 +628,11 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
             </p>
           )}
 
+          <details className="group rounded-lg border border-border px-3 py-2">
+            <summary className="cursor-pointer select-none text-sm font-medium text-muted-foreground group-open:mb-3">
+              More options (subject, folder, language, what to generate)
+            </summary>
+            <div className="grid gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="subject">Subject / Course</Label>
@@ -686,7 +690,6 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
               </Select>
             </div>
           </div>
-        </div>
 
         {/* AI Generation Options */}
         <div className="space-y-4 pt-4 border-t border-border">
@@ -733,6 +736,9 @@ export default function UploadMaterialModal({ open, onOpenChange }: UploadMateri
               />
             </div>
           </div>
+        </div>
+            </div>
+          </details>
         </div>
       </ResponsiveModalBody>
 

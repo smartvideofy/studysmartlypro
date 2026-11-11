@@ -48,7 +48,8 @@ function Badge({ className, variant, shimmer = false, children, ...props }: Badg
           aria-hidden="true"
         />
       )}
-      <span className="relative z-10">{children}</span>
+      {/* Flex row so an icon sits beside the text (icons are display:block and stacked above it). */}
+      <span className="relative z-10 inline-flex items-center gap-1">{children}</span>
     </div>
   );
 }

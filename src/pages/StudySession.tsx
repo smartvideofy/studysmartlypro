@@ -35,7 +35,7 @@ import {
   useUpdateStudySession 
 } from "@/hooks/useStudySessions";
 import { SRSButtons, calculateNextReviewExtended } from "@/components/flashcards/SRSButtons";
-import { useAwardXP, useUpdateDailyChallenge } from "@/hooks/useGamification";
+import { useUpdateDailyChallenge } from "@/hooks/useGamification";
 
 export default function StudySession() {
   const { deckId } = useParams();
@@ -58,7 +58,6 @@ export default function StudySession() {
   const reviewFlashcard = useReviewFlashcard();
   const createSession = useCreateStudySession();
   const updateSession = useUpdateStudySession();
-  const awardXP = useAwardXP();
   const updateDailyChallenge = useUpdateDailyChallenge();
 
   // Use due cards if available, otherwise use all cards
@@ -118,7 +117,8 @@ export default function StudySession() {
     setShowHint(false);
 
     // Award XP for studying
-    awardXP.mutate({ amount: correct ? 15 : 5, reason: "Flashcard study" });
+    // XP, streak and achievements are awarded by the server when the session is recorded
+    // (record-activity); awarding here as well counted every card twice.
     updateDailyChallenge.mutate({ progress: 1 });
     
     if (currentIndex < cards.length - 1) {
@@ -300,7 +300,7 @@ export default function StudySession() {
   }
 
   return (
-    <DashboardLayout title="">
+    <DashboardLayout title="Study session">
       <div className="max-w-3xl mx-auto">
         <motion.div
           initial={{ opacity: 0 }}
@@ -322,10 +322,6 @@ export default function StudySession() {
               <Badge variant="secondary" className="gap-1.5 px-3 py-1.5">
                 <Clock className="w-3.5 h-3.5" />
                 {formatTime(elapsedSeconds)}
-              </Badge>
-              <Badge variant="accent" className="gap-1.5 px-3 py-1.5">
-                <Flame className="w-3.5 h-3.5" />
-                {correctCount} correct
               </Badge>
             </div>
             

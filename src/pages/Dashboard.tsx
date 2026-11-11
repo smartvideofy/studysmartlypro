@@ -250,7 +250,7 @@ export default function Dashboard() {
           {[
             { icon: FileText, label: "Materials", value: materials?.length || 0, color: "text-primary", bg: "bg-primary/20", path: "/materials", isTime: false },
             { icon: Layers, label: "Flashcards", value: totalCards, color: "text-accent", bg: "bg-accent/20", path: "/flashcards", isTime: false },
-            { icon: Target, label: "Mastered", value: stats?.totalCorrect || 0, color: "text-success", bg: "bg-success/20", path: "/progress", isTime: false },
+            { icon: Target, label: "Mastered", value: stats?.masteredCards || 0, color: "text-success", bg: "bg-success/20", path: "/progress", isTime: false },
             { icon: Clock, label: "Study Time", value: stats?.totalTimeMinutes || 0, color: "text-primary", bg: "bg-primary/20", path: "/progress", isTime: true },
           ].map((stat) => (
             <motion.div
@@ -409,7 +409,7 @@ export default function Dashboard() {
               </Button>
             </CardHeader>
             <CardContent>
-              {!stats?.weekData || stats.weekData.length === 0 || stats.weekData.every(d => d.minutes === 0) ? (
+              {!stats?.weekData || stats.weekData.length === 0 || stats.weekData.every(d => d.activities === 0) ? (
                 <div className="flex flex-col items-center justify-center py-8 text-center">
                   <p className="text-sm text-muted-foreground">No activity yet this week</p>
                   <p className="text-xs text-muted-foreground/70 mt-1">Start studying to see your progress here</p>
@@ -418,7 +418,8 @@ export default function Dashboard() {
                 <div className="grid grid-cols-7 gap-2">
                   {stats.weekData.map((data, i) => {
                     const maxMinutes = Math.max(...stats.weekData.map(d => d.minutes), 1);
-                    const height = maxMinutes > 0 ? (data.minutes / maxMinutes) * 100 : 0;
+                    // A day with any study shows at least a sliver, even if it was under a minute.
+                    const height = data.activities > 0 ? Math.max(12, (data.minutes / maxMinutes) * 100) : 0;
                     const isToday = i === stats.weekData.length - 1;
                     return (
                       <div key={data.day} className="flex flex-col items-center gap-2">
