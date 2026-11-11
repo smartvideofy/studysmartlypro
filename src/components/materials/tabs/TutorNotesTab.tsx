@@ -1,24 +1,10 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ChevronDown, 
-  ChevronRight, 
-  RefreshCw, 
-  BookOpen,
-  Sparkles,
-  Loader2,
-  Maximize2,
-  X
-} from "lucide-react";
+import { ChevronDown, ChevronRight, RefreshCw, BookOpen, Sparkles, Loader2, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTutorNotes } from "@/hooks/useStudyMaterials";
 import { useRegenerateContent } from "@/hooks/useRegenerateContent";
 import { cn } from "@/lib/utils";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
 
 interface TutorNotesTabProps {
   materialId: string;
@@ -37,56 +23,21 @@ interface TutorNoteTopic {
   subtopics: TutorNoteSubtopic[];
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
 export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
   const { data: tutorNotes, isLoading } = useTutorNotes(materialId);
   const regenerate = useRegenerateContent(materialId);
-  const [expandedTopics, setExpandedTopics] = useState<Set<string>>(new Set());
-  const [expandedSubtopics, setExpandedSubtopics] = useState<Set<string>>(new Set());
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  // Notes open fully expanded: students came here to read. Track what they chose to close.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
-  const toggleTopic = (topicId: string) => {
-    const newExpanded = new Set(expandedTopics);
-    if (newExpanded.has(topicId)) {
-      newExpanded.delete(topicId);
-    } else {
-      newExpanded.add(topicId);
-    }
-    setExpandedTopics(newExpanded);
-  };
-
-  const toggleSubtopic = (subtopicId: string) => {
-    const newExpanded = new Set(expandedSubtopics);
-    if (newExpanded.has(subtopicId)) {
-      newExpanded.delete(subtopicId);
-    } else {
-      newExpanded.add(subtopicId);
-    }
-    setExpandedSubtopics(newExpanded);
-  };
-
-  const expandAll = () => {
-    if (!notes?.content?.topics) return;
-    const allTopics = new Set<string>();
-    const allSubtopics = new Set<string>();
-    notes.content.topics.forEach((topic: TutorNoteTopic, topicIndex: number) => {
-      const topicId = `topic-${topicIndex}`;
-      allTopics.add(topicId);
-      topic.subtopics.forEach((_: TutorNoteSubtopic, subtopicIndex: number) => {
-        allSubtopics.add(`${topicId}-subtopic-${subtopicIndex}`);
-      });
+  const toggle = (id: string) =>
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-    setExpandedTopics(allTopics);
-    setExpandedSubtopics(allSubtopics);
-  };
-
-  const collapseAll = () => {
-    setExpandedTopics(new Set());
-    setExpandedSubtopics(new Set());
-  };
-
-  const handleRegenerate = () => {
-    regenerate.mutate("tutor_notes");
-  };
 
   if (isLoading) {
     return (
@@ -97,250 +48,160 @@ export default function TutorNotesTab({ materialId }: TutorNotesTabProps) {
   }
 
   const notes = tutorNotes?.[0];
+  const topics: TutorNoteTopic[] = notes?.content?.topics ?? [];
 
-  if (!notes || !notes.content?.topics?.length) {
+  if (topics.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-8 text-center">
         <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
           <BookOpen className="w-8 h-8 text-primary" />
         </div>
         <h3 className="text-lg font-semibold mb-2">No tutor notes yet</h3>
-        <p className="text-muted-foreground max-w-sm mb-6">
-          AI-generated tutor notes will appear here once processing is complete.
-        </p>
-        <Button className="gap-2" onClick={handleRegenerate} disabled={regenerate.isPending}>
-          {regenerate.isPending ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Sparkles className="w-4 h-4" />
-          )}
-          Generate Notes
+        <p className="text-muted-foreground max-w-sm mb-6">Generate structured notes from this material.</p>
+        <Button className="gap-2" onClick={() => regenerate.mutate("tutor_notes")} disabled={regenerate.isPending}>
+          {regenerate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+          Generate notes
         </Button>
       </div>
     );
   }
 
-  const topicCount = notes.content.topics.length;
-  const subtopicCount = notes.content.topics.reduce(
-    (acc: number, t: TutorNoteTopic) => acc + (t.subtopics?.length || 0), 
-    0
-  );
+  const subtopicCount = topics.reduce((acc, t) => acc + (t.subtopics?.length || 0), 0);
+  const allIds = topics.flatMap((t, ti) => [`t${ti}`, ...(t.subtopics ?? []).map((_, si) => `t${ti}-s${si}`)]);
+  const anyOpen = collapsed.size < allIds.length;
 
-  const NotesContent = ({ inDialog = false }: { inDialog?: boolean }) => (
-    <ScrollArea className={inDialog ? "h-[80vh]" : "h-full"}>
-      <div className="p-4 sm:p-6 space-y-4">
+  return (
+    <ScrollArea className="h-full">
+      <div className="px-4 py-5 sm:px-8 sm:py-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:justify-between mb-6">
-          <div>
-            <h3 className="font-semibold flex items-center gap-2">
-              <BookOpen className="w-5 h-5 text-primary" />
-              Tutor Notes
-            </h3>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="min-w-0 flex-1">
+            <h2 className="font-semibold text-lg flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary shrink-0" />
+              Tutor notes
+            </h2>
             <p className="text-sm text-muted-foreground">
-              {topicCount} topics • {subtopicCount} subtopics
+              {plural(topics.length, "topic")} · {plural(subtopicCount, "section")}
             </p>
           </div>
-          <div className="flex gap-2 flex-wrap">
-            <Button 
-              variant="ghost" 
-              size="sm"
-              className="h-9 min-h-[36px]"
-              onClick={expandedTopics.size > 0 ? collapseAll : expandAll}
-            >
-              {expandedTopics.size > 0 ? 'Collapse' : 'Expand'}
-            </Button>
-            {!inDialog && (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="gap-2 h-9 min-h-[36px] hidden sm:flex"
-                onClick={() => setIsFullscreen(true)}
-              >
-                <Maximize2 className="w-4 h-4" />
-                <span className="hidden md:inline">Fullscreen</span>
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="gap-2 h-9 min-h-[36px]"
-              onClick={handleRegenerate}
-              disabled={regenerate.isPending}
-            >
-              {regenerate.isPending ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <RefreshCw className="w-4 h-4" />
-              )}
-              <span className="hidden sm:inline">Regenerate</span>
-            </Button>
-          </div>
+          <Button variant="ghost" size="sm" onClick={() => setCollapsed(anyOpen ? new Set(allIds) : new Set())}>
+            {anyOpen ? "Collapse all" : "Expand all"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            onClick={() => regenerate.mutate("tutor_notes")}
+            disabled={regenerate.isPending}
+            title="Regenerate notes"
+          >
+            {regenerate.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+            <span className="hidden sm:inline">Regenerate</span>
+          </Button>
         </div>
 
         {/* Topics */}
-        <div className="space-y-3">
-          {notes.content.topics.map((topic: TutorNoteTopic, topicIndex: number) => {
-            const topicId = `topic-${topicIndex}`;
-            const isExpanded = expandedTopics.has(topicId);
-
+        <div className="space-y-8">
+          {topics.map((topic, ti) => {
+            const topicId = `t${ti}`;
+            const topicOpen = !collapsed.has(topicId);
             return (
-              <motion.div
-                key={topicId}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: topicIndex * 0.05 }}
-                className="rounded-lg border border-border overflow-hidden"
-              >
-                {/* Topic Header */}
+              <section key={topicId}>
                 <button
-                  onClick={() => toggleTopic(topicId)}
-                  className="w-full flex items-center gap-3 p-4 hover:bg-secondary/50 transition-colors text-left"
+                  onClick={() => toggle(topicId)}
+                  className="w-full flex items-center gap-2 text-left group"
+                  aria-expanded={topicOpen}
                 >
-                  {isExpanded ? (
+                  {topicOpen ? (
                     <ChevronDown className="w-5 h-5 text-primary shrink-0" />
                   ) : (
                     <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
                   )}
-                  <span className="font-semibold">{topic.title}</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {topic.subtopics?.length || 0} subtopics
-                  </span>
+                  <h3 className="text-xl font-semibold text-foreground group-hover:text-primary transition-colors">
+                    {topic.title}
+                  </h3>
                 </button>
 
-                {/* Topic Content */}
-                <AnimatePresence>
-                  {isExpanded && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="border-t border-border"
-                    >
-                      <div className="p-4 space-y-4">
-                        {topic.subtopics?.map((subtopic: TutorNoteSubtopic, subtopicIndex: number) => {
-                          const subtopicId = `${topicId}-subtopic-${subtopicIndex}`;
-                          const isSubtopicExpanded = expandedSubtopics.has(subtopicId);
+                {topicOpen && (
+                  <div className="mt-4 space-y-6 border-l-2 border-primary/15 pl-5 ml-2.5">
+                    {(topic.subtopics ?? []).map((sub, si) => {
+                      const subId = `t${ti}-s${si}`;
+                      const subOpen = !collapsed.has(subId);
+                      return (
+                        <article key={subId}>
+                          <button
+                            onClick={() => toggle(subId)}
+                            className="w-full flex items-center gap-2 text-left group"
+                            aria-expanded={subOpen}
+                          >
+                            {subOpen ? (
+                              <ChevronDown className="w-4 h-4 text-primary shrink-0" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                            )}
+                            <h4 className="font-semibold text-base text-foreground group-hover:text-primary transition-colors">
+                              {sub.title}
+                            </h4>
+                          </button>
 
-                          return (
-                            <div key={subtopicId} className="pl-4 border-l-2 border-primary/20">
-                              <button
-                                onClick={() => toggleSubtopic(subtopicId)}
-                                className="w-full flex items-center gap-2 text-left mb-2"
-                              >
-                                {isSubtopicExpanded ? (
-                                  <ChevronDown className="w-4 h-4 text-primary" />
-                                ) : (
-                                  <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                )}
-                                <span className="font-medium text-sm">{subtopic.title}</span>
-                              </button>
+                          {subOpen && (
+                            <div className="mt-2 space-y-4 pl-6">
+                              <p className="text-[15px] leading-7 text-foreground/90 whitespace-pre-line">{sub.content}</p>
 
-                              <AnimatePresence>
-                                {isSubtopicExpanded && (
-                                  <motion.div
-                                    initial={{ height: 0, opacity: 0 }}
-                                    animate={{ height: "auto", opacity: 1 }}
-                                    exit={{ height: 0, opacity: 0 }}
-                                    className="space-y-3 pl-6"
-                                  >
-                                    {/* Content */}
-                                    <p className="text-sm text-muted-foreground">
-                                      {subtopic.content}
-                                    </p>
-
-                                    {/* Definitions */}
-                                    {subtopic.definitions && subtopic.definitions.length > 0 && (
-                                      <div className="space-y-2">
-                                        <h5 className="text-xs font-semibold uppercase text-muted-foreground">
-                                          Key Terms
-                                        </h5>
-                                        {subtopic.definitions.map((def, i) => (
-                                          <div key={i} className="bg-secondary/50 rounded-lg p-3">
-                                            <span className="font-medium text-sm">{def.term}:</span>
-                                            <span className="text-sm text-muted-foreground ml-2">
-                                              {def.definition}
-                                            </span>
-                                          </div>
-                                        ))}
+                              {sub.definitions && sub.definitions.length > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                                    Key terms
+                                  </h5>
+                                  <dl className="grid gap-2 sm:grid-cols-2">
+                                    {sub.definitions.map((def, i) => (
+                                      <div key={i} className="rounded-lg bg-secondary/60 p-3">
+                                        <dt className="font-medium text-sm text-foreground">{def.term}</dt>
+                                        <dd className="text-sm text-muted-foreground mt-0.5">{def.definition}</dd>
                                       </div>
-                                    )}
+                                    ))}
+                                  </dl>
+                                </div>
+                              )}
 
-                                    {/* Examples */}
-                                    {subtopic.examples && subtopic.examples.length > 0 && (
-                                      <div className="space-y-2">
-                                        <h5 className="text-xs font-semibold uppercase text-muted-foreground">
-                                          Examples
-                                        </h5>
-                                        <ul className="list-disc list-inside space-y-1">
-                                          {subtopic.examples.map((example, i) => (
-                                            <li key={i} className="text-sm text-muted-foreground">
-                                              {example}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
+                              {sub.examples && sub.examples.length > 0 && (
+                                <div>
+                                  <h5 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">
+                                    Examples
+                                  </h5>
+                                  <ul className="list-disc pl-5 space-y-1 text-[15px] leading-7 text-foreground/90">
+                                    {sub.examples.map((example, i) => (
+                                      <li key={i}>{example}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
 
-                                    {/* Exam Tips */}
-                                    {subtopic.exam_tips && subtopic.exam_tips.length > 0 && (
-                                      <div className="bg-accent/10 rounded-lg p-3 border border-accent/20">
-                                        <h5 className="text-xs font-semibold uppercase text-accent mb-2">
-                                          📝 Exam Tips
-                                        </h5>
-                                        <ul className="space-y-1">
-                                          {subtopic.exam_tips.map((tip, i) => (
-                                            <li key={i} className="text-sm flex items-start gap-2">
-                                              <span className="text-accent">•</span>
-                                              {tip}
-                                            </li>
-                                          ))}
-                                        </ul>
-                                      </div>
-                                    )}
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
+                              {sub.exam_tips && sub.exam_tips.length > 0 && (
+                                <div className={cn("rounded-lg border border-primary/20 bg-primary/5 p-3")}>
+                                  <h5 className="text-xs font-semibold uppercase tracking-wide text-primary mb-2 flex items-center gap-1.5">
+                                    <Lightbulb className="w-3.5 h-3.5" />
+                                    Exam tips
+                                  </h5>
+                                  <ul className="list-disc pl-5 space-y-1 text-sm text-foreground/90">
+                                    {sub.exam_tips.map((tip, i) => (
+                                      <li key={i}>{tip}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                             </div>
-                          );
-                        })}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                          )}
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
             );
           })}
         </div>
       </div>
     </ScrollArea>
-  );
-
-  return (
-    <>
-      <NotesContent />
-
-      {/* Fullscreen Dialog */}
-      <Dialog open={isFullscreen} onOpenChange={setIsFullscreen}>
-        <DialogContent className="max-w-5xl h-[90vh] p-0 gap-0">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-            <div>
-              <h2 className="text-lg font-semibold">Tutor Notes</h2>
-              <p className="text-sm text-muted-foreground">
-                {topicCount} topics • {subtopicCount} subtopics
-              </p>
-            </div>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setIsFullscreen(false)}
-            >
-              <X className="w-5 h-5" />
-            </Button>
-          </div>
-          <NotesContent inDialog />
-        </DialogContent>
-      </Dialog>
-    </>
   );
 }

@@ -56,12 +56,6 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-const quickActions = [
-  { icon: Upload, label: "Upload Material", path: "/materials", color: "primary" },
-  { icon: Layers, label: "Create Deck", path: "/flashcards/new", color: "accent" },
-  { icon: Brain, label: "Study Session", path: "/flashcards", color: "success" },
-  { icon: Sparkles, label: "AI Features", path: "/materials", color: "primary" },
-];
 
 function DashboardSkeleton() {
   return (
@@ -224,7 +218,7 @@ export default function Dashboard() {
                   </Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link to="/materials">
+                  <Link to="/materials?upload=1">
                     <Upload className="w-4 h-4 mr-1" />
                     Upload Material
                   </Link>
@@ -284,38 +278,6 @@ export default function Dashboard() {
           ))}
         </motion.div>
 
-        {/* Quick Actions - Clean cards */}
-        <motion.div variants={itemVariants}>
-          <h3 className="font-display text-base md:text-lg font-semibold mb-3 md:mb-4">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
-            {quickActions.map((action) => {
-              const Icon = action.icon;
-              const colorMap: Record<string, { bg: string; text: string }> = {
-                primary: { bg: "bg-primary/20", text: "text-primary" },
-                accent: { bg: "bg-accent/20", text: "text-accent" },
-                success: { bg: "bg-success/20", text: "text-success" },
-              };
-              const colors = colorMap[action.color];
-              return (
-                <motion.div
-                  key={action.label}
-                  whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 25 }}
-                >
-                  <Link
-                    to={action.path}
-                    className="block rounded-xl border border-border bg-card p-4 md:p-5 hover:shadow-md hover:border-primary/20 transition-all duration-200 min-h-[100px] md:min-h-[120px]"
-                  >
-                    <div className={`w-11 h-11 md:w-12 md:h-12 rounded-xl ${colors.bg} ${colors.text} flex items-center justify-center mb-2.5 md:mb-3`}>
-                      <Icon className="w-5 h-5 md:w-6 md:h-6" />
-                    </div>
-                    <span className="text-sm md:text-base font-medium">{action.label}</span>
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </div>
-        </motion.div>
 
         {/* Main Content Grid */}
         <div className="grid lg:grid-cols-3 gap-6">
@@ -369,7 +331,7 @@ export default function Dashboard() {
                     </div>
                     <p className="mb-3">No materials yet. Upload your first study material!</p>
                     <Button variant="outline" size="sm" asChild>
-                      <Link to="/materials">
+                      <Link to="/materials?upload=1">
                         <Upload className="w-4 h-4 mr-1" />
                         Upload Material
                       </Link>

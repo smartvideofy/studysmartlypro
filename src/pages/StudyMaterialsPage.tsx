@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Upload, 
@@ -66,6 +66,19 @@ export default function StudyMaterialsPage() {
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [materialToDelete, setMaterialToDelete] = useState<StudyMaterial | null>(null);
+
+  // "Upload" buttons elsewhere (header, dashboard) link to /materials?upload=1 to open the dialog directly.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isLoading: gateLoading } = useActionGate();
+  useEffect(() => {
+    if (searchParams.get("upload") !== "1" || gateLoading) return;
+    setSearchParams((p) => {
+      p.delete("upload");
+      return p;
+    }, { replace: true });
+    guardAction(() => setUploadModalOpen(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, gateLoading]);
 
   const queryClient = useQueryClient();
   const { data: materials, isLoading, isError } = useStudyMaterials(selectedFolderId);
