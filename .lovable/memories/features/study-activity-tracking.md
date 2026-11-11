@@ -30,7 +30,7 @@ Clients pass an `event_id` (uuid). Server uniqueness on `(user_id, event_id)` �
 
 ## Achievement re-check
 Runs inline on every `record-activity` call. Uses:
-- streaks → `profiles.current_streak` (set inside this call)
+- streaks → `profiles.streak_days` (set inside this call; there is no `current_streak`/`longest_streak` column)
 - cards → SUM(`cards_or_items`) from `study_activity_v` WHERE `activity_type='flashcard_review'`
 - study_time → SUM(`duration_seconds`)/60 from `study_activity_v`
 - mastery → COUNT of `flashcards` with `interval_days >= 21` across user's decks

@@ -163,42 +163,43 @@ Deno.serve(async (req) => {
   }
 
   // Streak roll-forward + XP/level update on profiles.
-  const { data: profile } = await svc
+  // The streak column is `streak_days` (what the web and mobile apps read). This used to select
+  // and update `current_streak` / `longest_streak`, which don't exist, so PostgREST rejected the
+  // whole read and update and no one's XP, level or streak ever moved.
+  const { data: profile, error: profileErr } = await svc
     .from('profiles')
-    .select('xp, level, current_streak, longest_streak, last_study_date')
+    .select('xp, level, streak_days, last_study_date')
     .eq('user_id', userId)
     .maybeSingle();
+  if (profileErr) console.error('read profile failed', profileErr);
 
   const today = new Date();
   const todayDateStr = today.toISOString().slice(0, 10);
   let nextStreak = 1;
-  let longestStreak = profile?.longest_streak ?? 0;
 
   if (profile?.last_study_date) {
-    const last = new Date(profile.last_study_date as string);
-    const lastDateStr = last.toISOString().slice(0, 10);
+    const lastDateStr = String(profile.last_study_date).slice(0, 10);
     if (lastDateStr === todayDateStr) {
-      nextStreak = profile.current_streak ?? 1;
+      nextStreak = Math.max(1, profile.streak_days ?? 1);
     } else {
       const diffDays = Math.round((Date.parse(todayDateStr) - Date.parse(lastDateStr)) / 86400000);
-      nextStreak = diffDays === 1 ? (profile.current_streak ?? 0) + 1 : 1;
+      nextStreak = diffDays === 1 ? (profile.streak_days ?? 0) + 1 : 1;
     }
   }
-  if (nextStreak > longestStreak) longestStreak = nextStreak;
 
   const newXp = (profile?.xp ?? 0) + xp;
   const newLevel = levelFromXp(newXp);
 
-  await svc
+  const { error: updateErr } = await svc
     .from('profiles')
     .update({
       xp: newXp,
       level: newLevel,
-      current_streak: nextStreak,
-      longest_streak: longestStreak,
+      streak_days: nextStreak,
       last_study_date: todayDateStr,
     })
     .eq('user_id', userId);
+  if (updateErr) console.error('update profile failed', updateErr);
 
   // Achievement re-check (inline).
   const newly_earned: { id: string; name: string; xp_reward: number }[] = [];
