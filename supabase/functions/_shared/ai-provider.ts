@@ -24,6 +24,10 @@ function geminiKey(): string | undefined {
   return Deno.env.get("GEMINI_API_KEY") ?? undefined;
 }
 
+function hasDocumentParts(messages: ChatMessage[]): boolean {
+  return messages.some((m) => Array.isArray(m.content) && m.content.some((p: any) => p?.type === "file"));
+}
+
 /** Does this OpenAI failure justify switching to Gemini? */
 function shouldFallback(status: number): boolean {
   return status === 429 || status === 402 || status === 403 || status >= 500;
@@ -47,6 +51,12 @@ function partsFromContent(content: any): any[] {
         parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
       }
       // Remote image URLs are not supported by Gemini inline data; skipped.
+    } else if (part.type === "file" && typeof part.file?.file_data === "string") {
+      // OpenAI document part ({ type: "file", file: { filename, file_data: "data:application/pdf;base64,…" } }).
+      const match = part.file.file_data.match(/^data:([^;]+);base64,(.+)$/);
+      if (match) {
+        parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+      }
     } else if (typeof part.text === "string") {
       parts.push({ text: part.text });
     }
@@ -141,7 +151,9 @@ export async function callAI(messages: ChatMessage[], maxTokens?: number): Promi
       } else {
         const errorText = await response.text();
         console.error("OpenAI API error:", response.status, errorText);
-        if (!shouldFallback(response.status)) {
+        // A 400 on a request carrying a document usually means the document part was refused;
+        // Gemini reads PDFs natively, so try it rather than failing the upload.
+        if (!shouldFallback(response.status) && !(response.status === 400 && hasDocumentParts(messages))) {
           throw new Error(`OpenAI API error: ${response.status}`);
         }
         console.warn(`OpenAI unavailable (${response.status}) - falling back to Gemini`);
