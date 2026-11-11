@@ -70,164 +70,19 @@ serve(async (req) => {
 
     console.log(`Running subscription check at ${nowISO}`);
 
-  // ============ TRIAL DRIP SEQUENCE (3-day trial) ============
-
-  // Trial Day 1: started yesterday → "2 days left" email
-  const oneDayAgo = new Date(now);
-  oneDayAgo.setDate(oneDayAgo.getDate() - 1);
-  const oneDayStart = new Date(oneDayAgo); oneDayStart.setHours(0, 0, 0, 0);
-  const oneDayEnd = new Date(oneDayAgo); oneDayEnd.setHours(23, 59, 59, 999);
-
-  const { data: day1Trials } = await supabase
+  // ============ LEGACY TRIAL ROWS ============
+  // Free trials were discontinued on 11 Nov 2026 (Free = one study set, then Pro). Any remaining
+  // `trial` rows are closed quietly: no "trial ending"/"trial ended" emails or notifications for a
+  // product that no longer offers trials.
+  const { data: closedTrials, error: closeTrialsError } = await supabase
     .from('subscriptions')
-    .select('id, user_id, trial_end_date')
+    .update({ plan: 'free', status: 'expired', updated_at: nowISO })
     .eq('status', 'trial')
-    .gte('trial_start_date', oneDayStart.toISOString())
-    .lte('trial_start_date', oneDayEnd.toISOString());
-
-  if (day1Trials && day1Trials.length > 0) {
-    console.log(`Found ${day1Trials.length} trials for day 1 email (2 days left)`);
-    for (const trial of day1Trials) {
-      const { data: existingLog } = await supabase
-        .from('email_logs').select('id')
-        .eq('user_id', trial.user_id).eq('template_name', 'trial_day1').limit(1).single();
-      if (!existingLog) {
-        await sendSubscriptionEmail(trial.user_id, 'trial_day1', {});
-      }
-    }
-  }
-
-  // Trial Day 2: started 2 days ago → "last full day" email with stats
-  const twoDaysAgo = new Date(now);
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDayStart = new Date(twoDaysAgo); twoDayStart.setHours(0, 0, 0, 0);
-  const twoDayEnd = new Date(twoDaysAgo); twoDayEnd.setHours(23, 59, 59, 999);
-
-  const { data: day2Trials } = await supabase
-    .from('subscriptions')
-    .select('id, user_id, trial_end_date')
-    .eq('status', 'trial')
-    .gte('trial_start_date', twoDayStart.toISOString())
-    .lte('trial_start_date', twoDayEnd.toISOString());
-
-  if (day2Trials && day2Trials.length > 0) {
-    console.log(`Found ${day2Trials.length} trials for day 2 email (last full day)`);
-    for (const trial of day2Trials) {
-      const { data: existingLog } = await supabase
-        .from('email_logs').select('id')
-        .eq('user_id', trial.user_id).eq('template_name', 'trial_day2').limit(1).single();
-      if (!existingLog) {
-        const { data: materials } = await supabase
-          .from('study_materials').select('id').eq('user_id', trial.user_id);
-        const { data: flashcards } = await supabase
-          .from('material_flashcards').select('id').eq('user_id', trial.user_id);
-        const { data: profile } = await supabase
-          .from('profiles').select('xp').eq('user_id', trial.user_id).single();
-
-        await sendSubscriptionEmail(trial.user_id, 'trial_day2', {
-          materialsCount: materials?.length || 0,
-          flashcardsCount: flashcards?.length || 0,
-          xpEarned: profile?.xp || 0,
-          trialEndDate: trial.trial_end_date ? new Date(trial.trial_end_date).toLocaleDateString('en-US', {
-            weekday: 'long', month: 'long', day: 'numeric',
-          }) : 'tomorrow',
-        });
-      }
-    }
-  }
-
-  // Trial Day 3: expires today → "expires today + 30% off" email
-  // This is handled by the trial_ending reminder below (1 day before expiry)
-
-  // ============ TRIAL EXPIRY HANDLING ============
-  
-  // Find trials expiring in 1 day (for "expires tomorrow" reminder)
-  const oneDayFromNow = new Date(now);
-  oneDayFromNow.setDate(oneDayFromNow.getDate() + 1);
-  const oneDayFutureStart = new Date(oneDayFromNow);
-  oneDayFutureStart.setHours(0, 0, 0, 0);
-  const oneDayFutureEnd = new Date(oneDayFromNow);
-  oneDayFutureEnd.setHours(23, 59, 59, 999);
-
-  const { data: expiringTrials, error: expiringTrialsError } = await supabase
-    .from('subscriptions')
-    .select('id, user_id, trial_end_date')
-    .eq('status', 'trial')
-    .gte('trial_end_date', oneDayFutureStart.toISOString())
-    .lte('trial_end_date', oneDayFutureEnd.toISOString());
-
-  if (expiringTrialsError) {
-    console.error('Error fetching expiring trials:', expiringTrialsError);
-  } else if (expiringTrials && expiringTrials.length > 0) {
-    console.log(`Found ${expiringTrials.length} trials expiring in 1 day`);
-
-    for (const trial of expiringTrials) {
-      const { data: existingLog } = await supabase
-        .from('email_logs')
-        .select('id')
-        .eq('user_id', trial.user_id)
-        .eq('template_name', 'trial_day3')
-        .limit(1)
-        .single();
-
-      if (!existingLog) {
-        await sendSubscriptionEmail(trial.user_id, 'trial_day3', {
-          trialEndDate: new Date(trial.trial_end_date).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }),
-        });
-      } else {
-        console.log(`Trial ending reminder already sent to user ${trial.user_id}`);
-      }
-    }
-  }
-
-  // Find and expire all ended trials
-  const { data: expiredTrials, error: expiredTrialsError } = await supabase
-    .from('subscriptions')
-    .select('id, user_id')
-    .eq('status', 'trial')
-    .lt('trial_end_date', nowISO);
-
-  if (expiredTrialsError) {
-    console.error('Error fetching expired trials:', expiredTrialsError);
-  } else if (expiredTrials && expiredTrials.length > 0) {
-    console.log(`Found ${expiredTrials.length} expired trials`);
-
-    for (const trial of expiredTrials) {
-      const { error: updateError } = await supabase
-        .from('subscriptions')
-        .update({
-          plan: 'free',
-          status: 'expired',
-          updated_at: nowISO,
-        })
-        .eq('id', trial.id);
-
-      if (updateError) {
-        console.error(`Failed to expire trial ${trial.id}:`, updateError);
-      } else {
-        console.log(`Expired trial for user ${trial.user_id}`);
-        
-        await sendSubscriptionEmail(trial.user_id, 'trial_expired' as any, {});
-
-        // Also send in-app notification
-        try {
-          await supabase.from('notifications').insert({
-            user_id: trial.user_id,
-            type: 'trial_expired',
-            title: 'Trial Ended',
-            message: 'Your Pro trial has ended. Subscribe now to continue using premium features.',
-            data: {},
-          });
-        } catch (notifError) {
-          console.error('Failed to send trial expiry notification:', notifError);
-        }
-      }
-    }
+    .select('id');
+  if (closeTrialsError) {
+    console.error('Failed to close legacy trial rows:', closeTrialsError);
+  } else if (closedTrials && closedTrials.length > 0) {
+    console.log(`Closed ${closedTrials.length} legacy trial rows`);
   }
 
   // ============ SUBSCRIPTION EXPIRY HANDLING ============
@@ -364,8 +219,7 @@ serve(async (req) => {
       expired_count: expiredSubscriptions.length,
       succeeded,
       failed,
-      trials_expiring_soon: expiringTrials?.length || 0,
-      trials_expired: expiredTrials?.length || 0,
+      legacy_trials_closed: closedTrials?.length || 0,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
