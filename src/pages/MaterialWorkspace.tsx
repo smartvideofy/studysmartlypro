@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { emitDailyActivity, readingActivityForTab, READ_DWELL_SECONDS } from "@/lib/recordActivity";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
@@ -45,6 +46,17 @@ export default function MaterialWorkspace() {
   const [mobilePanel, setMobilePanel] = useState<MobilePanel>("tools");
 
   const { data: material, isLoading } = useStudyMaterial(id || "");
+
+  // Reading notes, summaries or the concept map for 30s counts as studying (once per material per day).
+  const materialId = material?.id;
+  useEffect(() => {
+    const type = readingActivityForTab(activeTab);
+    if (!type || !materialId) return;
+    const t = setTimeout(() => {
+      void emitDailyActivity({ activityType: type, materialId, durationSeconds: READ_DWELL_SECONDS });
+    }, READ_DWELL_SECONDS * 1000);
+    return () => clearTimeout(t);
+  }, [activeTab, materialId]);
 
   if (isLoading) {
     return (

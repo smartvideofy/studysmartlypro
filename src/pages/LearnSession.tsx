@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { recordActivity } from "@/lib/recordActivity";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -32,6 +33,8 @@ export default function LearnSession() {
   const updateDailyChallenge = useUpdateDailyChallenge();
 
   const [state, setState] = useState<LearnState | null>(null);
+  const startedAt = useRef(Date.now());
+  const reported = useRef(false);
   const [feedback, setFeedback] = useState<Feedback>(null);
   const [typed, setTyped] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,6 +54,19 @@ export default function LearnSession() {
   const mastered = state ? masteredCount(state) : 0;
   const total = state?.cards.length ?? 0;
   const progressPct = total > 0 ? (mastered / total) * 100 : 0;
+
+  // Count a finished learn session as studying, once.
+  useEffect(() => {
+    if (!done || reported.current || total === 0) return;
+    reported.current = true;
+    void recordActivity({
+      activityType: "flashcard_review",
+      deckId: deckId || null,
+      itemsCount: total,
+      correctCount: mastered,
+      durationSeconds: (Date.now() - startedAt.current) / 1000,
+    });
+  }, [done, total, mastered, deckId]);
 
   // Focus typed input when a new prompt appears
   useEffect(() => {
