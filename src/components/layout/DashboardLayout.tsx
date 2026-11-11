@@ -36,6 +36,7 @@ import logoImage from "@/assets/logo.png";
 import { OfflineBanner } from "@/components/ui/offline-banner";
 import { useOfflineSync } from "@/hooks/useOfflineStorage";
 import { AndroidAppLink } from "@/components/cta/AndroidAppLink";
+import { SEOHead } from "@/components/seo/SEOHead";
 
 // Grouped navigation items
 const mainNavItems = [
@@ -108,6 +109,8 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      {/* Browser tab title follows the page heading; pages with their own SEOHead override it. */}
+      {title && <SEOHead title={title} noindex />}
       <OfflineBanner />
       <ExpiredTrialBanner />
       {/* Mobile Header - Only render on mobile */}
@@ -116,7 +119,7 @@ export default function DashboardLayout({
           title={title || "Getstudily"}
           onMenuClick={() => setMenuOpen(true)}
           onSearchOpen={() => setSearchOpen(true)}
-          onUploadClick={() => navigate('/materials')}
+          onUploadClick={() => navigate('/materials?upload=1')}
         />
       )}
 
@@ -391,7 +394,7 @@ export default function DashboardLayout({
               </motion.button>
 
               {/* Quick Upload */}
-              <Button size="sm" onClick={() => navigate('/materials')}>
+              <Button size="sm" onClick={() => navigate('/materials?upload=1')}>
                 <Upload className="w-4 h-4" />
                 <span>Upload</span>
               </Button>
