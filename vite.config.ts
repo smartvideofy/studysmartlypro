@@ -14,6 +14,18 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
+      // The service worker is retired. The host pins each browser to the deployment it started on
+      // (`__dpl` cookie) and only re-pins on a page request that reaches the server; a service worker
+      // answering navigations from cache means that never happens, and a new worker can't install
+      // because its precache files 404 under the old pin. Users were stuck on a dead build with
+      // "Something went wrong" until a hard reload. `selfDestroying` ships a worker that installs
+      // with no precache, clears every cache, unregisters itself and reloads open tabs. The app needs
+      // the network for everything, so offline caching gave nothing back. Web push was never
+      // configured (empty VAPID key, no subscriptions), so nothing else depends on it.
+      selfDestroying: true,
+      // New pages don't register a worker at all; browsers that already have one pick up the
+      // self-destroying sw.js through their normal update check.
+      injectRegister: false,
       registerType: "autoUpdate",
       includeAssets: ["favicon.png", "favicon.ico", "og-image.jpg"],
       workbox: {
