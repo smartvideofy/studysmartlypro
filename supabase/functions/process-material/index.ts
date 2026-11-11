@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
 import { callAI } from "../_shared/ai-provider.ts";
+import { extractDocx, extractPdfText, extractPptx, meaningfulLength, MIN_TEXT_CHARS, NoReadableTextError } from "./extract.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -101,25 +102,43 @@ async function extractTextFromFile(supabase: any, material: StudyMaterial): Prom
     return await transcribeAudio(fileData, material.file_name || 'audio.webm');
   }
 
-  if (fileType === 'pdf' || fileType === 'docx' || fileType === 'pptx') {
-    try {
-      const text = await fileData.text();
-      if (text && text.length > 100 && !text.includes('\x00') && isPrintableText(text)) {
-        console.log('Successfully extracted text directly from document');
-        return text.substring(0, 50000);
-      }
-    } catch {
-      console.log('Direct text extraction failed');
+  if (fileType === 'docx' || fileType === 'pptx') {
+    // Office files are zip archives of XML: read the text directly, no AI needed.
+    const bytes = new Uint8Array(await fileData.arrayBuffer());
+    const text = fileType === 'docx' ? extractDocx(bytes) : extractPptx(bytes);
+    console.log(`Extracted ${text.length} chars from ${fileType} locally`);
+    if (meaningfulLength(text) < MIN_TEXT_CHARS) {
+      throw new NoReadableTextError(
+        fileType === 'pptx'
+          ? 'These slides have almost no text (they may be images only). Export them as a PDF and upload that instead.'
+          : "We couldn't find any text in this Word file. If it only contains pictures, upload them as images.",
+      );
     }
-    
-    const fileSize = material.file_size || fileData.size;
-    if (fileSize > MAX_VISION_FILE_SIZE) {
-      console.error(`File too large for vision processing: ${(fileSize / (1024 * 1024)).toFixed(1)}MB`);
-      throw new Error(`This file is too large (${(fileSize / (1024 * 1024)).toFixed(0)}MB) for AI processing. Please upload a file under 10MB, or split it into smaller parts.`);
+    return text.substring(0, 60000);
+  }
+
+  if (fileType === 'pdf') {
+    const bytes = new Uint8Array(await fileData.arrayBuffer());
+    try {
+      const { text, pages } = await extractPdfText(bytes);
+      console.log(`PDF text layer: ${text.length} chars from ${pages} pages`);
+      if (meaningfulLength(text) >= MIN_TEXT_CHARS) return text.substring(0, 60000);
+    } catch (e) {
+      console.error('PDF text layer extraction failed:', e);
     }
 
-    const base64 = await blobToBase64(fileData);
-    return await extractContentWithVision(base64, fileType, material.title);
+    // Scanned / image-only PDF: let the AI read the pages.
+    const fileSize = material.file_size || fileData.size;
+    if (fileSize > MAX_VISION_FILE_SIZE) {
+      throw new NoReadableTextError(
+        `This PDF looks scanned and is too large (${(fileSize / (1024 * 1024)).toFixed(0)}MB) to read page images. Upload a PDF under 10MB, or one with selectable text.`,
+      );
+    }
+    const text = await extractPdfWithAI(await blobToBase64(fileData), material.file_name || 'document.pdf', material.title);
+    if (meaningfulLength(text) < MIN_TEXT_CHARS) {
+      throw new NoReadableTextError("We couldn't read any text in this PDF. Try a clearer scan or a PDF with selectable text.");
+    }
+    return text;
   }
 
   return 'Unable to extract content from this file type.';
@@ -174,6 +193,25 @@ async function transcribeAudio(fileData: Blob, fileName: string): Promise<string
   }
   console.log(`Transcription complete: ${transcript.length} chars`);
   return transcript.substring(0, 50000);
+}
+
+/** Scanned PDFs: send the PDF as a document ("file" part). OpenAI rejects PDFs sent as image_url. */
+async function extractPdfWithAI(base64Data: string, fileName: string, title: string): Promise<string> {
+  console.log('PDF has no text layer; reading it with AI');
+  const content = await callOpenAI([
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'text',
+          text: `This is a scanned study document titled "${title}". Transcribe ALL of its text in reading order. Keep headings, lists and tables (as markdown). Describe diagrams briefly as [DIAGRAM: ...]. Output only the document's content.`,
+        },
+        { type: 'file', file: { filename: fileName, file_data: `data:application/pdf;base64,${base64Data}` } },
+      ],
+    },
+  ], 16000);
+  console.log(`AI read ${content.length} characters from the PDF`);
+  return content.substring(0, 60000);
 }
 
 async function extractContentWithVision(base64Data: string, fileType: string, title: string): Promise<string> {
@@ -523,7 +561,10 @@ If you cannot determine a value, use an empty string.`;
 }
 
 async function handleExtractStep(supabase: any, material: StudyMaterial, materialId: string) {
-  if (material.extracted_content && material.extracted_content.length > 100) {
+  // Older runs stored a "Title: …\nSubject: …\nTopic: …" placeholder when extraction failed; that is
+  // not content, so extract again.
+  const isPlaceholder = /^Title: .*\nSubject: .*\nTopic: [^\n]*$/.test(material.extracted_content ?? '');
+  if (material.extracted_content && material.extracted_content.length > 100 && !isPlaceholder) {
     console.log('Extracted content already exists, skipping extraction');
     // Still try to infer subject/topic if they're missing
     if (!material.subject && !material.topic) {
@@ -557,22 +598,10 @@ async function handleExtractStep(supabase: any, material: StudyMaterial, materia
       .update(metadata)
       .eq('id', materialId);
   } catch (extractError) {
+    // Never fall back to generating study content from the title: that produced confident,
+    // invented notes for almost every PDF/Word/PowerPoint upload. Fail visibly so the user can retry.
     console.error('Content extraction error:', extractError);
-    const msg = extractError instanceof Error ? extractError.message : String(extractError);
-    // For audio (or any explicit "too large" message), surface the real error
-    // so the user sees a friendly failure instead of silently generating
-    // nonsense study content from a placeholder.
-    if (material.file_type === 'audio' || /too large|transcription/i.test(msg)) {
-      throw extractError;
-    }
-    extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
-    await supabase
-      .from('study_materials')
-      .update({ 
-        extracted_content: extractedContent,
-        processing_status: 'processing',
-      })
-      .eq('id', materialId);
+    throw extractError;
   }
 }
 
@@ -651,7 +680,7 @@ async function handleFlashcardsStep(supabase: any, material: StudyMaterial, mate
       materialId,
       title: material.title,
       subject: material.subject || null,
-      cards: flashcards,
+      cards: flashcards as any,
     });
   } catch (autoSaveError) {
     console.error('Auto-save to deck failed (non-fatal):', autoSaveError);
@@ -1013,12 +1042,9 @@ serve(async (req) => {
         .update({ extracted_content: extractedContent.substring(0, 65000) })
         .eq('id', materialId);
     } catch (extractError) {
+      // No title-only fallback (see handleExtractStep): surface the failure.
       console.error('Content extraction error:', extractError);
-      extractedContent = `Title: ${material.title}\nSubject: ${material.subject || 'General'}\nTopic: ${material.topic || 'Not specified'}`;
-      await supabase
-        .from('study_materials')
-        .update({ extracted_content: extractedContent })
-        .eq('id', materialId);
+      throw extractError;
     }
 
     // Generate all content
@@ -1110,6 +1136,10 @@ serve(async (req) => {
       userFriendlyError = 'This recording is too long. Audio uploads must be 25 MB or smaller (roughly 25 minutes). Please trim and try again.';
     } else if (/transcription returned no content/i.test(errorMessage)) {
       userFriendlyError = 'We could not hear any speech in this recording. Please re-record in a quieter environment.';
+    } else if (/^OpenAI API error|^AI_UNAVAILABLE$/.test(errorMessage)) {
+      userFriendlyError = "We couldn't process this file right now. Please tap Retry in a minute.";
+    } else if (errorMessage === 'NO_READABLE_TEXT') {
+      userFriendlyError = "We couldn't find any text in this file. Try a PDF with selectable text, or upload photos of the pages.";
     } else if (errorMessage.includes('Material not found')) {
       userFriendlyError = 'Study material not found. It may have been deleted.';
     }
