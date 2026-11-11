@@ -18,7 +18,7 @@ import {
   type LearnState, type LearnCard,
 } from "@/lib/learn";
 import { useDeck, useFlashcards } from "@/hooks/useFlashcards";
-import { useAwardXP, useUpdateDailyChallenge } from "@/hooks/useGamification";
+import { useUpdateDailyChallenge } from "@/hooks/useGamification";
 import { cn } from "@/lib/utils";
 import { haptics } from "@/lib/haptics";
 
@@ -29,7 +29,6 @@ export default function LearnSession() {
   const navigate = useNavigate();
   const { data: deck, isLoading: deckLoading } = useDeck(deckId || "");
   const { data: cards, isLoading: cardsLoading } = useFlashcards(deckId || "");
-  const awardXP = useAwardXP();
   const updateDailyChallenge = useUpdateDailyChallenge();
 
   const [state, setState] = useState<LearnState | null>(null);
@@ -79,7 +78,8 @@ export default function LearnSession() {
     if (!state || !prompt) return;
     haptics.medium();
     setFeedback({ correct, answer: prompt.answer });
-    awardXP.mutate({ amount: correct ? 10 : 3, reason: "Learn session" });
+    // XP, streak and achievements are awarded by the server when the session is recorded
+    // (record-activity); awarding here as well counted every card twice.
     updateDailyChallenge.mutate({ progress: 1 });
     // Advance after a short beat so the learner sees the correct answer
     setTimeout(() => {

@@ -160,7 +160,7 @@ export function GlobalSearch({ open, onOpenChange }: GlobalSearchProps) {
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
               <Input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

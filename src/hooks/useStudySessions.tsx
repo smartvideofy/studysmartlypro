@@ -49,25 +49,43 @@ export function useStudyStats() {
     queryFn: async () => {
       if (!user?.id) return null;
 
-      // Get all sessions for the user
-      const { data: sessions, error } = await supabase
-        .from('study_sessions')
-        .select('*')
-        .eq('user_id', user.id);
+      // All study activity: study_activity_v unions the server-recorded study_activity (web and
+      // mobile, via record-activity) with legacy study_sessions. Reading study_sessions alone showed
+      // 0m / no activity for everyone, because nothing writes to it any more.
+      const [{ data: rows, error }, { count: masteredCards }] = await Promise.all([
+        supabase
+          .from('study_activity_v')
+          .select('occurred_at, duration_seconds, cards_or_items, correct_count, activity_type')
+          .eq('user_id', user.id),
+        supabase
+          .from('flashcards')
+          .select('id, flashcard_decks!inner(user_id)', { count: 'exact', head: true })
+          .eq('flashcard_decks.user_id', user.id)
+          .gte('interval_days', 21),
+      ]);
 
       if (error) throw error;
 
+      const sessions = (rows ?? []).map((r) => ({
+        started_at: r.occurred_at as string,
+        total_time_seconds: r.duration_seconds ?? 0,
+        // Cards studied and accuracy only make sense for graded activities.
+        graded: r.activity_type === 'flashcard_review' || r.activity_type === 'quiz',
+        cards_studied: r.activity_type === 'flashcard_review' ? r.cards_or_items ?? 0 : 0,
+        items: r.cards_or_items ?? 0,
+        correct_count: r.correct_count ?? 0,
+      }));
+
       // Calculate stats
-      const totalSessions = sessions?.length || 0;
-      const totalCardsStudied = sessions?.reduce((sum, s) => sum + (s.cards_studied || 0), 0) || 0;
-      const totalCorrect = sessions?.reduce((sum, s) => sum + (s.correct_count || 0), 0) || 0;
-      const totalTimeMinutes = Math.round(
-        (sessions?.reduce((sum, s) => sum + (s.total_time_seconds || 0), 0) || 0) / 60
-      );
+      const totalSessions = sessions.length;
+      const totalCardsStudied = sessions.reduce((sum, s) => sum + s.cards_studied, 0);
+      const gradedItems = sessions.reduce((sum, s) => sum + (s.graded ? s.items : 0), 0);
+      const totalCorrect = sessions.reduce((sum, s) => sum + (s.graded ? s.correct_count : 0), 0);
+      const totalTimeMinutes = Math.round(sessions.reduce((sum, s) => sum + s.total_time_seconds, 0) / 60);
 
       // Calculate streak (consecutive days studied)
       const sessionDates = sessions
-        ?.map(s => new Date(s.started_at).toDateString())
+        .map(s => new Date(s.started_at).toDateString())
         .filter((date, i, arr) => arr.indexOf(date) === i)
         .sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
 
@@ -94,9 +112,9 @@ export function useStudyStats() {
 
       // Get today's study time
       const today = new Date().toDateString();
-      const todaySessions = sessions?.filter(
+      const todaySessions = sessions.filter(
         s => new Date(s.started_at).toDateString() === today
-      ) || [];
+      );
       const todayMinutes = Math.round(
         todaySessions.reduce((sum, s) => sum + (s.total_time_seconds || 0), 0) / 60
       );
@@ -107,16 +125,17 @@ export function useStudyStats() {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toDateString();
-        const daySessions = sessions?.filter(
+        const daySessions = sessions.filter(
           s => new Date(s.started_at).toDateString() === dateStr
-        ) || [];
-        
+        );
+
         weekData.push({
           day: date.toLocaleDateString('en-US', { weekday: 'short' }),
           minutes: Math.round(
             daySessions.reduce((sum, s) => sum + (s.total_time_seconds || 0), 0) / 60
           ),
           cards: daySessions.reduce((sum, s) => sum + (s.cards_studied || 0), 0),
+          activities: daySessions.length,
         });
       }
 
@@ -127,7 +146,8 @@ export function useStudyStats() {
         totalTimeMinutes,
         streak,
         todayMinutes,
-        accuracy: totalCardsStudied > 0 ? Math.round((totalCorrect / totalCardsStudied) * 100) : 0,
+        masteredCards: masteredCards ?? 0,
+        accuracy: gradedItems > 0 ? Math.round((totalCorrect / gradedItems) * 100) : 0,
         weekData,
       };
     },

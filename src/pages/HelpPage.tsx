@@ -145,7 +145,7 @@ export default function HelpPage() {
               <h2 className="font-display text-2xl font-bold mb-2">How can we help?</h2>
               <p className="text-muted-foreground mb-6">Search our help center or browse topics below</p>
               <div className="relative max-w-md mx-auto">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10 pointer-events-none" />
                 <Input
                   placeholder="Search for help..."
                   value={searchQuery}

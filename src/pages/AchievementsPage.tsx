@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { SEOHead } from "@/components/seo/SEOHead";
 import { XPProgress, AchievementBadge } from "@/components/gamification/XPProgress";
+import { useStudyStats } from "@/hooks/useStudySessions";
 import { 
   useAchievements, 
   useUserAchievements, 
@@ -80,6 +81,7 @@ export default function AchievementsPage() {
   const { data: achievements, isLoading: achievementsLoading } = useAchievements();
   const { data: userAchievements, isLoading: userAchievementsLoading } = useUserAchievements();
   const { data: profile, isLoading: profileLoading } = useGamificationProfile();
+  const { data: stats } = useStudyStats();
 
   const isLoading = achievementsLoading || userAchievementsLoading || profileLoading;
 
@@ -195,7 +197,7 @@ export default function AchievementsPage() {
                 <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-gradient-to-br from-destructive/15 to-destructive/5 flex items-center justify-center mx-auto mb-2">
                   <Flame className="w-4 h-4 md:w-5 md:h-5 text-destructive" />
                 </div>
-                <div className="font-display text-xl md:text-2xl font-bold">{profile?.streak_days || 0}</div>
+                <div className="font-display text-xl md:text-2xl font-bold">{stats?.streak ?? 0}</div>
                 <div className="text-[10px] md:text-xs text-muted-foreground">Day Streak</div>
               </CardContent>
             </Card>

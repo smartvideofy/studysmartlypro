@@ -7,6 +7,7 @@ import {
   xpProgressInLevel,
   useDailyChallenge 
 } from "@/hooks/useGamification";
+import { useStudyStats } from "@/hooks/useStudySessions";
 import { cn } from "@/lib/utils";
 
 interface XPProgressProps {
@@ -16,6 +17,9 @@ interface XPProgressProps {
 export function XPProgress({ compact = false }: XPProgressProps) {
   const { data: profile } = useGamificationProfile();
   const { data: dailyChallenge } = useDailyChallenge();
+  // Same streak as the Dashboard and Progress pages (from the activity history).
+  const { data: stats } = useStudyStats();
+  const streak = stats?.streak ?? 0;
 
   if (!profile) return null;
 
@@ -31,14 +35,14 @@ export function XPProgress({ compact = false }: XPProgressProps) {
         <Progress value={percentage} className="w-16 h-2" />
         <div className="flex items-center gap-1 text-sm">
           <Flame className="w-4 h-4 text-destructive" />
-          <span className="font-medium">{profile.streak_days}</span>
+          <span className="font-medium">{streak}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 min-w-[260px]">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-bold text-lg">
@@ -53,10 +57,10 @@ export function XPProgress({ compact = false }: XPProgressProps) {
         </div>
 
         <div className="flex items-center gap-4">
-          {profile.streak_days > 0 && (
+          {streak > 0 && (
             <div className="flex items-center gap-1.5">
               <Flame className="w-5 h-5 text-orange-500" />
-              <span className="font-bold">{profile.streak_days}</span>
+              <span className="font-bold">{streak}</span>
               <span className="text-sm text-muted-foreground">day streak</span>
             </div>
           )}
@@ -64,7 +68,7 @@ export function XPProgress({ compact = false }: XPProgressProps) {
       </div>
 
       <div className="space-y-1">
-        <div className="flex justify-between text-sm">
+        <div className="flex justify-between gap-4 text-sm">
           <span className="text-muted-foreground">Progress to Level {profile.level + 1}</span>
           <span className="font-medium">{current} / {needed} XP</span>
         </div>

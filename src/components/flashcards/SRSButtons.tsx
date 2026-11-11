@@ -22,42 +22,16 @@ interface SRSButtonsProps {
   currentRepetitions: number;
 }
 
-// Calculate predicted intervals for each button
+// The label on each button is what the scheduler will actually do. It used to come from a separate
+// formula that disagreed with it (Good and Easy both showed "1d" while Easy scheduled 4 days).
 function calculatePredictedInterval(
   quality: number,
   easeFactor: number,
   interval: number,
   repetitions: number
 ): string {
-  let newInterval = interval;
-  let newRepetitions = repetitions;
-
-  if (quality < 3) {
-    // Failed - reset
-    if (quality === 1) {
-      return "1m"; // Again
-    }
-    return "10m"; // Hard after fail
-  } else {
-    newRepetitions += 1;
-    
-    if (newRepetitions === 1) {
-      newInterval = 1;
-    } else if (newRepetitions === 2) {
-      newInterval = 6;
-    } else {
-      // Adjust based on quality
-      let modifier = 1;
-      if (quality === 2) modifier = 0.8; // Hard
-      if (quality === 3) modifier = 1.0; // Good
-      if (quality === 4) modifier = 1.3; // Easy
-      if (quality === 5) modifier = 1.5; // Very Easy
-      
-      newInterval = Math.round(interval * easeFactor * modifier);
-    }
-  }
-
-  return formatInterval(newInterval);
+  if (quality === 1) return "1m";
+  return formatInterval(calculateNextReviewExtended(quality, easeFactor, interval, repetitions).interval_days);
 }
 
 function formatInterval(days: number): string {
