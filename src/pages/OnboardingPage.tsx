@@ -23,7 +23,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { useUpdateProfile } from "@/hooks/useProfile";
-import { useStartTrial } from "@/hooks/useSubscription";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -93,7 +92,6 @@ export default function OnboardingPage() {
   
   const navigate = useNavigate();
   const updateProfile = useUpdateProfile();
-  const startTrial = useStartTrial();
   
   const progress = ((currentStep + 1) / TOTAL_STEPS) * 100;
   const isPreferencesStep = currentStep >= featureSteps.length;
@@ -112,14 +110,7 @@ export default function OnboardingPage() {
           daily_study_minutes: dailyMinutes[0],
           preferred_study_time: preferredTime,
         });
-        
-        // Auto-start 7-day trial for new users
-        try {
-          await startTrial.mutateAsync();
-        } catch (trialError: any) {
-          // Trial may already be used or user already subscribed - that's fine
-          console.log('Trial start skipped:', trialError?.message);
-        }
+
         
         haptics.success();
         navigate("/dashboard");
