@@ -26,7 +26,16 @@ export async function rebuildMaterial(materialId: string, queryClient: QueryClie
 
   const { error } = await supabase
     .from("study_materials")
-    .update({ processing_status: "pending", processing_error: null })
+    // A rebuild produces the complete set: older uploads often had the quiz and concept map switched
+    // off by the old defaults, and the rebuild has just deleted whatever was there.
+    .update({
+      processing_status: "pending",
+      processing_error: null,
+      generate_tutor_notes: true,
+      generate_flashcards: true,
+      generate_questions: true,
+      generate_concept_map: true,
+    })
     .eq("id", materialId);
   if (error) throw new Error("Couldn't start the rebuild. Please try again.");
 
