@@ -183,7 +183,7 @@ serve(async (req) => {
         }
 
         const resp = await resend.emails.send({
-          from: "Getstudily <noreply@getstudily.com>",
+          from: "Studily <noreply@getstudily.com>",
           to: [email],
           subject: SUBJECT,
           html,

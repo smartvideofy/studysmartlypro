@@ -96,7 +96,7 @@ export default function PricingPage() {
     <DashboardLayout title="Pricing">
       <SEOHead
         title="Pricing"
-        description="Getstudily is free for your first complete study set. Upgrade to Pro for unlimited uploads."
+        description="Studily is free for your first complete study set. Upgrade to Pro for unlimited uploads."
         url="/pricing"
         jsonLd={createSoftwareApplicationJsonLd([
           { name: 'Free', price: 0, description: 'One complete study set', features: STUDY_TOOLS },

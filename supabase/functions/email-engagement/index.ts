@@ -113,7 +113,7 @@ serve(async (req) => {
             if (logs && logs.length >= 2) continue; // Already sent both
           }
 
-          const planName = attempt.plan === "pro" ? "Getstudily Pro" : "Getstudily Team";
+          const planName = attempt.plan === "pro" ? "Studily Pro" : "Studily Team";
           const result = await sendEmail(attempt.user_id, "abandoned_checkout", {
             planName,
             amount: attempt.amount,
