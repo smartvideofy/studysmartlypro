@@ -14,12 +14,12 @@ type BillingInterval = 'monthly' | 'yearly';
 
 const PLANS: Record<string, Record<BillingInterval, { code: string; name: string; amount: number }>> = {
   pro: {
-    monthly: { code: 'PLN_4e8hpv8om2lbhta', name: 'Getstudily Pro (Monthly)', amount: 9 },
-    yearly: { code: 'PLN_7mvshbtqgnmuygy', name: 'Getstudily Pro (Yearly)', amount: 90 },
+    monthly: { code: 'PLN_4e8hpv8om2lbhta', name: 'Studily Pro (Monthly)', amount: 9 },
+    yearly: { code: 'PLN_7mvshbtqgnmuygy', name: 'Studily Pro (Yearly)', amount: 90 },
   },
   team: {
-    monthly: { code: 'PLN_tmqbbw7lu7rzv5i', name: 'Getstudily Team (Monthly)', amount: 19 },
-    yearly: { code: 'PLN_lgfih0x6mwrycyf', name: 'Getstudily Team (Yearly)', amount: 190 },
+    monthly: { code: 'PLN_tmqbbw7lu7rzv5i', name: 'Studily Team (Monthly)', amount: 19 },
+    yearly: { code: 'PLN_lgfih0x6mwrycyf', name: 'Studily Team (Yearly)', amount: 190 },
   },
 };
 
