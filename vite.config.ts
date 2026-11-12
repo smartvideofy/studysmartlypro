@@ -27,14 +27,14 @@ export default defineConfig(({ mode }) => ({
       // self-destroying sw.js through their normal update check.
       injectRegister: false,
       registerType: "autoUpdate",
-      includeAssets: ["favicon.png", "favicon.ico", "og-image.jpg"],
+      includeAssets: ["favicon.png", "favicon.ico", "og-image.jpg", "og-studily.jpg"],
       workbox: {
         // index.html is NOT precached. When it was, a service worker that installed while the host
         // was still serving the previous build stored that old HTML under the new revision, and from
         // then on every visit loaded chunks that no longer exist ("Something went wrong" on /dashboard).
         // Pages now always come from the network, with the last good copy only as an offline fallback.
         globPatterns: ["**/*.{js,css,ico,woff2}"],
-        globIgnores: ["**/og-image.*", "**/pwa-512x512.png"],
+        globIgnores: ["**/og-image.*", "**/og-studily.*", "**/pwa-512x512.png"],
         navigateFallback: null,
         cleanupOutdatedCaches: true,
         runtimeCaching: [
